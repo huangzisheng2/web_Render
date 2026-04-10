@@ -3,7 +3,7 @@ import axios from 'axios'
 // API 基础 URL
 // 本地开发使用代理，生产环境使用 Render 服务地址
 const BASE_URL = import.meta.env.PROD 
-  ? 'https://bazi-talent-api.onrender.com'  // 修改为你的 Render 服务地址
+  ? 'https://bazi-talent-api.onrender.com'  // Render 服务地址
   : ''
 
 const api = axios.create({
