@@ -90,9 +90,8 @@
     
     <!-- 日期选择器 -->
     <Popup v-model:show="showDatePicker" position="bottom">
-      <DatetimePicker
+      <DatePicker
         v-model="dateValue"
-        type="date"
         title="选择出生日期"
         :min-date="minDate"
         :max-date="maxDate"
@@ -107,9 +106,8 @@
         <span>选择出生时间</span>
         <Button size="small" type="primary" @click="onTimeUnknown">未知</Button>
       </div>
-      <DatetimePicker
+      <TimePicker
         v-model="timeValue"
-        type="time"
         title="选择出生时间"
         @confirm="onTimeConfirm"
         @cancel="showTimePicker = false"

@@ -10,7 +10,8 @@ import {
   Form, 
   Picker,
   Popup,
-  DatetimePicker,
+  DatePicker,
+  TimePicker,
   Radio,
   RadioGroup,
   Loading,
@@ -37,7 +38,8 @@ app.use(Field)
 app.use(Form)
 app.use(Picker)
 app.use(Popup)
-app.use(DatetimePicker)
+app.use(DatePicker)
+app.use(TimePicker)
 app.use(Radio)
 app.use(RadioGroup)
 app.use(Loading)
