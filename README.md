@@ -593,3 +593,78 @@ xcopy /Y /E "G:\07.Project\02.性格测试\01.八字排盘与计算\bazi-master_
 ---
 
 **最后更新**：2024年
+
+
+
+更新到github：用户遇到了 Git 推送错误：`src refspec main does not match any`。这个错误通常是因为本地没有 `main` 分支，或者没有任何提交。
+
+让我分析一下可能的原因：
+1. 可能本地分支名是 `master` 而不是 `main`
+2. 可能还没有创建任何提交
+3. 可能需要先创建分支
+
+我应该提供解决方案。
+这个错误通常是因为本地没有 `main` 分支。让我帮你解决：
+原来如此！Git 仓库还没有初始化。让我提供完整的解决方案。
+找到原因了！**Git 仓库还没有初始化**。执行以下完整命令：
+需要配置 Git 用户信息。让我提供完整的解决方案。
+需要配置 Git 用户信息。请按以下步骤操作：
+
+## 完整解决步骤
+
+```bash
+# 1. 进入项目目录
+cd "g:\07.Project\02.性格测试\03.bazi-talent-render"
+
+# 2. 配置 Git 用户信息（用你的信息替换）
+git config user.email "your-email@example.com"
+git config user.name "Your Name"
+
+# 3. 初始化仓库（如果还没做）
+git init
+
+# 4. 添加所有文件
+git add .
+
+# 5. 提交
+git commit -m "Initial commit: 天赋性格测评系统"
+
+# 6. 创建 main 分支
+git branch -M main
+
+# 7. 添加远程仓库
+git remote add origin https://github.com/huangzisheng2/web_Render.git
+
+# 8. 推送（可能需要输入 GitHub 用户名和密码/Token）
+git push -u origin main
+```
+
+---
+
+## 如果推送被拒绝
+
+**情况 A：远程仓库不为空**
+
+```bash
+# 强制推送（会覆盖远程内容，谨慎使用）
+git push -f origin main
+```
+
+**情况 B：需要 GitHub Token**
+
+GitHub 不再支持密码登录，需要创建 Personal Access Token：
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Generate new token
+3. 勾选 `repo` 权限
+4. 生成后复制 Token
+5. 推送时用这个 Token 代替密码
+
+---
+
+## 一键命令（复制粘贴）
+
+```bash
+cd "g:\07.Project\02.性格测试\03.bazi-talent-render" && git config user.email "huangzisheng2@example.com" && git config user.name "huangzisheng2" && git init && git add . && git commit -m "Initial commit" && git branch -M main && git remote add origin https://github.com/huangzisheng2/web_Render.git && git push -u origin main
+```
+
+**请把邮箱和用户名改成你自己的**，然后粘贴到 PowerShell 执行。
