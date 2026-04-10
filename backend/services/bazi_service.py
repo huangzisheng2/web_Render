@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 
 # 命理模块路径已在 main.py 中添加
 from lunar_python import Solar
-from city_database import CityDatabase
+from city_database import CITY_DATABASE
 from true_solar_time import TrueSolarTimeCalculator
 from bazi_bridge import analyze_bazi_unified
 
@@ -20,12 +20,17 @@ class BaziAnalysisService:
     """八字分析服务"""
     
     def __init__(self):
-        self.city_db = CityDatabase()
+        self.city_data = CITY_DATABASE
         self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "sk-99f76dba24a242d9b6b358365b356d79")
     
     def get_cities(self) -> Dict[str, list]:
         """获取城市列表"""
-        return self.city_db.get_all_cities()
+        cities = {}
+        for province, city, _, _ in self.city_data:
+            if province not in cities:
+                cities[province] = []
+            cities[province].append(city)
+        return cities
     
     def _get_location(self, province: str, city: str) -> tuple:
         """
@@ -35,15 +40,15 @@ class BaziAnalysisService:
             (longitude, latitude) 或 (None, None)
         """
         try:
-            # 尝试查找城市
-            city_info = self.city_db.find_city(province, city)
-            if city_info:
-                return (city_info.get("longitude"), city_info.get("latitude"))
+            # 遍历城市数据库查找
+            for prov, c, lon, lat in self.city_data:
+                if prov == province and c == city:
+                    return (lon, lat)
             
             # 尝试仅按城市名查找
-            city_info = self.city_db.find_city_by_name(city)
-            if city_info:
-                return (city_info.get("longitude"), city_info.get("latitude"))
+            for prov, c, lon, lat in self.city_data:
+                if c == city:
+                    return (lon, lat)
             
             return (None, None)
         except Exception as e:
