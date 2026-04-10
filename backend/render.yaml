@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: bazi-talent-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        value: sk-99f76dba24a242d9b6b358365b356d79
