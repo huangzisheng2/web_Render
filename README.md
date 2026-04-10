@@ -216,15 +216,23 @@ npm run dev
 
 ### 第一步：上传代码到 GitHub
 
+#### 首次上传（初始化）
+
 ```bash
 # 进入项目目录
 cd "g:\07.Project\02.性格测试\03.bazi-talent-render"
 
 # 确保命理模块已复制
-copy_bazi_modules.bat
+xcopy /Y /E "G:\07.Project\02.性格测试\01.八字排盘与计算\bazi-master_new\bazi-master\*.py" "backend\bazi_modules\"
+xcopy /Y /E "G:\07.Project\02.性格测试\01.八字排盘与计算\bazi-master_new\bazi-master\lunar_python" "backend\bazi_modules\lunar_python\"
+xcopy /Y /E "G:\07.Project\02.性格测试\01.八字排盘与计算\bazi-master_new\bazi-master\bidict" "backend\bazi_modules\bidict\"
 
 # 初始化 Git（如果未初始化）
 git init
+
+# 配置用户信息（首次需要）
+git config user.email "your-email@example.com"
+git config user.name "Your Name"
 
 # 添加所有文件
 git add .
@@ -235,10 +243,92 @@ git commit -m "Initial commit: 天赋性格测评系统 v1.0"
 # 添加远程仓库
 git remote add origin https://github.com/huangzisheng2/web_Render.git
 
-# 推送到 GitHub
+# 推送到 GitHub（如有网络问题，见下方网络配置）
 git branch -M main
 git push -u origin main
 ```
+
+#### 🔧 网络问题解决方案
+
+如果推送失败（`Failed to connect to github.com`），使用代理：
+
+```bash
+# 设置代理（根据你的代理软件修改端口，如 7890、1080 等）
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+
+# 推送
+git push -u origin main
+
+# 成功后取消代理
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+如果提示 `rejected`，强制推送：
+```bash
+git push -f origin main
+```
+
+---
+
+### 📦 日常更新代码流程
+
+每次修改代码后，按以下步骤更新到 GitHub：
+
+```bash
+# 1. 进入项目目录
+cd "g:\07.Project\02.性格测试\03.bazi-talent-render"
+
+# 2. 查看修改状态
+git status
+
+# 3. 添加修改的文件（可以单独添加，也可以用 . 添加所有）
+git add .
+
+# 4. 提交修改（写有意义的提交信息）
+git commit -m "描述你的修改，如：修复八字计算bug"
+
+# 5. 推送到 GitHub（如有网络问题，先设置代理）
+git push origin main
+```
+
+#### 完整示例
+
+```bash
+# 示例：修改了后端代码
+cd "g:\07.Project\02.性格测试\03.bazi-talent-render"
+
+# 修改文件后...
+
+# 检查哪些文件被修改了
+git status
+
+# 添加修改
+git add backend/services/bazi_service.py
+git add backend/main.py
+
+# 提交
+git commit -m "优化八字分析算法，提升计算速度"
+
+# 推送（如有网络问题，设置代理）
+git config --global http.proxy http://127.0.0.1:7890
+git push origin main
+git config --global --unset http.proxy
+```
+
+#### 常用 Git 命令速查
+
+| 命令 | 作用 |
+|------|------|
+| `git status` | 查看当前修改状态 |
+| `git add 文件名` | 添加指定文件到暂存区 |
+| `git add .` | 添加所有修改的文件 |
+| `git commit -m "说明"` | 提交修改 |
+| `git push origin main` | 推送到 GitHub |
+| `git pull origin main` | 拉取远程更新 |
+| `git log --oneline` | 查看提交历史 |
+| `git diff` | 查看具体修改内容 |
 
 ### 第二步：部署后端到 Render
 

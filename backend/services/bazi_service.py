@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 # 命理模块路径已在 main.py 中添加
 from lunar_python import Solar
 from city_database import CITY_DATABASE
-from true_solar_time import TrueSolarTimeCalculator
+from true_solar_time import calculate_true_solar_time
 from bazi_bridge import analyze_bazi_unified
 
 
@@ -72,8 +72,7 @@ class BaziAnalysisService:
             return (year, month, day, hour, minute)
         
         try:
-            calc = TrueSolarTimeCalculator()
-            result = calc.calculate(
+            result = calculate_true_solar_time(
                 year=year,
                 month=month,
                 day=day,
