@@ -53,5 +53,5 @@ dist/
 Thumbs.db
 
 # Project specific
-backend/bazi_modules/
-!backend/bazi_modules/.gitkeep
+# backend/bazi_modules/  # 注释掉，需要提交命理模块
+# !backend/bazi_modules/.gitkeep
