@@ -1,0 +1,437 @@
+<template>
+  <div class="ai-report-container">
+    <!-- 标题区 -->
+    <div class="section-header">
+      <div class="header-icon ai-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+          <path d="M12 6v6l4 2"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+      </div>
+      <div class="header-content">
+        <h3 class="header-title">AI 天赋分析报告</h3>
+        <p class="header-subtitle">基于 DeepSeek 大模型深度分析</p>
+      </div>
+      <div class="ai-badge">AI</div>
+    </div>
+
+    <!-- 报告内容 -->
+    <div class="report-content" v-if="report">
+      <!-- 报告摘要卡片 -->
+      <div class="summary-cards">
+        <div class="summary-card character">
+          <div class="card-icon">🎯</div>
+          <div class="card-title">性格特质</div>
+          <div class="card-desc">核心性格与行为模式</div>
+        </div>
+        <div class="summary-card talent">
+          <div class="card-icon">💎</div>
+          <div class="card-title">天赋优势</div>
+          <div class="card-desc">与生俱来的潜能领域</div>
+        </div>
+        <div class="summary-card advice">
+          <div class="card-icon">🌱</div>
+          <div class="card-title">成长建议</div>
+          <div class="card-desc">发展方向与提升路径</div>
+        </div>
+        <div class="summary-card warning">
+          <div class="card-icon">⚠️</div>
+          <div class="card-title">注意事项</div>
+          <div class="card-desc">需要警惕的弱点</div>
+        </div>
+      </div>
+
+      <!-- 格式化报告内容 -->
+      <div class="formatted-report" v-html="formattedReport"></div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-else-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">AI 正在分析您的命盘...</p>
+      <p class="loading-subtext">这可能需要 10-30 秒</p>
+    </div>
+
+    <!-- 空状态 -->
+    <div v-else class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/>
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+        </svg>
+      </div>
+      <p class="empty-text">暂无 AI 分析报告</p>
+      <button class="generate-btn" @click="$emit('generate')">
+        生成 AI 报告
+      </button>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="report-actions" v-if="report">
+      <button class="action-btn primary" @click="$emit('download')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        下载 PDF 报告
+      </button>
+      <button class="action-btn secondary" @click="$emit('regenerate')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        重新生成
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  report: {
+    type: String,
+    default: ''
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  }
+})
+
+defineEmits(['generate', 'download', 'regenerate'])
+
+// 格式化报告内容
+const formattedReport = computed(() => {
+  if (!props.report) return ''
+  
+  let content = props.report
+  
+  // 处理 Markdown 格式
+  // 标题
+  content = content.replace(/### (.*)/g, '<h4 class="report-h4">$1</h4>')
+  content = content.replace(/## (.*)/g, '<h3 class="report-h3">$1</h3>')
+  content = content.replace(/# (.*)/g, '<h2 class="report-h2">$1</h2>')
+  
+  // 加粗
+  content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  
+  // 列表
+  content = content.replace(/^\* (.*)/gm, '<li class="report-li">$1</li>')
+  content = content.replace(/(<li.*<\/li>\n)+/g, '<ul class="report-ul">$&</ul>')
+  
+  // 段落
+  content = content.replace(/\n\n/g, '</p><p class="report-p">')
+  content = '<p class="report-p">' + content + '</p>'
+  
+  // 清理多余的空段落
+  content = content.replace(/<p class="report-p"><\/p>/g, '')
+  content = content.replace(/<p class="report-p">(<h[23])/g, '$1')
+  content = content.replace(/(<\/h[23]>)<\/p>/g, '$1')
+  
+  return content
+})
+</script>
+
+<style scoped>
+.ai-report-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* 标题区 */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.ai-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.header-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.header-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ai-badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 20px;
+}
+
+/* 摘要卡片 */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f1f5f9;
+  transition: all 0.3s;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.card-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* 格式化报告 */
+.formatted-report {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  line-height: 1.8;
+  color: #334155;
+}
+
+:deep(.report-h2) {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 24px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+:deep(.report-h3) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin: 20px 0 12px;
+}
+
+:deep(.report-h4) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 16px 0 8px;
+}
+
+:deep(.report-p) {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+:deep(.report-ul) {
+  margin: 8px 0 16px;
+  padding-left: 20px;
+}
+
+:deep(.report-li) {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+:deep(strong) {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  margin: 16px 0 4px;
+  font-size: 15px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.loading-subtext {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-text {
+  margin: 0 0 20px;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.generate-btn {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* 操作按钮 */
+.report-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn.secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.action-btn.secondary:hover {
+  background: #e2e8f0;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .report-actions {
+    flex-direction: column;
+  }
+}
+</style>

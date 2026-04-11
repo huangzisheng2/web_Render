@@ -5,7 +5,7 @@ import { resolve } from 'path'
 // GitHub Pages 部署配置
 export default defineConfig({
   plugins: [vue()],
-  base: '/web_Render/', // GitHub 仓库名
+  base: './', // 相对路径
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),

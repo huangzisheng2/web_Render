@@ -3,387 +3,326 @@
     <!-- 报告头部 -->
     <div class="report-header">
       <div class="user-info">
-        <h2>{{ result.user_info?.name || '匿名' }} 的命理报告</h2>
-        <p class="meta">
-          {{ result.user_info?.gender }} · 
-          {{ result.user_info?.birth_time?.original?.year }}年
-          {{ result.user_info?.birth_time?.original?.month }}月
-          {{ result.user_info?.birth_time?.original?.day }}日
-          {{ result.user_info?.birth_time?.original?.hour !== null 
-            ? result.user_info?.birth_time?.original?.hour + '时' 
-            : '' }}
+        <h1 class="user-name">{{ userName }} 的命理报告</h1>
+        <p class="user-meta">
+          <span class="meta-item">{{ genderText }}</span>
+          <span class="meta-separator">·</span>
+          <span class="meta-item">{{ birthDateText }}</span>
+          <span class="meta-separator">·</span>
+          <span class="meta-item">{{ birthTimeText }}</span>
         </p>
       </div>
-      <Tag type="primary" size="large" class="report-tag">已生成</Tag>
+      <div class="report-badge">
+        <span class="badge-text">已生成</span>
+      </div>
     </div>
-    
+
     <!-- 四柱排盘 -->
-    <Card class="section-card">
-      <template #title>
-        <div class="section-title">
-          <Icon name="column" />
-          <span>四柱排盘</span>
-        </div>
-      </template>
-      <div class="bazi-pillars">
-        <div class="pillar" v-for="(item, index) in pillarItems" :key="index">
-          <div class="gan">{{ item.gan }}</div>
-          <div class="zhi">{{ item.zhi }}</div>
-          <div class="label">{{ item.label }}</div>
-        </div>
-      </div>
-    </Card>
-    
-    <!-- 基本分析 -->
-    <Card class="section-card">
-      <template #title>
-        <div class="section-title">
-          <Icon name="chart-trending-o" />
-          <span>基本分析</span>
-        </div>
-      </template>
-      <div class="analysis-grid">
-        <div class="analysis-item">
-          <span class="label">身强身弱</span>
-          <Tag :type="strengthType" size="medium">{{ result.analysis?.strength || '未知' }}</Tag>
-        </div>
-        <div class="analysis-item">
-          <span class="label">主要格局</span>
-          <span class="value highlight">{{ result.analysis?.main_pattern || '未知' }}</span>
-        </div>
-        <div class="analysis-item">
-          <span class="label">日主</span>
-          <span class="value">{{ result.bazi?.day_master }}</span>
-        </div>
-        <div class="analysis-item">
-          <span class="label">月令</span>
-          <span class="value">{{ result.bazi?.month_command }}</span>
-        </div>
-      </div>
-    </Card>
-    
-    <!-- 五行能量 -->
-    <Card class="section-card">
-      <template #title>
-        <div class="section-title">
-          <Icon name="fire-o" />
-          <span>五行能量</span>
-        </div>
-      </template>
-      <div class="wuxing-list">
-        <div class="wuxing-item" v-for="(value, name) in sortedWuxing" :key="name">
-          <span class="name" :style="{ color: wuxingColors[name] }">{{ name }}</span>
-          <div class="progress-bar">
-            <div 
-              class="progress-fill" 
-              :style="{ width: getWuxingPercent(value) + '%', background: wuxingColors[name] }"
-            ></div>
-          </div>
-          <span class="value">{{ value.toFixed(1) }}</span>
-        </div>
-      </div>
-    </Card>
-    
-    <!-- AI 分析报告 -->
-    <Card class="section-card ai-report-card">
-      <template #title>
-        <div class="section-title">
-          <Icon name="chat-o" />
-          <span>AI 分析报告</span>
-        </div>
-      </template>
-      <div class="ai-content" v-html="formattedReport"></div>
-    </Card>
-    
-    <!-- 操作按钮 -->
-    <div class="action-buttons">
-      <Button 
-        round 
-        block 
-        type="primary" 
-        :loading="downloading"
-        @click="$emit('download')"
-      >
-        <Icon name="down" />
-        下载 PDF 报告
-      </Button>
-      <Button 
-        round 
-        block 
-        plain
-        style="margin-top: 12px;"
-        @click="$emit('reset')"
-      >
-        重新测试
-      </Button>
+    <BaziPillars 
+      :bazi="baziData"
+      :shishen="shishenData"
+      :dayMaster="dayMaster"
+      class="section-block"
+    />
+
+    <!-- 六级论级分析 -->
+    <SixLevelAnalysis 
+      :analysisData="rawAnalysisData"
+      class="section-block"
+    />
+
+    <!-- 能量分析 -->
+    <EnergyCharts 
+      :wuxingEnergy="wuxingEnergy"
+      :shishenEnergy="shishenEnergy"
+      :dayunEnergy="dayunEnergy"
+      class="section-block"
+    />
+
+    <!-- AI 报告 -->
+    <AIReport 
+      :report="aiReport"
+      :loading="aiLoading"
+      @download="$emit('download')"
+      @regenerate="regenerateAIReport"
+      class="section-block"
+    />
+
+    <!-- 底部操作 -->
+    <div class="action-bar">
+      <button class="action-btn secondary" @click="$emit('reset')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/>
+          <path d="M3 3v9h9"/>
+        </svg>
+        重新分析
+      </button>
+      <button class="action-btn primary" @click="$emit('download')" :disabled="downloading">
+        <svg v-if="!downloading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <svg v-else class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        {{ downloading ? '生成中...' : '下载报告' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import BaziPillars from './BaziPillars.vue'
+import SixLevelAnalysis from './SixLevelAnalysis.vue'
+import EnergyCharts from './EnergyCharts.vue'
+import AIReport from './AIReport.vue'
 
 const props = defineProps({
   result: {
     type: Object,
     required: true
   },
-  downloading: Boolean
+  downloading: {
+    type: Boolean,
+    default: false
+  }
 })
 
-defineEmits(['reset', 'download'])
+const emit = defineEmits(['reset', 'download', 'regenerate'])
 
-// 五行颜色
-const wuxingColors = {
-  '木': '#4CAF50',
-  '火': '#FF5722',
-  '土': '#795548',
-  '金': '#FFC107',
-  '水': '#2196F3'
-}
+const aiLoading = ref(false)
 
-// 四柱数据
-const pillarItems = computed(() => {
+// 用户信息
+const userName = computed(() => {
+  return props.result?.user_info?.name || '匿名'
+})
+
+const genderText = computed(() => {
+  return props.result?.user_info?.gender === '男' ? '男' : '女'
+})
+
+const birthDateText = computed(() => {
+  const time = props.result?.user_info?.birth_time?.original
+  if (!time) return '未知日期'
+  return `${time.year}年${time.month}月${time.day}日`
+})
+
+const birthTimeText = computed(() => {
+  const time = props.result?.user_info?.birth_time?.original
+  if (!time || time.hour === null) return '时辰未知'
+  return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`
+})
+
+// 八字数据
+const baziData = computed(() => {
   const bazi = props.result?.bazi || {}
-  return [
-    { 
-      gan: bazi.year_pillar?.[0] || '', 
-      zhi: bazi.year_pillar?.[1] || '', 
-      label: '年柱' 
-    },
-    { 
-      gan: bazi.month_pillar?.[0] || '', 
-      zhi: bazi.month_pillar?.[1] || '', 
-      label: '月柱' 
-    },
-    { 
-      gan: bazi.day_pillar?.[0] || '', 
-      zhi: bazi.day_pillar?.[1] || '', 
-      label: '日柱' 
-    },
-    { 
-      gan: bazi.time_pillar?.[0] || '', 
-      zhi: bazi.time_pillar?.[1] || '', 
-      label: '时柱' 
-    },
-  ]
+  const display = props.result?.bazi_display || {}
+  return {
+    year_gan: display.year?.[0] || '',
+    year_zhi: display.year?.[1] || '',
+    month_gan: display.month?.[0] || '',
+    month_zhi: display.month?.[1] || '',
+    day_gan: display.day?.[0] || '',
+    day_zhi: display.day?.[1] || '',
+    time_gan: display.time?.[0] || '',
+    time_zhi: display.time?.[1] || ''
+  }
 })
 
-// 身强身弱标签类型
-const strengthType = computed(() => {
-  const strength = props.result?.analysis?.strength
-  if (strength?.includes('强')) return 'success'
-  if (strength?.includes('弱')) return 'warning'
-  return 'default'
+// 十神数据
+const shishenData = computed(() => {
+  return props.result?.analysis?.shishen || {}
 })
 
-// 排序后的五行
-const sortedWuxing = computed(() => {
-  const wuxing = props.result?.analysis?.wuxing_energy || {}
-  return Object.fromEntries(
-    Object.entries(wuxing).sort((a, b) => b[1] - a[1])
-  )
+// 日主
+const dayMaster = computed(() => {
+  return props.result?.bazi?.day_master || ''
 })
 
-// 五行百分比
-const maxWuxing = computed(() => {
-  const values = Object.values(props.result?.analysis?.wuxing_energy || {})
-  return Math.max(...values, 1)
+// 原始分析数据
+const rawAnalysisData = computed(() => {
+  return props.result?.raw_data || {}
 })
 
-const getWuxingPercent = (value) => {
-  return (value / maxWuxing.value) * 100
+// 五行能量
+const wuxingEnergy = computed(() => {
+  return props.result?.analysis?.wuxing_energy || {}
+})
+
+// 十神能量
+const shishenEnergy = computed(() => {
+  return props.result?.analysis?.shishen_energy || {}
+})
+
+// 大运能量
+const dayunEnergy = computed(() => {
+  const dayun = rawAnalysisData.value?.第六论级_大运流年
+  return dayun ? {
+    ganzhi: dayun.当前大运?.ganzhi,
+    trend: dayun.当前大运?.trend || 'stable'
+  } : null
+})
+
+// AI 报告
+const aiReport = computed(() => {
+  return props.result?.ai_report || ''
+})
+
+// 重新生成 AI 报告
+const regenerateAIReport = async () => {
+  aiLoading.value = true
+  emit('regenerate')
+  // 模拟加载，实际应在父组件处理
+  setTimeout(() => {
+    aiLoading.value = false
+  }, 1000)
 }
-
-// 格式化的报告
-const formattedReport = computed(() => {
-  const report = props.result?.ai_report || ''
-  // 将 markdown 风格的标题转换为 HTML
-  return report
-    .replace(/### (.*)/g, '<h4>$1</h4>')
-    .replace(/## (.*)/g, '<h3>$1</h3>')
-    .replace(/# (.*)/g, '<h2>$1</h2>')
-    .replace(/\n/g, '<br>')
-})
 </script>
 
 <style scoped>
 .result-container {
-  padding: 16px;
-  background: #f5f5f5;
-  min-height: 100vh;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
+/* 报告头部 */
 .report-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 24px;
-  color: white;
-  margin-bottom: 16px;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  color: white;
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
 }
 
-.user-info h2 {
+.user-name {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: 24px;
+  font-weight: 700;
 }
 
-.user-info .meta {
+.user-meta {
   margin: 0;
-  opacity: 0.9;
-  font-size: 14px;
-}
-
-.report-tag {
-  background: rgba(255,255,255,0.2) !important;
-  color: white !important;
-}
-
-.section-card {
-  margin-bottom: 12px;
-  border-radius: 8px;
-}
-
-.section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  color: #333;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
-.bazi-pillars {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  text-align: center;
+.meta-separator {
+  opacity: 0.5;
 }
 
-.pillar {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px 8px;
+.report-badge {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
 }
 
-.gan {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-}
-
-.zhi {
-  font-size: 20px;
-  color: #666;
-  margin: 4px 0;
-}
-
-.label {
-  font-size: 12px;
-  color: #999;
-}
-
-.analysis-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.analysis-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.analysis-item .label {
-  font-size: 12px;
-  color: #999;
-}
-
-.analysis-item .value {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-}
-
-.analysis-item .value.highlight {
-  color: #667eea;
+.badge-text {
+  font-size: 13px;
   font-weight: 600;
 }
 
-.wuxing-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* 区块间距 */
+.section-block {
+  margin-bottom: 20px;
 }
 
-.wuxing-item {
+/* 底部操作栏 */
+.action-bar {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.action-btn {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.wuxing-item .name {
-  width: 40px;
-  font-weight: 600;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-radius: 12px;
   font-size: 16px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 12px;
-  background: #eee;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 6px;
-  transition: width 0.5s ease;
-}
-
-.wuxing-item .value {
-  width: 50px;
-  text-align: right;
-  font-size: 14px;
-  color: #666;
-}
-
-.ai-report-card {
-  background: linear-gradient(to bottom, #fff, #f8f9ff);
-}
-
-.ai-content {
-  line-height: 1.8;
-  color: #444;
-  font-size: 14px;
-}
-
-.ai-content :deep(h2) {
-  color: #667eea;
-  font-size: 18px;
-  margin: 20px 0 12px;
-  border-bottom: 2px solid #e0e6ff;
-  padding-bottom: 8px;
-}
-
-.ai-content :deep(h3) {
-  color: #764ba2;
-  font-size: 16px;
-  margin: 16px 0 10px;
-}
-
-.ai-content :deep(h4) {
-  color: #555;
-  font-size: 15px;
-  margin: 12px 0 8px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
 }
 
-.action-buttons {
-  margin-top: 24px;
-  padding: 0 8px;
+.action-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn.primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.action-btn.secondary:hover {
+  background: #e2e8f0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .result-container {
+    padding: 16px;
+  }
+  
+  .report-header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  
+  .user-name {
+    font-size: 20px;
+  }
+  
+  .user-meta {
+    flex-wrap: wrap;
+  }
+  
+  .action-bar {
+    flex-direction: column;
+  }
 }
 </style>
