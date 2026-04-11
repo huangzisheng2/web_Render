@@ -757,4 +757,4 @@ GitHub 不再支持密码登录，需要创建 Personal Access Token：
 cd "g:\07.Project\02.性格测试\03.bazi-talent-render" && git config user.email "huangzisheng2@example.com" && git config user.name "huangzisheng2" && git init && git add . && git commit -m "Initial commit" && git branch -M main && git remote add origin https://github.com/huangzisheng2/web_Render.git && git push -u origin main
 ```
 
-**请把邮箱和用户名改成你自己的**，然后粘贴到 PowerShell 执行。
+**请把邮箱和用户名改成你自己的**，然后粘贴到 PowerShell 执行。"# trigger rebuild"  
