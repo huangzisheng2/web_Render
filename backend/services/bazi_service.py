@@ -298,9 +298,15 @@ class BaziAnalysisService:
             birth_date_str += f" {adj_hour:02d}:{adj_minute:02d}"
         
         analysis_result = analyze_bazi_unified(
-            bazi_dict,
+            adj_year,
+            adj_month,
+            adj_day,
+            adj_hour,
+            adj_minute,
+            is_male=is_male,
             liunian_year=datetime.now().year,
-            is_male=is_male
+            name=birth_data.get("name", ""),
+            province_city=f"{birth_data.get('province', '')} {birth_data.get('city', '')}".strip()
         )
         
         # 5. 调用 DeepSeek 生成报告
