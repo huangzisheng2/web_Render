@@ -184,7 +184,19 @@ const dayMaster = computed(() => {
 
 // 原始分析数据
 const rawAnalysisData = computed(() => {
-  return props.result?.raw_data || {}
+  const data = props.result?.raw_data || {}
+  // 调试：打印数据结构
+  console.log('=== ResultDisplay raw_data ===', data)
+  console.log('第一论级:', data['第一论级_月令与格局'])
+  console.log('第二论级:', data['第二论级_地支关系'])
+  console.log('第三论级:', data['第三论级_天干关系'])
+  console.log('第四论级:', data['第四论级_天干与地支的关系'])
+  console.log('第五论级定喜忌:', data['第五论级_定喜忌'])
+  console.log('第五论级辅助:', data['第五论级_辅助信息'])
+  console.log('第六论级:', data['第六论级_大运流年'])
+  console.log('起运计算:', data['起运计算过程'])
+  console.log('大运表:', data['大运表'])
+  return data
 })
 
 // 五行能量
