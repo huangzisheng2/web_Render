@@ -8261,6 +8261,10 @@ class GeJuAnalyzerV5:
             if not ganzhi_tushi[key]:
                 ganzhi_tushi[key] = ["无"]
         
+        # 获取基础信息综合分析和命盘综合信息分析
+        basic_info_analysis = self.analysis_result.get('基础信息综合分析', {})
+        mingpan_zonghe_analysis = self.analysis_result.get('命盘综合信息分析', {})
+        
         return {
             "基本信息": basic_info,
             "大运": dayun_detail,
@@ -8271,7 +8275,9 @@ class GeJuAnalyzerV5:
             "流年表": liunian_table,
             "大运流年详细表": dayun_table_detailed,
             "五行旺相": wuxing_qiangruo,
-            "干支图示": ganzhi_tushi
+            "干支图示": ganzhi_tushi,
+            "基础信息综合分析": basic_info_analysis,
+            "命盘综合信息分析": mingpan_zonghe_analysis
         }
     
     def get_database_analysis(self) -> Dict:
