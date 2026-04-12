@@ -6754,6 +6754,25 @@ class GeJuAnalyzerV5:
             else:
                 print("无")
         
+        # 保存所有获取的数据到basic_info_analysis
+        basic_info_analysis["四柱"] = sizhu_info
+        basic_info_analysis["十二长生"] = changsheng_data
+        basic_info_analysis["纳音"] = nayin_data
+        basic_info_analysis["日元"] = self.day_gan if self.day_gan else ""
+        basic_info_analysis["日支"] = self.zhis[2] if len(self.zhis) > 2 else ""
+        basic_info_analysis["月令"] = yueling
+        basic_info_analysis["五行旺相"] = wuxing_qiangruo
+        basic_info_analysis["身强身弱判定"] = rizhu_wangshuai
+        basic_info_analysis["格局类型"] = geju_list
+        basic_info_analysis["旺衰类型"] = wangshuai_type
+        basic_info_analysis["最旺五行"] = strongest_wuxing
+        basic_info_analysis["调候用神"] = tiaohou_yongshen
+        
+        # 保存原局关系数据
+        basic_info_analysis["原局天干关系"] = third_level.get('天干五合', []) + third_level.get('天干相克', [])
+        basic_info_analysis["原局地支关系"] = [f"{k}：{v}" for k, v in second_level.items() if v and v != '无' and k != '刑冲克害说明']
+        basic_info_analysis["原局干支关系"] = [f"{k}：{v}" for k, v in fourth_level.items() if v and v != '无']
+        
         # 将基础信息综合分析存储到analysis_result
         self.analysis_result['基础信息综合分析'] = basic_info_analysis
     
