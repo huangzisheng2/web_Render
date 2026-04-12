@@ -300,8 +300,7 @@ class BaziAnalysisService:
         analysis_result = analyze_bazi_unified(
             bazi_dict,
             liunian_year=datetime.now().year,
-            is_male=is_male,
-            birth_date=birth_date_str
+            is_male=is_male
         )
         
         # 5. 调用 DeepSeek 生成报告
