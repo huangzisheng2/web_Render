@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八字分析调试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; background: #667eea; color: white; border: none; border-radius: 5px; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; max-height: 500px; overflow-y: auto; }
+        .section { margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 10px; }
+        h2 { color: #667eea; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>八字分析调试页面</h1>
+    
+    <div class="section">
+        <h2>测试1: 直接调用后端API</h2>
+        <button onclick="testBackend()">调用API并显示完整数据</button>
+        <div id="apiResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>测试2: 检查raw_data结构</h2>
+        <button onclick="checkStructure()">分析数据结构</button>
+        <div id="structureResult"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://bazi-talent-api.onrender.com';
+        
+        async function testBackend() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<p>正在请求...</p>';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: "测试",
+                        year: 1998,
+                        month: 6,
+                        day: 14,
+                        hour: 16,
+                        minute: 0,
+                        gender: "male",
+                        province: "北京市",
+                        city: "北京市"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 保存到全局变量供下一个测试使用
+                    window.lastApiResponse = data.data;
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ API调用成功</p>
+                        <h3>关键字段检查：</h3>
+                        <ul>
+                            <li>raw_data 存在: ${data.data.raw_data ? '✅' : '❌'}</li>
+                            <li>raw_data 类型: ${typeof data.data.raw_data}</li>
+                            <li>raw_data 键数: ${data.data.raw_data ? Object.keys(data.data.raw_data).length : 0}</li>
+                        </ul>
+                        <h3>完整raw_data (展开查看)：</h3>
+                        <pre>${JSON.stringify(data.data.raw_data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ API错误: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ 请求失败: ${error.message}</p>`;
+            }
+        }
+        
+        function checkStructure() {
+            const resultDiv = document.getElementById('structureResult');
+            
+            if (!window.lastApiResponse) {
+                resultDiv.innerHTML = '<p>请先点击上面的"调用API"按钮</p>';
+                return;
+            }
+            
+            const raw = window.lastApiResponse.raw_data || {};
+            
+            // 检查各个论级
+            const checks = {
+                '第一论级_月令与格局': raw['第一论级_月令与格局'],
+                '第二论级_地支关系': raw['第二论级_地支关系'],
+                '第三论级_天干关系': raw['第三论级_天干关系'],
+                '第四论级_天干与地支的关系': raw['第四论级_天干与地支的关系'],
+                '第五论级_定喜忌': raw['第五论级_定喜忌'],
+                '第五论级_辅助信息': raw['第五论级_辅助信息'],
+                '第六论级_大运流年': raw['第六论级_大运流年'],
+                '起运计算过程': raw['起运计算过程'],
+                '大运表': raw['大运表'],
+                '格局综合判定': raw['格局综合判定']
+            };
+            
+            let html = '<h3>数据结构分析：</h3><ul>';
+            for (const [key, value] of Object.entries(checks)) {
+                const exists = value !== undefined && value !== null;
+                const type = exists ? (Array.isArray(value) ? 'array' : typeof value) : 'missing';
+                const keys = exists && typeof value === 'object' && !Array.isArray(value) 
+                    ? `(${Object.keys(value).length} keys)` 
+                    : '';
+                html += `<li>${key}: ${exists ? '✅' : '❌'} ${type} ${keys}</li>`;
+            }
+            html += '</ul>';
+            
+            // 详细显示第一论级
+            if (checks['第一论级_月令与格局']) {
+                html += '<h3>第一论级详情：</h3><pre>' + 
+                    JSON.stringify(checks['第一论级_月令与格局'], null, 2) + '</pre>';
+            }
+            
+            // 详细显示第二论级
+            if (checks['第二论级_地支关系']) {
+                html += '<h3>第二论级详情：</h3><pre>' + 
+                    JSON.stringify(checks['第二论级_地支关系'], null, 2) + '</pre>';
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
