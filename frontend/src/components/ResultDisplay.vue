@@ -75,6 +75,12 @@
       class="section-block"
     />
 
+    <!-- 调试面板 - 显示原始数据 -->
+    <DebugRawData 
+      :rawData="rawAnalysisData"
+      class="section-block"
+    />
+
     <!-- 底部操作 -->
     <div class="action-bar">
       <button class="action-btn secondary" @click="$emit('reset')">
@@ -105,6 +111,7 @@ import BaziPillars from './BaziPillars.vue'
 import SixLevelAnalysis from './SixLevelAnalysis.vue'
 import EnergyCharts from './EnergyCharts.vue'
 import AIReport from './AIReport.vue'
+import DebugRawData from './DebugRawData.vue'
 
 const props = defineProps({
   result: {
