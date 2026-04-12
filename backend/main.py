@@ -20,7 +20,7 @@ from datetime import datetime
 import traceback
 
 # 导入业务服务
-from services.bazi_service import BaziAnalysisService
+from services.bazi_service_web import BaziAnalysisServiceWeb
 from services.pdf_service import PDFService
 
 app = FastAPI(
@@ -72,7 +72,7 @@ class PDFDownloadResponse(BaseModel):
 
 # ==================== 服务实例 ====================
 
-bazi_service = BaziAnalysisService()
+bazi_service = BaziAnalysisServiceWeb()
 pdf_service = PDFService()
 
 

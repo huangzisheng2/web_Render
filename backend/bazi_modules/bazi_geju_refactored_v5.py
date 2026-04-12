@@ -6940,8 +6940,14 @@ class GeJuAnalyzerV5:
                 print(f"  行为模式: {rizhu_info.get('行为模式', '')}")
                 print(f"  匹配程度: {rizhu_info.get('匹配程度', '')}")
                 print(f"  成长建议: {rizhu_info.get('成长建议', '')}")
+                # 存储到数据结构
+                mingpan_zonghe["日柱信息"] = {
+                    "日柱": rizhu,
+                    **rizhu_info
+                }
             else:
                 print(f"  未找到日柱 {rizhu} 的详细信息")
+                mingpan_zonghe["日柱信息"] = {"日柱": rizhu, "状态": "未找到详细信息"}
         
         # 3. 格局信息
         final_geju = self.analysis_result.get('格局综合判定', {})
@@ -6979,8 +6985,19 @@ class GeJuAnalyzerV5:
                 print(f"  心理特质: {geju_info.get('心理特质', '')}")
                 print(f"  行为模式: {geju_info.get('行为模式', '')}")
                 print(f"  成长建议: {geju_info.get('成长建议', '')}")
+                # 存储到数据结构
+                mingpan_zonghe["格局信息"] = {
+                    "主格局": zhugeju,
+                    "次要格局": cigeju,
+                    **geju_info
+                }
             else:
                 print(f"  未找到格局 {zhugeju} 的详细信息")
+                mingpan_zonghe["格局信息"] = {
+                    "主格局": zhugeju,
+                    "次要格局": cigeju,
+                    "状态": "未找到详细信息"
+                }
         
         # 4. 特殊格局信息
         first_level = self.analysis_result.get('第一论级_月令与格局', {})
@@ -6993,6 +7010,7 @@ class GeJuAnalyzerV5:
         # 5. 神煞信息
         aux_info = self.analysis_result.get('第五论级_辅助信息', {})
         shensha_data = aux_info.get('神煞', {})
+        shensha_info_dict = {}  # 存储神煞详细信息
         if shensha_data:
             print(f"\n【神煞信息】")
             all_shensha = []
@@ -7065,8 +7083,24 @@ class GeJuAnalyzerV5:
                         advice = shensha_info.get('女命成长建议', '')
                         if advice:
                             print(f"    【女命成长建议】{advice}")
+                    
+                    # 存储到数据结构
+                    shensha_info_dict[shensha] = {
+                        "所在柱位": pillars,
+                        **shensha_info
+                    }
                 else:
                     print(f"  {shensha}{pillar_str}: 暂无详细信息")
+                    shensha_info_dict[shensha] = {
+                        "所在柱位": pillars,
+                        "状态": "暂无详细信息"
+                    }
+            
+            # 保存神煞信息到mingpan_zonghe
+            mingpan_zonghe["神煞信息"] = {
+                "神煞列表": unique_shensha,
+                "神煞详情": shensha_info_dict
+            }
         
         # 6. 天干地支作用关系
         print(f"\n【天干地支作用关系】")
@@ -7077,6 +7111,13 @@ class GeJuAnalyzerV5:
         third_level = self.analysis_result.get('第三论级_天干关系', {})
         # 获取第四论级干支关系
         fourth_level = self.analysis_result.get('第四论级_天干与地支的关系', {})
+        
+        # 存储天干地支作用关系
+        ganzhi_relations = {
+            "地支关系": {},
+            "天干关系": {},
+            "干支关系": {}
+        }
         
         relation_found = False
         
@@ -7103,9 +7144,23 @@ class GeJuAnalyzerV5:
                                 print(f"    成长建议: {relation_info.get('成长建议', '')}")
                             else:
                                 print(f"    该关系暂无详细数据库信息")
+                            
+                            # 存储到数据结构
+                            if rel_type not in ganzhi_relations["地支关系"]:
+                                ganzhi_relations["地支关系"][rel_type] = []
+                            ganzhi_relations["地支关系"][rel_type].append({
+                                "关系": relation,
+                                "详情": relation_info if relation_info else {"状态": "暂无详细数据库信息"}
+                            })
                             relation_found = True
                 else:
                     print(f"  【{rel_type}】{relations}")
+                    if rel_type not in ganzhi_relations["地支关系"]:
+                        ganzhi_relations["地支关系"][rel_type] = []
+                    ganzhi_relations["地支关系"][rel_type].append({
+                        "关系": relations,
+                        "详情": {"状态": "暂无详细数据库信息"}
+                    })
                     relation_found = True
         
         # 显示天干关系（第三论级）
@@ -7131,9 +7186,23 @@ class GeJuAnalyzerV5:
                                 print(f"    成长建议: {relation_info.get('成长建议', '')}")
                             else:
                                 print(f"    该关系暂无详细数据库信息")
+                            
+                            # 存储到数据结构
+                            if rel_type not in ganzhi_relations["天干关系"]:
+                                ganzhi_relations["天干关系"][rel_type] = []
+                            ganzhi_relations["天干关系"][rel_type].append({
+                                "关系": relation,
+                                "详情": relation_info if relation_info else {"状态": "暂无详细数据库信息"}
+                            })
                             relation_found = True
                 else:
                     print(f"  【{rel_type}】{relations}")
+                    if rel_type not in ganzhi_relations["天干关系"]:
+                        ganzhi_relations["天干关系"][rel_type] = []
+                    ganzhi_relations["天干关系"][rel_type].append({
+                        "关系": relations,
+                        "详情": {"状态": "暂无详细数据库信息"}
+                    })
                     relation_found = True
         
         # 显示第四论级干支关系
@@ -7180,6 +7249,9 @@ class GeJuAnalyzerV5:
         
         if not relation_found:
             print("  原局未发现特殊的天干地支作用关系")
+        
+        # 保存天干地支作用关系到mingpan_zonghe
+        mingpan_zonghe["天干地支作用关系"] = ganzhi_relations
         
         # 将命盘综合信息分析数据存储到analysis_result
         self.analysis_result['命盘综合信息分析'] = mingpan_zonghe
