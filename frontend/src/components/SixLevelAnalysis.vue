@@ -117,6 +117,9 @@
                 </div>
               </div>
             </div>
+            <div v-if="!hasAnyRelation(levelData[1].data)" class="no-data">
+              无特殊地支关系
+            </div>
           </template>
 
           <!-- 第三论级：天干关系 -->
@@ -166,6 +169,9 @@
                   </div>
                 </div>
               </div>
+            </div>
+            <div v-if="!hasGanRelation(levelData[2].data)" class="no-data">
+              无特殊天干关系
             </div>
           </template>
 
@@ -517,6 +523,19 @@ const formatAdvice = (advice) => {
   if (!advice) return ''
   // 将换行符转换为HTML换行
   return advice.replace(/\n/g, '<br>')
+}
+
+// 检查是否有地支关系
+const hasAnyRelation = (data) => {
+  return Object.values(data).some(items => items && items.length > 0)
+}
+
+// 检查是否有天干关系
+const hasGanRelation = (data) => {
+  return (data.wuhe && data.wuhe.length > 0) ||
+         (data.xiangke && data.xiangke.length > 0) ||
+         (data.xiangchong && data.xiangchong.length > 0) ||
+         data.huaqi
 }
 </script>
 
@@ -1084,6 +1103,17 @@ const formatAdvice = (advice) => {
   font-size: 12px;
   color: #64748b;
   margin-top: 4px;
+}
+
+/* 无数据提示 */
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-size: 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-top: 10px;
 }
 
 /* 大运流年 */
