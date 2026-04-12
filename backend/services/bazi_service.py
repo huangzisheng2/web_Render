@@ -327,6 +327,9 @@ class BaziAnalysisService:
             '第五论级_辅助信息': lunji_data.get('第五论级_辅助信息', {}),
             '第六论级_大运流年': lunji_data.get('第六论级_大运流年', {}),
             '格局综合判定': lunji_data.get('格局综合判定', {}),
+            # 新增综合分析
+            '基础信息综合分析': lunji_data.get('基础信息综合分析', {}),
+            '命盘综合信息分析': lunji_data.get('命盘综合信息分析', {}),
         }
         
         geju_summary = lunji_data.get('格局综合判定', {})
