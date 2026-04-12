@@ -66,27 +66,19 @@
                 <div class="info-value">{{ levelData[0].data.dayMaster || '未知' }}</div>
               </div>
             </div>
-            <!-- 五行强弱 -->
-            <div class="wuxing-section" v-if="levelData[0].data.wuxingStrength && Object.keys(levelData[0].data.wuxingStrength).length > 0">
+            <!-- 五行旺相 -->
+            <div class="wuxing-wangxiang-section" v-if="levelData[0].data.wuxingWangxiang">
               <div class="subsection-title">五行旺相</div>
-              <div class="wuxing-bars">
-                <div 
-                  v-for="(value, name) in levelData[0].data.wuxingStrength" 
-                  :key="name"
-                  class="wuxing-bar-item"
+              <div class="wangxiang-text">{{ levelData[0].data.wuxingWangxiang }}</div>
+              <div class="wangxiang-tags">
+                <span 
+                  v-for="(status, wx) in levelData[0].data.wuxingWangxiangObj" 
+                  :key="wx"
+                  class="wangxiang-tag"
+                  :style="{ background: getWuxingColor(wx).gradient, color: 'white' }"
                 >
-                  <span class="bar-name" :style="{ color: getWuxingColor(name).primary }">{{ name }}</span>
-                  <div class="bar-track">
-                    <div 
-                      class="bar-fill"
-                      :style="{ 
-                        width: getWuxingPercent(value) + '%',
-                        background: getWuxingColor(name).gradient
-                      }"
-                    ></div>
-                  </div>
-                  <span class="bar-value">{{ value }}</span>
-                </div>
+                  {{ wx }}: {{ status }}
+                </span>
               </div>
             </div>
             <!-- 格局详情 -->
@@ -394,21 +386,30 @@ const formatChangSheng = (status) => {
   return status
 }
 
+// 解析五行旺相字符串为对象
+const parseWuxingWangxiang = (str) => {
+  if (!str || typeof str !== 'string') return {}
+  const result = {}
+  const parts = str.split(',')
+  parts.forEach(part => {
+    const match = part.trim().match(/(\S+)(\S+)/)
+    if (match) {
+      result[match[1]] = match[2]
+    }
+  })
+  return result
+}
+
 // 六级数据
 const levelData = computed(() => {
   const raw = props.analysisData || {}
 
   // 调试：打印原始数据结构
   console.log('Raw analysisData:', raw)
-  console.log('第一论级:', raw.第一论级_月令与格局)
-  console.log('第二论级:', raw.第二论级_地支关系)
-  console.log('第三论级:', raw.第三论级_天干关系)
-  console.log('第四论级:', raw.第四论级_天干与地支的关系)
-  console.log('第五论级定喜忌:', raw.第五论级_定喜忌)
-  console.log('第五论级辅助:', raw.第五论级_辅助信息)
-  console.log('第六论级:', raw.第六论级_大运流年)
-  console.log('起运计算:', raw.起运计算过程)
 
+  // 第一论级数据
+  const firstLevel = raw.第一论级_月令与格局 || {}
+  
   return [
     {
       number: '一',
@@ -696,6 +697,33 @@ const formatAdvice = (advice) => {
 
 .info-value.weak {
   color: #ef4444;
+}
+
+/* 五行旺相 */
+.wuxing-wangxiang-section {
+  margin-top: 16px;
+}
+
+.wangxiang-text {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.wangxiang-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wangxiang-tag {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* 五行进度条 */
