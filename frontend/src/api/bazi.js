@@ -57,6 +57,15 @@ export const getCities = () => {
 }
 
 /**
+ * AI 天赋分析
+ * @param {Object} data - 包含 report_id 和 basic_result
+ * @returns {Promise}
+ */
+export const analyzeAI = (data) => {
+  return api.post('/api/analyze-ai', data)
+}
+
+/**
  * 下载报告
  * @param {string} reportId - 报告ID
  * @returns {Promise}

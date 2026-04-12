@@ -13,7 +13,7 @@
         </p>
       </div>
       <div class="report-badge">
-        <span class="badge-text">已生成</span>
+        <span class="badge-text">{{ aiReport ? 'AI报告已生成' : '基础报告' }}</span>
       </div>
     </div>
 
@@ -39,12 +39,39 @@
       class="section-block"
     />
 
-    <!-- AI 报告 -->
+    <!-- AI 分析按钮（未分析时显示） -->
+    <div v-if="!aiReport && !aiLoading" class="ai-trigger-section">
+      <div class="ai-trigger-card">
+        <div class="ai-trigger-icon">🤖</div>
+        <h3 class="ai-trigger-title">想要更深入的 AI 天赋分析？</h3>
+        <p class="ai-trigger-desc">
+          基于 DeepSeek 大模型，为您生成个性化的<br>
+          性格特质、天赋优势、成长建议报告
+        </p>
+        <button class="ai-trigger-btn" @click="handleAIAnalyze">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          一键分析天赋
+        </button>
+      </div>
+    </div>
+
+    <!-- AI 分析加载状态 -->
+    <div v-if="aiLoading" class="ai-loading-section">
+      <div class="ai-loading-spinner"></div>
+      <p class="ai-loading-text">AI 正在分析您的命盘...</p>
+      <p class="ai-loading-subtext">这需要 10-30 秒，请稍候</p>
+    </div>
+
+    <!-- AI 报告（分析完成后显示） -->
     <AIReport 
+      v-if="aiReport"
       :report="aiReport"
-      :loading="aiLoading"
+      :loading="false"
       @download="$emit('download')"
-      @regenerate="regenerateAIReport"
+      @regenerate="handleRegenerateAI"
       class="section-block"
     />
 
@@ -87,12 +114,17 @@ const props = defineProps({
   downloading: {
     type: Boolean,
     default: false
+  },
+  aiAnalyzing: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['reset', 'download', 'regenerate'])
+const emit = defineEmits(['reset', 'download', 'analyze-ai'])
 
-const aiLoading = ref(false)
+// AI 分析状态
+const aiLoading = computed(() => props.aiAnalyzing)
 
 // 用户信息
 const userName = computed(() => {
@@ -115,30 +147,39 @@ const birthTimeText = computed(() => {
   return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`
 })
 
-// 八字数据
+// 八字数据 - 直接使用后端返回的bazi数据
 const baziData = computed(() => {
   const bazi = props.result?.bazi || {}
-  const display = props.result?.bazi_display || {}
   return {
-    year_gan: display.year?.[0] || '',
-    year_zhi: display.year?.[1] || '',
-    month_gan: display.month?.[0] || '',
-    month_zhi: display.month?.[1] || '',
-    day_gan: display.day?.[0] || '',
-    day_zhi: display.day?.[1] || '',
-    time_gan: display.time?.[0] || '',
-    time_zhi: display.time?.[1] || ''
+    year_gan: bazi.year_gan || '',
+    year_zhi: bazi.year_zhi || '',
+    month_gan: bazi.month_gan || '',
+    month_zhi: bazi.month_zhi || '',
+    day_gan: bazi.day_gan || '',
+    day_zhi: bazi.day_zhi || '',
+    time_gan: bazi.time_gan || '',
+    time_zhi: bazi.time_zhi || ''
   }
 })
 
-// 十神数据
+// 十神数据 - 从raw_data中获取
 const shishenData = computed(() => {
-  return props.result?.analysis?.shishen || {}
+  const raw = props.result?.raw_data || {}
+  return {
+    year_gan: raw.第一论级_月令与格局?.十神?.年干 || '',
+    month_gan: raw.第一论级_月令与格局?.十神?.月干 || '',
+    day_gan: raw.第一论级_月令与格局?.十神?.日干 || '',
+    time_gan: raw.第一论级_月令与格局?.十神?.时干 || '',
+    year_zhi: raw.第一论级_月令与格局?.十神?.年支 || '',
+    month_zhi: raw.第一论级_月令与格局?.十神?.月支 || '',
+    day_zhi: raw.第一论级_月令与格局?.十神?.日支 || '',
+    time_zhi: raw.第一论级_月令与格局?.十神?.时支 || ''
+  }
 })
 
 // 日主
 const dayMaster = computed(() => {
-  return props.result?.bazi?.day_master || ''
+  return props.result?.bazi?.day_master || props.result?.raw_data?.第一论级_月令与格局?.日主 || ''
 })
 
 // 原始分析数据
@@ -148,20 +189,23 @@ const rawAnalysisData = computed(() => {
 
 // 五行能量
 const wuxingEnergy = computed(() => {
-  return props.result?.analysis?.wuxing_energy || {}
+  const raw = props.result?.raw_data || {}
+  return raw.格局综合判定?.五行能量 || props.result?.analysis?.wuxing_energy || {}
 })
 
 // 十神能量
 const shishenEnergy = computed(() => {
-  return props.result?.analysis?.shishen_energy || {}
+  const raw = props.result?.raw_data || {}
+  return raw.格局综合判定?.十神能量分析 || props.result?.analysis?.shishen_energy || {}
 })
 
 // 大运能量
 const dayunEnergy = computed(() => {
-  const dayun = rawAnalysisData.value?.第六论级_大运流年
+  const raw = props.result?.raw_data || {}
+  const dayun = raw.第六论级_大运流年
   return dayun ? {
-    ganzhi: dayun.当前大运?.ganzhi,
-    trend: dayun.当前大运?.trend || 'stable'
+    ganzhi: dayun.当前大运?.干支,
+    trend: dayun.当前大运?.趋势 || 'stable'
   } : null
 })
 
@@ -170,14 +214,15 @@ const aiReport = computed(() => {
   return props.result?.ai_report || ''
 })
 
-// 重新生成 AI 报告
-const regenerateAIReport = async () => {
+// 处理 AI 分析
+const handleAIAnalyze = async () => {
   aiLoading.value = true
-  emit('regenerate')
-  // 模拟加载，实际应在父组件处理
-  setTimeout(() => {
-    aiLoading.value = false
-  }, 1000)
+  emit('analyze-ai')
+}
+
+// 重新生成 AI 报告
+const handleRegenerateAI = () => {
+  handleAIAnalyze()
 }
 </script>
 
@@ -235,6 +280,96 @@ const regenerateAIReport = async () => {
 /* 区块间距 */
 .section-block {
   margin-bottom: 20px;
+}
+
+/* AI 触发区域 */
+.ai-trigger-section {
+  margin-bottom: 20px;
+}
+
+.ai-trigger-card {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+  border: 2px dashed #667eea;
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+}
+
+.ai-trigger-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.ai-trigger-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px;
+}
+
+.ai-trigger-desc {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+.ai-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.ai-trigger-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.ai-trigger-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* AI 加载状态 */
+.ai-loading-section {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.ai-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e0e7ff;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+.ai-loading-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px;
+}
+
+.ai-loading-subtext {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
 }
 
 /* 底部操作栏 */
@@ -323,6 +458,14 @@ const regenerateAIReport = async () => {
   
   .action-bar {
     flex-direction: column;
+  }
+  
+  .ai-trigger-card {
+    padding: 24px;
+  }
+  
+  .ai-trigger-title {
+    font-size: 18px;
   }
 }
 </style>

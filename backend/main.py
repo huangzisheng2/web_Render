@@ -132,6 +132,40 @@ def analyze_bazi(request: AnalyzeRequest):
         }
 
 
+@app.post("/api/analyze-ai")
+def analyze_ai_endpoint(request: dict):
+    """
+    AI 天赋分析接口
+    
+    接收基础分析结果，返回 AI 分析报告
+    """
+    try:
+        report_id = request.get("report_id")
+        basic_result = request.get("basic_result")
+        
+        if not report_id or not basic_result:
+            return {
+                "success": False,
+                "error": "缺少 report_id 或 basic_result 参数"
+            }
+        
+        # 执行 AI 分析
+        ai_report = bazi_service.analyze_ai(report_id, basic_result)
+        
+        return {
+            "success": True,
+            "ai_report": ai_report
+        }
+        
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        print(f"AI 分析错误: {str(e)}\n{error_trace}")
+        return {
+            "success": False,
+            "error": f"AI 分析失败: {str(e)}"
+        }
+
+
 @app.get("/api/download/{report_id}")
 def download_report(report_id: str):
     """

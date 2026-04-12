@@ -38,8 +38,10 @@
           v-else
           key="result"
           :result="result"
+          :ai-analyzing="aiAnalyzing"
           @reset="handleReset"
           @download="handleDownload"
+          @analyze-ai="handleAIAnalyze"
           :downloading="downloading"
         />
       </Transition>
@@ -62,10 +64,11 @@
 import { ref, reactive } from 'vue'
 import BaziForm from './components/BaziForm.vue'
 import ResultDisplay from './components/ResultDisplay.vue'
-import { analyzeBazi, downloadReport } from './api/bazi'
+import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
 
 const loading = ref(false)
 const downloading = ref(false)
+const aiAnalyzing = ref(false)
 const result = ref(null)
 
 const toast = reactive({
@@ -109,7 +112,37 @@ const handleAnalyze = async (formData) => {
 // 重置表单
 const handleReset = () => {
   result.value = null
+  aiAnalyzing.value = false
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// AI 天赋分析
+const handleAIAnalyze = async () => {
+  if (!result.value?.report_id) {
+    showToast('报告ID不存在', 'error')
+    return
+  }
+  
+  aiAnalyzing.value = true
+  
+  try {
+    const response = await analyzeAI({
+      report_id: result.value.report_id,
+      basic_result: result.value
+    })
+    
+    if (response.success) {
+      result.value.ai_report = response.ai_report
+      showToast('AI 分析完成')
+    } else {
+      showToast(response.error || 'AI 分析失败', 'error')
+    }
+  } catch (error) {
+    console.error('AI 分析错误:', error)
+    showToast('AI 分析失败，请稍后重试', 'error')
+  } finally {
+    aiAnalyzing.value = false
+  }
 }
 
 // 下载报告

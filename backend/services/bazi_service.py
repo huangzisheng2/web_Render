@@ -248,9 +248,9 @@ class BaziAnalysisService:
 """
         return prompt
     
-    def analyze(self, birth_data: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_basic(self, birth_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        执行完整分析流程
+        执行基础分析流程（不含AI分析）
         
         Args:
             birth_data: {
@@ -262,7 +262,7 @@ class BaziAnalysisService:
             }
         
         Returns:
-            完整的分析结果字典
+            基础分析结果字典（四柱、六级论级等）
         """
         # 1. 获取地理位置
         longitude, latitude = self._get_location(
@@ -293,9 +293,6 @@ class BaziAnalysisService:
         
         # 4. 命理分析
         is_male = birth_data.get("gender") == "male"
-        birth_date_str = f"{adj_year}-{adj_month:02d}-{adj_day:02d}"
-        if adj_hour is not None:
-            birth_date_str += f" {adj_hour:02d}:{adj_minute:02d}"
         
         analysis_result = analyze_bazi_unified(
             adj_year,
@@ -309,14 +306,7 @@ class BaziAnalysisService:
             province_city=f"{birth_data.get('province', '')} {birth_data.get('city', '')}".strip()
         )
         
-        # 5. 调用 DeepSeek 生成报告
-        user_info = {
-            "name": birth_data.get("name", "匿名"),
-            "gender": birth_data.get("gender", "male"),
-        }
-        ai_report = self._call_deepseek(bazi_dict, analysis_result, user_info)
-        
-        # 6. 组装结果
+        # 5. 组装基础结果
         geju_summary = analysis_result.get('格局综合判定', {})
         first_level = analysis_result.get('第一论级_月令与格局', {})
         
@@ -349,6 +339,14 @@ class BaziAnalysisService:
                 }
             },
             "bazi": {
+                "year_gan": bazi_dict['year_gan'],
+                "year_zhi": bazi_dict['year_zhi'],
+                "month_gan": bazi_dict['month_gan'],
+                "month_zhi": bazi_dict['month_zhi'],
+                "day_gan": bazi_dict['day_gan'],
+                "day_zhi": bazi_dict['day_zhi'],
+                "time_gan": bazi_dict['time_gan'],
+                "time_zhi": bazi_dict['time_zhi'],
                 "year_pillar": f"{bazi_dict['year_gan']}{bazi_dict['year_zhi']}",
                 "month_pillar": f"{bazi_dict['month_gan']}{bazi_dict['month_zhi']}",
                 "day_pillar": f"{bazi_dict['day_gan']}{bazi_dict['day_zhi']}",
@@ -367,8 +365,50 @@ class BaziAnalysisService:
                     "ji": analysis_result.get('第五论级_定喜忌', {}).get('忌神', '无'),
                 }
             },
-            "ai_report": ai_report,
-            "raw_data": analysis_result  # 原始完整数据，供 PDF 生成使用
+            "raw_data": analysis_result,  # 原始完整数据，供 PDF 生成和AI分析使用
+            "ai_report": None  # AI分析结果，初始为None
         }
+        
+        return result
+    
+    def analyze_ai(self, report_id: str, basic_result: Dict[str, Any]) -> str:
+        """
+        执行AI天赋分析
+        
+        Args:
+            report_id: 报告ID
+            basic_result: 基础分析结果
+            
+        Returns:
+            AI分析报告文本
+        """
+        bazi_data = basic_result.get("bazi", {})
+        analysis_data = basic_result.get("raw_data", {})
+        user_info = {
+            "name": basic_result.get("user_info", {}).get("name", "匿名"),
+            "gender": "male" if basic_result.get("user_info", {}).get("gender") == "男" else "female",
+        }
+        
+        ai_report = self._call_deepseek(bazi_data, analysis_data, user_info)
+        return ai_report
+    
+    def analyze(self, birth_data: Dict[str, Any], skip_ai: bool = False) -> Dict[str, Any]:
+        """
+        执行完整分析流程（向后兼容）
+        
+        Args:
+            birth_data: 出生信息
+            skip_ai: 是否跳过AI分析
+        
+        Returns:
+            完整的分析结果字典
+        """
+        # 先执行基础分析
+        result = self.analyze_basic(birth_data)
+        
+        # 如果不跳过AI分析，则执行AI分析
+        if not skip_ai:
+            ai_report = self.analyze_ai(result["report_id"], result)
+            result["ai_report"] = ai_report
         
         return result
