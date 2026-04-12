@@ -100,6 +100,9 @@ def analyze_bazi_unified(year, month, day, hour, minute, is_male, liunian_year,
         analyzer.user_name = name
     
     result = analyzer.analyze()
+    
+    # 3.5 执行打印分析（这会存储基础信息综合分析和命盘综合信息分析）
+    analyzer.print_analysis()
 
     # 4. 获取完整的打印数据
     complete_data = analyzer.get_complete_print_data()

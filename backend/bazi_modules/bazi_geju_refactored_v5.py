@@ -348,6 +348,8 @@ class GeJuAnalyzerV5:
             self.analysis_result['第五论级_大运流年'] = self._analyze_suiyun()
             # 第六论级: 大运流年综合分析
             sixth_result = self._analyze_sixth_level()
+            self.analysis_result['第六论级_大运流年'] = sixth_result
+            # 同时保留旧键名用于兼容
             self.analysis_result['第六论级'] = sixth_result
         self.analysis_result['第五论级_定喜忌'] = self._analyze_xi_ji()
         self.analysis_result['第五论级_辅助信息'] = self._analyze_auxiliary_info()
