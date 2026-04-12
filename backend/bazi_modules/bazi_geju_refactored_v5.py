@@ -6189,7 +6189,7 @@ class GeJuAnalyzerV5:
     
     def _print_basic_info_analysis(self):
         """
-        打印基础信息综合分析
+        打印基础信息综合分析，并将数据存储到analysis_result
         """
         print("\n" + "=" * 80)
         print("【基础信息综合分析】")
@@ -6198,9 +6198,38 @@ class GeJuAnalyzerV5:
         from ganzhi import ten_deities, zhi5_list, gan5, zhi_wuhangs
         from datetime import datetime
         
+        # 初始化数据结构
+        basic_info_analysis = {
+            "性别": "",
+            "年龄": "",
+            "出生阳历": "",
+            "出生农历": "",
+            "四柱": [],
+            "十二长生": {},
+            "纳音": {},
+            "日元": "",
+            "日支": "",
+            "月令": "",
+            "五行旺相": "",
+            "身强身弱判定": "",
+            "格局类型": [],
+            "旺衰类型": "",
+            "最旺五行": "",
+            "调候用神": [],
+            "原局天干关系": [],
+            "原局地支关系": [],
+            "原局干支关系": [],
+            "岁运天干关系": [],
+            "岁运地支关系": [],
+            "当前流年": "",
+            "当前大运": "",
+            "未来五年流年": []
+        }
+        
         # 获取基本信息
         is_male = getattr(self, 'is_male', True)
         gender = "男" if is_male else "女"
+        basic_info_analysis["性别"] = gender
         
         # 计算年龄
         age = ""
@@ -6209,12 +6238,15 @@ class GeJuAnalyzerV5:
                 birth_year = int(self.birth_date.split('-')[0])
                 current_year = datetime.now().year
                 age = f"{current_year - birth_year}岁（实岁）"
+                basic_info_analysis["年龄"] = age
             except:
                 pass
         
         # 获取阳历和农历
         solar_date = getattr(self, 'solar_date', '')
         lunar_date = getattr(self, 'lunar_date', '')
+        basic_info_analysis["出生阳历"] = solar_date
+        basic_info_analysis["出生农历"] = lunar_date
         
         # 获取四柱十神信息
         pillars = ['年柱', '月柱', '日柱', '时柱']
@@ -6716,18 +6748,31 @@ class GeJuAnalyzerV5:
             
             if dayun_list:
                 print(f"{'、'.join(dayun_list)}")
+                basic_info_analysis["大运"] = dayun_list
             else:
                 print("无")
+        
+        # 将基础信息综合分析存储到analysis_result
+        self.analysis_result['基础信息综合分析'] = basic_info_analysis
     
     def _print_mingpan_zonghe_analysis(self):
         """
-        打印命盘综合信息分析
+        打印命盘综合信息分析，并将数据存储到analysis_result
         遍历原局命盘中的日主、日柱、十神组合、十天干强弱、格局及特殊格局、神煞、天干地支关系
         调用zonghe_database.py获取对应的所有信息
         """
         print("\n" + "=" * 80)
         print("【命盘综合信息分析】")
         print("=" * 80)
+        
+        # 初始化命盘综合信息数据结构
+        mingpan_zonghe = {
+            "日主信息": {},
+            "日柱信息": {},
+            "格局信息": {},
+            "神煞信息": {},
+            "天干地支作用关系": {}
+        }
         
         try:
             from zonghe_database import RiZhuDatabase, GanShenDatabase, GeJuDatabase, ShenShaDatabase
@@ -6737,6 +6782,7 @@ class GeJuAnalyzerV5:
             shensha_db = ShenShaDatabase()
         except ImportError as e:
             print(f"  无法导入zonghe_database模块，跳过命盘综合信息分析: {e}")
+            self.analysis_result['命盘综合信息分析'] = mingpan_zonghe
             return
         
         # 1. 日主信息
@@ -6763,6 +6809,13 @@ class GeJuAnalyzerV5:
                     print(f"  性格缺点: {shenqiang_info.get('性格缺点', '')}")
                     print(f"  行为模式: {shenqiang_info.get('行为模式', '')}")
                     print(f"  成长建议: {shenqiang_info.get('成长建议', '')}")
+                    # 存储到数据结构
+                    mingpan_zonghe["日主信息"] = {
+                        "日主": self.day_gan,
+                        "身强身弱": shenqiang_panduan,
+                        "类型": strength_type,
+                        **shenqiang_info
+                    }
                 else:
                     print(f"  未找到日主 {self.day_gan} {strength_type}的详细信息")
             else:
@@ -7808,6 +7861,13 @@ class GeJuAnalyzerV5:
                     "起始年份": start_year,
                     "起始年龄": start_age
                 })
+        
+        # 将数据存储到analysis_result
+        mingpan_zonghe = self.analysis_result.get('命盘综合信息分析', {})
+        mingpan_zonghe['四柱'] = sizhu
+        mingpan_zonghe['调候用神'] = tiaohou_str
+        mingpan_zonghe['大运列表'] = dayun_list
+        self.analysis_result['命盘综合信息分析'] = mingpan_zonghe
         
         return {
             "基本信息": basic_info,
