@@ -307,13 +307,27 @@ class BaziAnalysisService:
         )
 
         # 5. 组装基础结果
-        # bazi_bridge返回的数据结构中，论级分析数据在'analysis'键中
-        # 但也需要'complete_data'中的四柱、大运等信息
+        # bazi_bridge返回的数据结构中：
+        # - 'analysis' 包含论级数据（第一、二、三、四、五、六论级）
+        # - 'complete_data' 包含四柱、大运表、起运信息等
         lunji_data = analysis_result.get('analysis', {})  # 论级数据
         complete_data = analysis_result.get('complete_data', {})  # 完整打印数据
         
-        # 合并数据：优先使用论级数据，同时保留complete_data的信息
-        merged_data = {**complete_data, **lunji_data}
+        # 合并数据：论级数据优先，同时保留complete_data中的四柱、大运等信息
+        # 确保所有论级数据都在raw_data中
+        merged_data = {
+            **complete_data,  # 基础信息、四柱、大运表等
+            **lunji_data,     # 论级数据（会覆盖complete_data中的同名键）
+            # 确保以下键存在（即使为空）
+            '第一论级_月令与格局': lunji_data.get('第一论级_月令与格局', {}),
+            '第二论级_地支关系': lunji_data.get('第二论级_地支关系', {}),
+            '第三论级_天干关系': lunji_data.get('第三论级_天干关系', {}),
+            '第四论级_天干与地支的关系': lunji_data.get('第四论级_天干与地支的关系', {}),
+            '第五论级_定喜忌': lunji_data.get('第五论级_定喜忌', {}),
+            '第五论级_辅助信息': lunji_data.get('第五论级_辅助信息', {}),
+            '第六论级_大运流年': lunji_data.get('第六论级_大运流年', {}),
+            '格局综合判定': lunji_data.get('格局综合判定', {}),
+        }
         
         geju_summary = lunji_data.get('格局综合判定', {})
         first_level = lunji_data.get('第一论级_月令与格局', {})
