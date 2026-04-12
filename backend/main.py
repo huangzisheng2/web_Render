@@ -33,6 +33,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://huangzisheng2.github.io",
         "https://*.github.io",
         "http://localhost:5173",
         "http://localhost:3000",
