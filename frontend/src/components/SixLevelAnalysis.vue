@@ -67,8 +67,8 @@
               </div>
             </div>
             <!-- 五行强弱 -->
-            <div class="wuxing-section" v-if="levelData[0].data.wuxingStrength">
-              <div class="subsection-title">五行强弱分析</div>
+            <div class="wuxing-section" v-if="levelData[0].data.wuxingStrength && Object.keys(levelData[0].data.wuxingStrength).length > 0">
+              <div class="subsection-title">五行旺相</div>
               <div class="wuxing-bars">
                 <div 
                   v-for="(value, name) in levelData[0].data.wuxingStrength" 
@@ -88,6 +88,19 @@
                   <span class="bar-value">{{ value }}</span>
                 </div>
               </div>
+            </div>
+            <!-- 格局详情 -->
+            <div v-if="levelData[0].data.gejuDefinition" class="geju-detail">
+              <div class="subsection-title">格局定义</div>
+              <div class="detail-text">{{ levelData[0].data.gejuDefinition }}</div>
+            </div>
+            <div v-if="levelData[0].data.gejuCondition" class="geju-detail">
+              <div class="subsection-title">格局条件</div>
+              <div class="detail-text">{{ levelData[0].data.gejuCondition }}</div>
+            </div>
+            <div v-if="levelData[0].data.gejuLikeDislike" class="geju-detail">
+              <div class="subsection-title">格局喜忌</div>
+              <div class="detail-text">{{ levelData[0].data.gejuLikeDislike }}</div>
             </div>
           </template>
 
@@ -112,29 +125,12 @@
                 </div>
               </div>
             </div>
-            <!-- 地支关系详细描述 -->
-            <div v-if="levelData[1].relationsDetail && levelData[1].relationsDetail.length > 0" class="relations-detail">
-              <div class="subsection-title">关系详解</div>
-              <div class="relation-detail-list">
-                <div v-for="(detail, idx) in levelData[1].relationsDetail" :key="idx" class="relation-detail-item">
-                  <div class="detail-title">{{ detail.name }}</div>
-                  <div class="detail-concept" v-if="detail.核心概念">{{ detail.核心概念 }}</div>
-                  <div class="detail-content" v-if="detail.命理组合">{{ detail.命理组合 }}</div>
-                  <div class="detail-psychology" v-if="detail.心理特质">
-                    <span class="detail-label">心理:</span> {{ detail.心理特质 }}
-                  </div>
-                  <div class="detail-advice" v-if="detail.成长建议">
-                    <span class="detail-label">建议:</span> {{ detail.成长建议 }}
-                  </div>
-                </div>
-              </div>
-            </div>
           </template>
 
           <!-- 第三论级：天干关系 -->
           <template v-if="index === 2">
             <div class="gan-relations">
-              <div class="relation-section" v-if="levelData[2].data.wuhe">
+              <div class="relation-section" v-if="levelData[2].data.wuhe && levelData[2].data.wuhe.length > 0">
                 <div class="subsection-title">天干五合</div>
                 <div class="relation-list">
                   <div 
@@ -142,12 +138,11 @@
                     :key="idx"
                     class="relation-item"
                   >
-                    <span class="gan-pair">{{ item.pair }}</span>
-                    <span class="he-result">→ {{ item.result }}</span>
+                    <span class="gan-pair">{{ item }}</span>
                   </div>
                 </div>
               </div>
-              <div class="relation-section" v-if="levelData[2].data.xiangke">
+              <div class="relation-section" v-if="levelData[2].data.xiangke && levelData[2].data.xiangke.length > 0">
                 <div class="subsection-title">天干相克</div>
                 <div class="relation-list">
                   <div 
@@ -159,26 +154,78 @@
                   </div>
                 </div>
               </div>
+              <div class="relation-section" v-if="levelData[2].data.xiangchong && levelData[2].data.xiangchong.length > 0">
+                <div class="subsection-title">天干相冲</div>
+                <div class="relation-list">
+                  <div 
+                    v-for="(item, idx) in levelData[2].data.xiangchong" 
+                    :key="idx"
+                    class="relation-item"
+                  >
+                    <span class="gan-pair">{{ item }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="relation-section" v-if="levelData[2].data.huaqi">
+                <div class="subsection-title">化气判定</div>
+                <div class="relation-list">
+                  <div class="relation-item">
+                    <span class="gan-pair">{{ levelData[2].data.huaqi }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
 
-          <!-- 第四论级：特殊格局 -->
+          <!-- 第四论级：干支关系 -->
           <template v-if="index === 3">
-            <div class="special-patterns">
-              <div 
-                v-for="(pattern, idx) in levelData[3].data.patterns" 
-                :key="idx"
-                class="pattern-card"
-                :class="{ 'active': pattern.isActive }"
-              >
-                <div class="pattern-header">
-                  <span class="pattern-name">{{ pattern.name }}</span>
-                  <span class="pattern-status" :class="{ 'active': pattern.isActive }">
-                    {{ pattern.isActive ? '符合' : '不符合' }}
-                  </span>
+            <div class="ganzhi-relations">
+              <div class="relation-section" v-if="levelData[3].data.gaitou && levelData[3].data.gaitou.length > 0">
+                <div class="subsection-title">盖头</div>
+                <div class="relation-list">
+                  <div 
+                    v-for="(item, idx) in levelData[3].data.gaitou" 
+                    :key="idx"
+                    class="relation-item"
+                  >
+                    <span class="gan-pair">{{ item }}</span>
+                  </div>
                 </div>
-                <div class="pattern-desc" v-if="pattern.description">
-                  {{ pattern.description }}
+              </div>
+              <div class="relation-section" v-if="levelData[3].data.jiejiao && levelData[3].data.jiejiao.length > 0">
+                <div class="subsection-title">截脚</div>
+                <div class="relation-list">
+                  <div 
+                    v-for="(item, idx) in levelData[3].data.jiejiao" 
+                    :key="idx"
+                    class="relation-item"
+                  >
+                    <span class="gan-pair">{{ item }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="relation-section" v-if="levelData[3].data.fuyin && levelData[3].data.fuyin.length > 0">
+                <div class="subsection-title">伏吟</div>
+                <div class="relation-list">
+                  <div 
+                    v-for="(item, idx) in levelData[3].data.fuyin" 
+                    :key="idx"
+                    class="relation-item"
+                  >
+                    <span class="gan-pair">{{ item }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="relation-section" v-if="levelData[3].data.fanyin && levelData[3].data.fanyin.length > 0">
+                <div class="subsection-title">反吟</div>
+                <div class="relation-list">
+                  <div 
+                    v-for="(item, idx) in levelData[3].data.fanyin" 
+                    :key="idx"
+                    class="relation-item"
+                  >
+                    <span class="gan-pair">{{ item }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -189,17 +236,17 @@
             <div class="yonggod-grid">
               <div class="yonggod-card yong">
                 <div class="yonggod-label">用神</div>
-                <div class="yonggod-value">{{ levelData[4].data.yongshen || '无' }}</div>
+                <div class="yonggod-value">{{ formatYongShen(levelData[4].data.yongshen) }}</div>
                 <div class="yonggod-desc">最需要补足的五行</div>
               </div>
               <div class="yonggod-card xi">
                 <div class="yonggod-label">喜神</div>
-                <div class="yonggod-value">{{ levelData[4].data.xishen || '无' }}</div>
+                <div class="yonggod-value">{{ formatYongShen(levelData[4].data.xishen) }}</div>
                 <div class="yonggod-desc">对命局有帮助的五行</div>
               </div>
               <div class="yonggod-card ji">
                 <div class="yonggod-label">忌神</div>
-                <div class="yonggod-value">{{ levelData[4].data.jishen || '无' }}</div>
+                <div class="yonggod-value">{{ formatYongShen(levelData[4].data.jishen) }}</div>
                 <div class="yonggod-desc">需要避免的五行</div>
               </div>
               <div class="yonggod-card tiaohou" v-if="levelData[4].data.tiaohou">
@@ -214,17 +261,17 @@
               <div class="advice-content" v-html="formatAdvice(levelData[4].data.growthAdvice)"></div>
             </div>
             <!-- 十二长生 -->
-            <div v-if="levelData[4].data.shierChangsheng" class="shier-changsheng">
+            <div v-if="levelData[4].data.shierChangsheng && Object.keys(levelData[4].data.shierChangsheng).length > 0" class="shier-changsheng">
               <div class="subsection-title">十二长生</div>
               <div class="pillars-status">
                 <div v-for="(status, pillar) in levelData[4].data.shierChangsheng" :key="pillar" class="pillar-status">
                   <span class="pillar-name">{{ pillar }}</span>
-                  <span class="status-value">{{ status }}</span>
+                  <span class="status-value">{{ formatChangSheng(status) }}</span>
                 </div>
               </div>
             </div>
             <!-- 纳音 -->
-            <div v-if="levelData[4].data.nayin" class="nayin-section">
+            <div v-if="levelData[4].data.nayin && Object.keys(levelData[4].data.nayin).length > 0" class="nayin-section">
               <div class="subsection-title">纳音五行</div>
               <div class="pillars-nayin">
                 <div v-for="(nayin, pillar) in levelData[4].data.nayin" :key="pillar" class="pillar-nayin">
@@ -279,30 +326,17 @@
               <div class="current-dayun" v-if="levelData[5].data.currentDayun">
                 <div class="subsection-title">当前大运</div>
                 <div class="dayun-card">
-                  <div class="dayun-ganzhi">{{ levelData[5].data.currentDayun.ganzhi || levelData[5].data.currentDayun.干支 }}</div>
-                  <div class="dayun-range">{{ levelData[5].data.currentDayun.range || levelData[5].data.currentDayun.年份范围 }}</div>
+                  <div class="dayun-ganzhi">{{ levelData[5].data.currentDayun.干支 }}</div>
+                  <div class="dayun-range" v-if="levelData[5].data.currentDayun.年份范围">{{ levelData[5].data.currentDayun.年份范围 }}</div>
                   <div class="dayun-effect" v-if="levelData[5].data.currentDayun.effect">{{ levelData[5].data.currentDayun.effect }}</div>
                 </div>
               </div>
               <div class="liunian-section" v-if="levelData[5].data.liunian">
                 <div class="subsection-title">流年影响</div>
                 <div class="liunian-card">
-                  <div class="liunian-year">{{ levelData[5].data.liunian.year || new Date().getFullYear() }}年</div>
-                  <div class="liunian-ganzhi">{{ levelData[5].data.liunian.ganzhi || levelData[5].data.liunian.干支 }}</div>
+                  <div class="liunian-year">{{ new Date().getFullYear() }}年</div>
+                  <div class="liunian-ganzhi">{{ levelData[5].data.liunian.干支 }}</div>
                   <div class="liunian-effect" v-if="levelData[5].data.liunian.effect">{{ levelData[5].data.liunian.effect }}</div>
-                </div>
-              </div>
-            </div>
-            <!-- 五行能量影响 -->
-            <div v-if="levelData[5].data.wuxingEffect" class="wuxing-effect">
-              <div class="subsection-title">大运流年五行影响</div>
-              <div class="effect-list">
-                <div v-for="(effect, wx) in levelData[5].data.wuxingEffect" :key="wx" class="effect-item">
-                  <span class="effect-name">{{ wx }}</span>
-                  <span class="effect-change" :class="{ 'increase': effect.变化 > 0, 'decrease': effect.变化 < 0 }">
-                    {{ effect.变化 > 0 ? '+' : '' }}{{ effect.变化 }}分
-                  </span>
-                  <span class="effect-result">→ {{ effect.大运流年后 }}分</span>
                 </div>
               </div>
             </div>
@@ -339,22 +373,41 @@ const strengthClass = computed(() => {
   return ''
 })
 
+// 格式化用神显示
+const formatYongShen = (val) => {
+  if (!val) return '无'
+  if (Array.isArray(val)) {
+    return val.join('、') || '无'
+  }
+  return val
+}
+
+// 格式化十二长生显示
+const formatChangSheng = (status) => {
+  if (!status) return ''
+  if (typeof status === 'object') {
+    const parts = []
+    if (status.星运) parts.push(`星运:${status.星运}`)
+    if (status.自坐) parts.push(`自坐:${status.自坐}`)
+    return parts.join(' ')
+  }
+  return status
+}
+
 // 六级数据
 const levelData = computed(() => {
   const raw = props.analysisData || {}
 
-  // 处理地支关系详情
-  const relationsDetail = []
-  if (raw.天干地支作用关系) {
-    Object.entries(raw.天干地支作用关系).forEach(([key, value]) => {
-      if (value && typeof value === 'object') {
-        relationsDetail.push({
-          name: key,
-          ...value
-        })
-      }
-    })
-  }
+  // 调试：打印原始数据结构
+  console.log('Raw analysisData:', raw)
+  console.log('第一论级:', raw.第一论级_月令与格局)
+  console.log('第二论级:', raw.第二论级_地支关系)
+  console.log('第三论级:', raw.第三论级_天干关系)
+  console.log('第四论级:', raw.第四论级_天干与地支的关系)
+  console.log('第五论级定喜忌:', raw.第五论级_定喜忌)
+  console.log('第五论级辅助:', raw.第五论级_辅助信息)
+  console.log('第六论级:', raw.第六论级_大运流年)
+  console.log('起运计算:', raw.起运计算过程)
 
   return [
     {
@@ -367,7 +420,7 @@ const levelData = computed(() => {
         mainPattern: raw.第一论级_月令与格局?.主要格局 || raw.格局综合判定?.主格局,
         strength: raw.第一论级_月令与格局?.身强身弱,
         dayMaster: raw.第一论级_月令与格局?.日主,
-        wuxingStrength: raw.格局综合判定?.五行旺相 || raw.第一论级_月令与格局?.五行旺相,
+        wuxingStrength: raw.第一论级_月令与格局?.五行旺相,
         gejuDefinition: raw.第一论级_月令与格局?.格局定义,
         gejuCondition: raw.第一论级_月令与格局?.格局条件,
         gejuLikeDislike: raw.第一论级_月令与格局?.格局喜忌
@@ -391,8 +444,7 @@ const levelData = computed(() => {
         '六冲': raw.第二论级_地支关系?.六冲 || [],
         '自刑': raw.第二论级_地支关系?.自刑 || [],
         '地支暗合': raw.第二论级_地支关系?.地支暗合 || []
-      },
-      relationsDetail: relationsDetail
+      }
     },
     {
       number: '三',
@@ -412,10 +464,10 @@ const levelData = computed(() => {
       subtitle: '盖头、截脚、伏吟、反吟',
       color: '#8b5cf6',
       data: {
-        gaitou: raw.第四论级_干支关系?.盖头 || [],
-        jiejiao: raw.第四论级_干支关系?.截脚 || [],
-        fuyin: raw.第四论级_干支关系?.伏吟 || [],
-        fanyin: raw.第四论级_干支关系?.反吟 || []
+        gaitou: raw.第四论级_天干与地支的关系?.盖头 || [],
+        jiejiao: raw.第四论级_天干与地支的关系?.截脚 || [],
+        fuyin: raw.第四论级_天干与地支的关系?.伏吟 || [],
+        fanyin: raw.第四论级_天干与地支的关系?.反吟 || []
       }
     },
     {
@@ -424,15 +476,13 @@ const levelData = computed(() => {
       subtitle: '用神、喜神、忌神、神煞',
       color: '#ef4444',
       data: {
-        yongshen: raw.第五论级_定喜忌?.用神 || raw.第五论级_定喜忌?.喜用神,
+        yongshen: raw.第五论级_定喜忌?.用神,
         xishen: raw.第五论级_定喜忌?.喜神,
         jishen: raw.第五论级_定喜忌?.忌神,
         tiaohou: raw.第五论级_定喜忌?.调候用神,
-        tiaohouDesc: raw.第五论级_定喜忌?.调候说明,
         growthAdvice: raw.第五论级_定喜忌?.成长建议 || raw.第五论级_定喜忌?.建议,
-        shensha: raw.第五论级_定喜忌?.神煞 || raw.第五论级_辅助信息?.神煞 || {},
+        shensha: raw.第五论级_辅助信息?.神煞 || {},
         shierChangsheng: raw.第五论级_辅助信息?.十二长生,
-        kongwang: raw.第五论级_辅助信息?.空亡,
         nayin: raw.第五论级_辅助信息?.纳音
       }
     },
@@ -445,9 +495,7 @@ const levelData = computed(() => {
         qiyunInfo: raw.起运计算过程,
         currentDayun: raw.第六论级_大运流年?.当前大运,
         liunian: raw.第六论级_大运流年?.流年,
-        dayunList: raw.第六论级_大运流年?.大运列表,
-        wuxingEffect: raw.第六论级_大运流年?.五行能量影响,
-        shishenEffect: raw.第六论级_大运流年?.十神能量影响
+        dayunList: raw.大运表 || []
       }
     }
   ]
@@ -699,6 +747,20 @@ const formatAdvice = (advice) => {
   color: #64748b;
 }
 
+/* 格局详情 */
+.geju-detail {
+  margin-top: 12px;
+}
+
+.detail-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+}
+
 /* 关系网格 */
 .relations-grid {
   display: grid;
@@ -735,7 +797,8 @@ const formatAdvice = (advice) => {
 }
 
 /* 天干关系 */
-.gan-relations {
+.gan-relations,
+.ganzhi-relations {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -774,55 +837,6 @@ const formatAdvice = (advice) => {
   font-weight: 500;
 }
 
-/* 特殊格局 */
-.special-patterns {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pattern-card {
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 10px;
-  border-left: 3px solid #cbd5e1;
-}
-
-.pattern-card.active {
-  border-left-color: #8b5cf6;
-  background: linear-gradient(90deg, #f5f3ff 0%, #ffffff 100%);
-}
-
-.pattern-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.pattern-name {
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.pattern-status {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #e2e8f0;
-  color: #64748b;
-}
-
-.pattern-status.active {
-  background: #8b5cf6;
-  color: white;
-}
-
-.pattern-desc {
-  font-size: 12px;
-  color: #64748b;
-}
-
 /* 喜忌 */
 .yonggod-grid {
   display: grid;
@@ -859,7 +873,7 @@ const formatAdvice = (advice) => {
 }
 
 .yonggod-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #1e293b;
   margin-bottom: 4px;
@@ -868,50 +882,6 @@ const formatAdvice = (advice) => {
 .yonggod-desc {
   font-size: 11px;
   color: #64748b;
-}
-
-/* 神煞 */
-.shensha-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.shensha-tag {
-  font-size: 12px;
-  padding: 4px 10px;
-  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-  color: #4338ca;
-  border-radius: 20px;
-  font-weight: 500;
-}
-
-.shensha-by-pillar {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.shensha-pillar {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 10px;
-  background: #f8fafc;
-  border-radius: 10px;
-}
-
-.shensha-pillar-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  min-width: 50px;
-}
-
-.shensha-pillar-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 /* 成长建议 */
@@ -983,6 +953,48 @@ const formatAdvice = (advice) => {
   color: #667eea;
 }
 
+/* 神煞 */
+.shensha-section {
+  margin-top: 16px;
+}
+
+.shensha-by-pillar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shensha-pillar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.shensha-pillar-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  min-width: 50px;
+}
+
+.shensha-pillar-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shensha-tag {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #4338ca;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
 /* 起运信息 */
 .qiyun-info {
   margin-bottom: 16px;
@@ -1034,96 +1046,16 @@ const formatAdvice = (advice) => {
   text-align: center;
 }
 
-/* 关系详情 */
-.relations-detail {
-  margin-top: 16px;
-}
-
-.relation-detail-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.relation-detail-item {
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 10px;
-}
-
-.detail-title {
-  font-size: 14px;
+.dayun-ganzhi {
+  font-size: 16px;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 6px;
+  color: #1e293b;
 }
 
-.detail-concept {
+.dayun-years {
   font-size: 12px;
   color: #64748b;
-  margin-bottom: 4px;
-}
-
-.detail-content {
-  font-size: 12px;
-  color: #475569;
-  margin-bottom: 6px;
-}
-
-.detail-psychology, .detail-advice {
-  font-size: 12px;
-  color: #475569;
   margin-top: 4px;
-}
-
-.detail-label {
-  font-weight: 600;
-  color: #667eea;
-}
-
-/* 五行能量影响 */
-.wuxing-effect {
-  margin-top: 16px;
-}
-
-.effect-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.effect-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-}
-
-.effect-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  min-width: 40px;
-}
-
-.effect-change {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.effect-change.increase {
-  color: #22c55e;
-}
-
-.effect-change.decrease {
-  color: #ef4444;
-}
-
-.effect-result {
-  font-size: 13px;
-  color: #64748b;
 }
 
 /* 大运流年 */
@@ -1177,10 +1109,6 @@ const formatAdvice = (advice) => {
   .shensha-pillar {
     flex-direction: column;
     gap: 8px;
-  }
-
-  .effect-item {
-    flex-wrap: wrap;
   }
 }
 </style>
