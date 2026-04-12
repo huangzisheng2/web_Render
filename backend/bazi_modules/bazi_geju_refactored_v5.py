@@ -6772,12 +6772,34 @@ class GeJuAnalyzerV5:
             if dayun_gan and dayun_zhi:
                 # 获取大运年龄范围
                 current_dayun = None
+                # 从出生日期计算出生年份
+                birth_year = None
+                if hasattr(self, 'birth_date') and self.birth_date:
+                    try:
+                        birth_year = int(self.birth_date.split('-')[0])
+                    except:
+                        pass
+                # 获取起运年龄
+                qiyun_age = getattr(self.dayun_liunian, 'qiyun_age', 3)
+                # 计算起运年份
+                qiyun_year = birth_year + qiyun_age if birth_year else None
+                
                 for dayun in self.dayun_liunian.dayuns:
-                    start_year = self.dayun_liunian.qiyun_year + (dayun['index'] - 1) * 10
-                    end_year = start_year + 9
-                    if start_year <= self.liunian_year <= end_year:
-                        current_dayun = dayun
-                        break
+                    if qiyun_year:
+                        start_year = qiyun_year + (dayun['index'] - 1) * 10
+                        end_year = start_year + 9
+                        if start_year <= self.liunian_year <= end_year:
+                            current_dayun = dayun
+                            break
+                    else:
+                        # 如果没有起运年份，使用年龄判断
+                        start_age = dayun.get('start_age', 0)
+                        end_age = dayun.get('end_age', 0)
+                        if start_age and end_age:
+                            age = self.liunian_year - birth_year if birth_year else 0
+                            if start_age <= age <= end_age:
+                                current_dayun = dayun
+                                break
                 if current_dayun:
                     start_age = current_dayun.get('start_age', '')
                     end_age = current_dayun.get('end_age', '')
