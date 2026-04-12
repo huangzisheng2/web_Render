@@ -97,9 +97,10 @@ def get_cities():
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 def analyze_bazi(request: AnalyzeRequest):
     """
-    八字分析主接口
-    
-    接收用户出生信息，返回八字分析结果和 AI 报告
+    八字分析主接口（仅基础分析，不含AI）
+
+    接收用户出生信息，返回八字基础分析结果（四柱、六级论级等）
+    AI分析请调用 /api/analyze-ai 接口
     """
     try:
         # 转换为内部格式
@@ -114,15 +115,15 @@ def analyze_bazi(request: AnalyzeRequest):
             "province": request.province,
             "city": request.city,
         }
-        
-        # 执行分析
-        result = bazi_service.analyze(birth_data)
-        
+
+        # 执行基础分析（不含AI）
+        result = bazi_service.analyze_basic(birth_data)
+
         return {
             "success": True,
             "data": result
         }
-        
+
     except Exception as e:
         error_trace = traceback.format_exc()
         print(f"分析错误: {str(e)}\n{error_trace}")

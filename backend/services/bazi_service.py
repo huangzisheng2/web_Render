@@ -305,10 +305,12 @@ class BaziAnalysisService:
             name=birth_data.get("name", ""),
             province_city=f"{birth_data.get('province', '')} {birth_data.get('city', '')}".strip()
         )
-        
+
         # 5. 组装基础结果
-        geju_summary = analysis_result.get('格局综合判定', {})
-        first_level = analysis_result.get('第一论级_月令与格局', {})
+        # 论级数据在 complete_data 中
+        complete_data = analysis_result.get('complete_data', {})
+        geju_summary = complete_data.get('格局综合判定', {})
+        first_level = complete_data.get('第一论级_月令与格局', {})
         
         result = {
             "report_id": f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{hash(birth_data['name']) % 10000:04d}",
@@ -365,7 +367,7 @@ class BaziAnalysisService:
                     "ji": analysis_result.get('第五论级_定喜忌', {}).get('忌神', '无'),
                 }
             },
-            "raw_data": analysis_result,  # 原始完整数据，供 PDF 生成和AI分析使用
+            "raw_data": complete_data,  # 原始完整论级数据，供前端显示和AI分析使用
             "ai_report": None  # AI分析结果，初始为None
         }
         

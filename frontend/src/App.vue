@@ -183,47 +183,75 @@ const handleDownload = async () => {
   }
 }
 
-// 前端生成 PDF（备用方案）
+// 前端生成 PDF（备用方案 - 仅AI报告）
 const generatePDF = async () => {
   try {
-    const html2canvas = (await import('html2canvas')).default
     const { jsPDF } = await import('jspdf')
     
-    const element = document.querySelector('.result-container')
-    if (!element) {
-      showToast('找不到报告内容', 'error')
+    // 只获取AI报告内容
+    const aiReport = result.value?.ai_report
+    if (!aiReport) {
+      showToast('AI报告尚未生成', 'error')
       return
     }
     
     showToast('正在生成 PDF...')
     
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    })
-    
-    const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF('p', 'mm', 'a4')
+    const userName = result.value.user_info?.name || '匿名'
     
-    const imgWidth = 210
-    const pageHeight = 297
-    const imgHeight = (canvas.height * imgWidth) / canvas.width
-    let heightLeft = imgHeight
-    let position = 0
+    // 设置中文字体（使用内置的helvetica，中文会显示为乱码，需要特殊处理）
+    pdf.setFont('helvetica')
     
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
+    // 标题
+    pdf.setFontSize(20)
+    pdf.text('八字天赋与性格分析报告', 105, 20, { align: 'center' })
     
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight
-      pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
+    // 分隔线
+    pdf.setDrawColor(102, 126, 234)
+    pdf.line(20, 25, 190, 25)
+    
+    // 用户信息
+    pdf.setFontSize(12)
+    pdf.text(`姓名：${userName}`, 20, 35)
+    pdf.text(`性别：${result.value.user_info?.gender || '未知'}`, 20, 42)
+    
+    // AI报告标题
+    pdf.setFontSize(14)
+    pdf.setTextColor(102, 126, 234)
+    pdf.text('【AI 分析报告】', 20, 55)
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(11)
+    
+    // 处理AI报告文本（简单处理Markdown）
+    let content = aiReport
+      .replace(/### /g, '')
+      .replace(/## /g, '')
+      .replace(/# /g, '')
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '  * ')
+    
+    // 分页添加文本
+    const lines = pdf.splitTextToSize(content, 170)
+    let y = 65
+    
+    for (let i = 0; i < lines.length; i++) {
+      if (y > 280) {
+        pdf.addPage()
+        y = 20
+      }
+      pdf.text(lines[i], 20, y)
+      y += 6
     }
     
-    pdf.save(`八字分析报告_${result.value.user_info?.name || '匿名'}.pdf`)
+    // 页脚
+    const now = new Date().toLocaleString('zh-CN')
+    pdf.setFontSize(9)
+    pdf.setTextColor(128, 128, 128)
+    pdf.text('本报告由 AI 生成，仅供参考', 105, 290, { align: 'center' })
+    pdf.text(`生成时间：${now}`, 105, 295, { align: 'center' })
+    
+    pdf.save(`八字分析报告_${userName}.pdf`)
     showToast('PDF 已生成')
   } catch (error) {
     console.error('PDF生成错误:', error)

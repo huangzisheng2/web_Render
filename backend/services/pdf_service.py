@@ -46,7 +46,7 @@ class PDFService:
         return f"/api/download/{report_id}"
     
     def _generate_pdf_reportlab(self, analysis_data: Dict) -> bytes:
-        """使用 reportlab 生成 PDF"""
+        """使用 reportlab 生成 PDF（仅包含AI报告）"""
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -76,37 +76,34 @@ class PDFService:
         
         # 用户信息
         user_info = analysis_data.get("user_info", {})
-        birth_time = user_info.get("birth_time", {})
-        
         story.append(Paragraph(f"<b>姓名：</b>{user_info.get('name', '匿名')}", styles['Normal']))
         story.append(Paragraph(f"<b>性别：</b>{user_info.get('gender', '未知')}", styles['Normal']))
-        story.append(Spacer(1, 10))
-        
-        # 四柱信息
-        bazi = analysis_data.get("bazi", {})
-        story.append(Paragraph("<b>【四柱排盘】</b>", styles['Heading2']))
-        story.append(Paragraph(f"年柱：{bazi.get('year_pillar', '')}", styles['Normal']))
-        story.append(Paragraph(f"月柱：{bazi.get('month_pillar', '')}", styles['Normal']))
-        story.append(Paragraph(f"日柱：{bazi.get('day_pillar', '')}", styles['Normal']))
-        story.append(Paragraph(f"时柱：{bazi.get('time_pillar', '')}", styles['Normal']))
         story.append(Spacer(1, 15))
         
-        # 分析结果
-        analysis = analysis_data.get("analysis", {})
-        story.append(Paragraph("<b>【命理分析】</b>", styles['Heading2']))
-        story.append(Paragraph(f"身强身弱：{analysis.get('strength', '未知')}", styles['Normal']))
-        story.append(Paragraph(f"主要格局：{analysis.get('main_pattern', '未知')}", styles['Normal']))
-        story.append(Spacer(1, 15))
-        
-        # AI 报告
+        # AI 报告（仅保留AI分析内容）
         ai_report = analysis_data.get("ai_report", "")
         if ai_report:
             story.append(Paragraph("<b>【AI 分析报告】</b>", styles['Heading2']))
+            story.append(Spacer(1, 10))
             # 分段处理
             for line in ai_report.split('\n'):
                 if line.strip():
                     story.append(Paragraph(line, styles['Normal']))
                     story.append(Spacer(1, 5))
+        else:
+            story.append(Paragraph("AI 报告尚未生成", styles['Normal']))
+        
+        # 页脚
+        story.append(Spacer(1, 30))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.grey,
+            alignment=1  # 居中
+        )
+        story.append(Paragraph("本报告由 AI 生成，仅供参考", footer_style))
+        story.append(Paragraph(f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", footer_style))
         
         doc.build(story)
         pdf_bytes = buffer.getvalue()
@@ -115,26 +112,10 @@ class PDFService:
         return pdf_bytes
     
     def _generate_html_report(self, analysis_data: Dict) -> str:
-        """生成 HTML 报告（供前端 html2pdf 使用）"""
+        """生成 HTML 报告（供前端 html2pdf 使用，仅包含AI报告）"""
         
         user_info = analysis_data.get("user_info", {})
-        bazi = analysis_data.get("bazi", {})
-        analysis = analysis_data.get("analysis", {})
         ai_report = analysis_data.get("ai_report", "").replace('\n', '<br>')
-        
-        # 五行能量条
-        wuxing_html = ""
-        for wx, value in sorted(analysis.get("wuxing_energy", {}).items(), key=lambda x: x[1], reverse=True):
-            width = min(value * 2, 100)  # 限制最大宽度
-            wuxing_html += f'''
-                <div style="margin: 5px 0;">
-                    <span style="display:inline-block;width:40px;">{wx}</span>
-                    <div style="display:inline-block;width:200px;height:20px;background:#eee;vertical-align:middle;">
-                        <div style="width:{width}%;height:100%;background:#4CAF50;"></div>
-                    </div>
-                    <span style="margin-left:10px;">{value:.1f}</span>
-                </div>
-            '''
         
         html = f"""
         <!DOCTYPE html>
@@ -144,13 +125,9 @@ class PDFService:
             <title>八字天赋与性格分析报告</title>
             <style>
                 body {{ font-family: "Microsoft YaHei", sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }}
-                h1 {{ text-align: center; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 20px; }}
-                h2 {{ color: #4CAF50; margin-top: 30px; }}
+                h1 {{ text-align: center; color: #333; border-bottom: 2px solid #667eea; padding-bottom: 20px; }}
+                h2 {{ color: #667eea; margin-top: 30px; }}
                 .info-box {{ background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }}
-                .bazi-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }}
-                .bazi-item {{ text-align: center; padding: 15px; background: #e8f5e9; border-radius: 8px; }}
-                .pillar {{ font-size: 24px; font-weight: bold; color: #2e7d32; }}
-                .label {{ font-size: 12px; color: #666; margin-top: 5px; }}
                 .report-content {{ line-height: 1.8; text-align: justify; }}
                 .footer {{ text-align: center; margin-top: 40px; color: #999; font-size: 12px; }}
             </style>
@@ -161,46 +138,11 @@ class PDFService:
             <div class="info-box">
                 <p><strong>姓名：</strong>{user_info.get('name', '匿名')}</p>
                 <p><strong>性别：</strong>{user_info.get('gender', '未知')}</p>
-                <p><strong>出生时间：</strong>
-                    {user_info.get('birth_time', {}).get('original', {}).get('year', '')}年
-                    {user_info.get('birth_time', {}).get('original', {}).get('month', '')}月
-                    {user_info.get('birth_time', {}).get('original', {}).get('day', '')}日
-                    {f"{user_info.get('birth_time', {}).get('original', {}).get('hour', '')}时" if user_info.get('birth_time', {}).get('original', {}).get('hour') else ""}
-                </p>
-                <p><strong>出生地：</strong>{user_info.get('birth_time', {}).get('location', {}).get('province', '')} {user_info.get('birth_time', {}).get('location', {}).get('city', '')}</p>
             </div>
-            
-            <h2>【四柱排盘】</h2>
-            <div class="bazi-grid">
-                <div class="bazi-item">
-                    <div class="pillar">{bazi.get('year_pillar', '')}</div>
-                    <div class="label">年柱</div>
-                </div>
-                <div class="bazi-item">
-                    <div class="pillar">{bazi.get('month_pillar', '')}</div>
-                    <div class="label">月柱</div>
-                </div>
-                <div class="bazi-item">
-                    <div class="pillar">{bazi.get('day_pillar', '')}</div>
-                    <div class="label">日柱（日主）</div>
-                </div>
-                <div class="bazi-item">
-                    <div class="pillar">{bazi.get('time_pillar', '')}</div>
-                    <div class="label">时柱</div>
-                </div>
-            </div>
-            
-            <h2>【命理分析】</h2>
-            <p><strong>身强身弱：</strong>{analysis.get('strength', '未知')}</p>
-            <p><strong>主要格局：</strong>{analysis.get('main_pattern', '未知')}</p>
-            <p><strong>日主：</strong>{bazi.get('day_master', '')}</p>
-            
-            <h3>五行能量</h3>
-            {wuxing_html}
             
             <h2>【AI 分析报告】</h2>
             <div class="report-content">
-                {ai_report}
+                {ai_report if ai_report else "<p>AI 报告尚未生成</p>"}
             </div>
             
             <div class="footer">
