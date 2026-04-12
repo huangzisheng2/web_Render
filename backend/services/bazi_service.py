@@ -307,10 +307,16 @@ class BaziAnalysisService:
         )
 
         # 5. 组装基础结果
-        # 论级数据在 complete_data 中
-        complete_data = analysis_result.get('complete_data', {})
-        geju_summary = complete_data.get('格局综合判定', {})
-        first_level = complete_data.get('第一论级_月令与格局', {})
+        # bazi_bridge返回的数据结构中，论级分析数据在'analysis'键中
+        # 但也需要'complete_data'中的四柱、大运等信息
+        lunji_data = analysis_result.get('analysis', {})  # 论级数据
+        complete_data = analysis_result.get('complete_data', {})  # 完整打印数据
+        
+        # 合并数据：优先使用论级数据，同时保留complete_data的信息
+        merged_data = {**complete_data, **lunji_data}
+        
+        geju_summary = lunji_data.get('格局综合判定', {})
+        first_level = lunji_data.get('第一论级_月令与格局', {})
         
         result = {
             "report_id": f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{hash(birth_data['name']) % 10000:04d}",
@@ -359,15 +365,15 @@ class BaziAnalysisService:
             "analysis": {
                 "strength": first_level.get('身强身弱', '未知'),
                 "main_pattern": first_level.get('主要格局', geju_summary.get('主格局', '未知')),
-                "wuxing_energy": geju_summary.get('五行能量', {}),
+                "wuxing_energy": geju_summary.get('五行能量分析', {}),
                 "shishen_energy": geju_summary.get('十神能量分析', {}),
                 "yongshen": {
-                    "yong": analysis_result.get('第五论级_定喜忌', {}).get('用神', '无'),
-                    "xi": analysis_result.get('第五论级_定喜忌', {}).get('喜神', '无'),
-                    "ji": analysis_result.get('第五论级_定喜忌', {}).get('忌神', '无'),
+                    "yong": lunji_data.get('第五论级_定喜忌', {}).get('用神', '无'),
+                    "xi": lunji_data.get('第五论级_定喜忌', {}).get('喜神', '无'),
+                    "ji": lunji_data.get('第五论级_定喜忌', {}).get('忌神', '无'),
                 }
             },
-            "raw_data": complete_data,  # 原始完整论级数据，供前端显示和AI分析使用
+            "raw_data": merged_data,  # 原始完整论级数据，供前端显示和AI分析使用
             "ai_report": None  # AI分析结果，初始为None
         }
         

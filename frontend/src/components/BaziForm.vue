@@ -58,47 +58,26 @@
         </div>
       </div>
 
-      <!-- 出生日期 -->
+      <!-- 快速文本输入 -->
       <div class="form-group">
         <label class="form-label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
-          出生日期
+          快速输入（可选）
         </label>
-        <div class="date-picker-trigger" @click="showDatePicker = true">
-          <span class="date-display" :class="{ placeholder: !dateText }">
-            {{ dateText || '请选择出生日期' }}
-          </span>
-          <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 出生时间 -->
-      <div class="form-group">
-        <label class="form-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-          出生时间
-        </label>
-        <div class="time-picker-trigger" @click="showTimePicker = true">
-          <span class="time-display" :class="{ placeholder: !timeText }">
-            {{ timeText || '请选择出生时间' }}
-          </span>
-          <svg class="clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
+        <div class="quick-input-wrapper">
+          <input
+            v-model="quickInput"
+            type="text"
+            class="form-input quick-input"
+            placeholder="如: 199806141600 (年月日时分)"
+            @blur="parseQuickInput"
+          />
+          <button type="button" class="quick-parse-btn" @click="parseQuickInput">
+            解析
+          </button>
         </div>
         <p class="form-tip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -106,8 +85,50 @@
             <line x1="12" y1="16" x2="12" y2="12"/>
             <line x1="12" y1="8" x2="12.01" y2="8"/>
           </svg>
-          不知道出生时间可选择"未知"，时柱将按未提供处理
+          支持格式: 200001011200(含时辰) 或 20000101(无时辰)
         </p>
+      </div>
+
+      <!-- 出生日期与时间 -->
+      <div class="form-group">
+        <label class="form-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          出生日期与时间
+        </label>
+        <div class="datetime-wrapper">
+          <div class="date-picker-trigger" @click="showDatePicker = true">
+            <span class="date-display" :class="{ placeholder: !dateText }">
+              {{ dateText || '请选择日期' }}
+            </span>
+            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="time-picker-trigger" @click="showTimePicker = true">
+            <span class="time-display" :class="{ placeholder: !timeText }">
+              {{ timeText || '时辰' }}
+            </span>
+            <svg class="clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+        </div>
+        <div class="time-actions">
+          <button type="button" class="time-action-btn unknown" @click="setUnknownTime">
+            时辰未知
+          </button>
+        </div>
       </div>
 
       <!-- 出生地点 -->
@@ -367,6 +388,9 @@ const form = ref({
   city: ''
 })
 
+// 快速输入
+const quickInput = ref('')
+
 // 弹窗状态
 const showDatePicker = ref(false)
 const showTimePicker = ref(false)
@@ -439,6 +463,71 @@ const confirmDate = () => {
   form.value.month = tempDate.month
   form.value.day = tempDate.day
   showDatePicker.value = false
+}
+
+// 快速解析输入
+const parseQuickInput = () => {
+  const input = quickInput.value.trim()
+  if (!input) return
+
+  // 清理输入（只保留数字）
+  const digits = input.replace(/\D/g, '')
+
+  if (digits.length === 8) {
+    // 格式: YYYYMMDD (无时辰)
+    form.value.year = parseInt(digits.substring(0, 4))
+    form.value.month = parseInt(digits.substring(4, 6))
+    form.value.day = parseInt(digits.substring(6, 8))
+    form.value.hour = null
+    form.value.minute = 0
+    // 更新临时日期
+    tempDate.year = form.value.year
+    tempDate.month = form.value.month
+    tempDate.day = form.value.day
+    // 清空快速输入框表示成功
+    quickInput.value = ''
+  } else if (digits.length === 10) {
+    // 格式: YYYYMMDDHH (有时辰，无分钟)
+    form.value.year = parseInt(digits.substring(0, 4))
+    form.value.month = parseInt(digits.substring(4, 6))
+    form.value.day = parseInt(digits.substring(6, 8))
+    form.value.hour = parseInt(digits.substring(8, 10))
+    form.value.minute = 0
+    tempDate.year = form.value.year
+    tempDate.month = form.value.month
+    tempDate.day = form.value.day
+    // 找到对应的时辰索引
+    const shichenIndex = shichenList.findIndex(s => s.hour === form.value.hour)
+    if (shichenIndex >= 0) {
+      tempTime.shichen = shichenIndex
+    }
+    quickInput.value = ''
+  } else if (digits.length === 12) {
+    // 格式: YYYYMMDDHHmm (有时辰和分钟)
+    form.value.year = parseInt(digits.substring(0, 4))
+    form.value.month = parseInt(digits.substring(4, 6))
+    form.value.day = parseInt(digits.substring(6, 8))
+    form.value.hour = parseInt(digits.substring(8, 10))
+    form.value.minute = parseInt(digits.substring(10, 12))
+    tempDate.year = form.value.year
+    tempDate.month = form.value.month
+    tempDate.day = form.value.day
+    const shichenIndex = shichenList.findIndex(s => s.hour === form.value.hour)
+    if (shichenIndex >= 0) {
+      tempTime.shichen = shichenIndex
+    }
+    tempTime.minute = form.value.minute
+    quickInput.value = ''
+  } else {
+    alert('请输入正确格式: 19980614 或 1998061416 或 199806141600')
+    return
+  }
+}
+
+// 设置未知时间
+const setUnknownTime = () => {
+  form.value.hour = null
+  form.value.minute = 0
 }
 
 // 选择时辰
@@ -590,7 +679,41 @@ const onSubmit = () => {
   color: #374151;
 }
 
-/* 日期/时间选择触发器 */
+/* 快速输入 */
+.quick-input-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-input {
+  flex: 1;
+}
+
+.quick-parse-btn {
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.quick-parse-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 日期时间组合 */
+.datetime-wrapper {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 8px;
+}
+
 .date-picker-trigger,
 .time-picker-trigger {
   display: flex;
@@ -626,6 +749,31 @@ const onSubmit = () => {
   width: 20px;
   height: 20px;
   color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.time-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.time-action-btn {
+  flex: 1;
+  padding: 10px;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-action-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  background: #eef2ff;
 }
 
 .form-tip {
@@ -1041,13 +1189,25 @@ const onSubmit = () => {
     padding: 20px;
     border-radius: 16px;
   }
-  
+
   .location-selectors {
     grid-template-columns: 1fr;
   }
-  
+
   .shichen-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .datetime-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-input-wrapper {
+    flex-direction: column;
+  }
+
+  .quick-parse-btn {
+    width: 100%;
   }
 }
 </style>
