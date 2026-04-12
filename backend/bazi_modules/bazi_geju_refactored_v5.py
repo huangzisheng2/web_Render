@@ -7080,6 +7080,9 @@ class GeJuAnalyzerV5:
         if not relation_found:
             print("  原局未发现特殊的天干地支作用关系")
         
+        # 将命盘综合信息分析数据存储到analysis_result
+        self.analysis_result['命盘综合信息分析'] = mingpan_zonghe
+        
         # 7. 岁运干支分析（天克地冲、岁运并临、伏吟）- 如果存在第六论级数据
         if self.liunian_year:
             sixth_level = self.analysis_result.get('第六论级', {})
