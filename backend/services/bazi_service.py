@@ -183,68 +183,204 @@ class BaziAnalysisService:
         analysis_data: Dict, 
         user_info: Dict
     ) -> str:
-        """构建 DeepSeek 提示词"""
+        """构建 DeepSeek 提示词 - 天赋与性格分析专用模板"""
         
+        # 提取各级论级数据
         geju_summary = analysis_data.get('格局综合判定', {})
         first_level = analysis_data.get('第一论级_月令与格局', {})
-        fifth_level = analysis_data.get('第五论级_定喜忌', {})
-        
-        # 格式化五行能量
-        wuxing = geju_summary.get('五行能量', {})
-        wuxing_str = "\n".join([f"  {k}: {v:.1f}" for k, v in sorted(wuxing.items(), key=lambda x: x[1], reverse=True)]) if wuxing else "  暂无数据"
-        
-        # 格式化十神能量
-        shishen = geju_summary.get('十神能量分析', {})
-        shishen_str = "\n".join([f"  {k}: {v:.1f}" for k, v in sorted(shishen.items(), key=lambda x: x[1], reverse=True)]) if shishen else "  暂无数据"
+        second_level = analysis_data.get('第二论级_地支关系', {})
+        third_level = analysis_data.get('第三论级_天干关系', {})
+        fourth_level = analysis_data.get('第四论级_天干与地支的关系', {})
+        fifth_level_xiji = analysis_data.get('第五论级_定喜忌', {})
+        fifth_level_aux = analysis_data.get('第五论级_辅助信息', {})
+        sixth_level = analysis_data.get('第六论级_大运流年', {})
+        basic_info = analysis_data.get('基础信息综合分析', {})
         
         gender_str = "男" if user_info.get('gender') == 'male' else "女"
-        time_str = f"{bazi_data.get('time_gan', '')}{bazi_data.get('time_zhi', '')}" if bazi_data.get('time_gan') else "未提供"
         
-        prompt = f"""# 八字天赋与性格分析报告请求
+        # 格式化五行能量（按占比排序）
+        def format_wuxing_energy(wuxing_dict):
+            if not wuxing_dict:
+                return "  暂无数据"
+            total = sum(max(v, 0) for v in wuxing_dict.values())
+            sorted_items = sorted(wuxing_dict.items(), key=lambda x: x[1], reverse=True)
+            lines = []
+            for k, v in sorted_items:
+                pct = (v / total * 100) if total > 0 else 0
+                lines.append(f"  {k}: {v:.1f}分 (占比{pct:.1f}%)")
+            return "\n".join(lines)
+        
+        # 格式化十神能量（按占比排序）
+        def format_shishen_energy(shishen_dict):
+            if not shishen_dict:
+                return "  暂无数据"
+            shishen_names = {
+                '比': '比肩', '劫': '劫财', '食': '食神', '伤': '伤官',
+                '财': '正财', '才': '偏财', '官': '正官', '杀': '七杀',
+                '印': '正印', '枭': '偏印'
+            }
+            total = sum(max(v, 0) for v in shishen_dict.values())
+            sorted_items = sorted(shishen_dict.items(), key=lambda x: x[1], reverse=True)
+            lines = []
+            for k, v in sorted_items:
+                full_name = shishen_names.get(k, k)
+                pct = (v / total * 100) if total > 0 else 0
+                lines.append(f"  {full_name}({k}): {v:.1f}分 (占比{pct:.1f}%)")
+            return "\n".join(lines)
+        
+        # 格式化关系列表
+        def format_relations(relations_dict, keys):
+            items = []
+            for key in keys:
+                val = relations_dict.get(key)
+                if val and val != '无':
+                    if isinstance(val, list):
+                        items.extend(val)
+                    elif isinstance(val, str):
+                        items.append(val)
+            return "、".join(items) if items else "无"
+        
+        # 获取四柱信息
+        sizhu = f"年柱{bazi_data.get('year_gan', '')}{bazi_data.get('year_zhi', '')}、"
+        sizhu += f"月柱{bazi_data.get('month_gan', '')}{bazi_data.get('month_zhi', '')}、"
+        sizhu += f"日柱{bazi_data.get('day_gan', '')}{bazi_data.get('day_zhi', '')}、"
+        sizhu += f"时柱{bazi_data.get('time_gan', '')}{bazi_data.get('time_zhi', '')}" if bazi_data.get('time_gan') else "时柱未提供"
+        
+        # 获取神煞
+        shensha_data = fifth_level_aux.get('神煞', {})
+        shensha_nian = "、".join(shensha_data.get('年柱', [])) if shensha_data.get('年柱') else "无"
+        shensha_yue = "、".join(shensha_data.get('月柱', [])) if shensha_data.get('月柱') else "无"
+        shensha_ri = "、".join(shensha_data.get('日柱', [])) if shensha_data.get('日柱') else "无"
+        shensha_shi = "、".join(shensha_data.get('时柱', [])) if shensha_data.get('时柱') else "无"
+        
+        # 获取大运流年
+        dayun_info = sixth_level.get('当前大运', {}) if sixth_level else {}
+        liunian_info = sixth_level.get('当前流年', {}) if sixth_level else {}
+        dayun_ganzhi = dayun_info.get('干支', '未知')
+        dayun_age = dayun_info.get('年龄范围', '未知')
+        liunian_ganzhi = liunian_info.get('干支', '未知')
+        
+        # 未来五年流年
+        future_liunian = []
+        from datetime import datetime
+        current_year = datetime.now().year
+        for i in range(5):
+            year = current_year + i
+            future_liunian.append(f"{year}年")
+        future_liunian_str = "、".join(future_liunian)
+        
+        prompt = f"""# 角色
+你是一位兼具传统命理逻辑与现代心理学视角的天赋分析师。你的分析不宣扬宿命论，而是基于八字中的十神、五行、神煞、格局等信息，推导一个人可能具有的潜在心理倾向、能力特质与兴趣爱好。请使用"可能倾向于"、"大概率擅长"等概率性语言，避免绝对化断言。
 
-用户姓名：{user_info.get('name', '匿名')}
-性别：{gender_str}
+# 输入数据
 
-## 【四柱信息】
-- 年柱: {bazi_data['year_gan']}{bazi_data['year_zhi']}
-- 月柱: {bazi_data['month_gan']}{bazi_data['month_zhi']}
-- 日柱: {bazi_data['day_gan']}{bazi_data['day_zhi']} (日主)
-- 时柱: {time_str}
+## 一、命盘基础信息
+- 日干（日主）：{bazi_data.get('day_gan', '未知')}
+- 日支：{bazi_data.get('day_zhi', '未知')}
+- 月令：{first_level.get('月令', bazi_data.get('month_zhi', '未知'))}
+- 四柱：{sizhu}
 
-## 【第一论级：月令与格局】
-- 月令: {first_level.get('月令', '未知')}
-- 日主: {first_level.get('日主', bazi_data['day_gan'])}
-- 身强身弱: {first_level.get('身强身弱', '未知')}
-- 主要格局: {first_level.get('主要格局', geju_summary.get('主格局', '未知'))}
+## 二、五行与十神能量分析
+### 原局五行能量占比（由高到低）
+{format_wuxing_energy(geju_summary.get('五行能量分析', {}))}
 
-## 【五行能量分析】
-{wuxing_str}
+### 原局十神能量占比（由高到低）
+{format_shishen_energy(geju_summary.get('十神能量分析', {}))}
 
-## 【十神能量分析】
-{shishen_str}
+### 大运流年作用后五行能量占比（由高到低）
+{format_wuxing_energy(geju_summary.get('大运流年五行能量分析', {}))}
 
-## 【定喜忌】
-- 用神: {fifth_level.get('用神', '无')}
-- 喜神: {fifth_level.get('喜神', '无')}
-- 忌神: {fifth_level.get('忌神', '无')}
+### 大运流年作用后十神能量占比（由高到低）
+{format_shishen_energy(geju_summary.get('大运流年十神能量分析', {}))}
 
-## 【分析报告输出要求】
+## 三、格局与旺衰
+- 主格局：{geju_summary.get('主格局', first_level.get('主要格局', '未知'))}
+- 次要格局：{"、".join(geju_summary.get('次要格局', [])) if geju_summary.get('次要格局') else "无"}
+- 身强身弱判定：{first_level.get('身强身弱', '未知')}
+- 五行旺相状态：{first_level.get('五行旺相', '未知')}
 
-请按照以下结构输出分析报告：
+## 四、调候与喜忌
+- 调候用神：{"、".join(basic_info.get('调候用神', [])) if basic_info.get('调候用神') else "无"}
+- 用神：{"、".join(fifth_level_xiji.get('用神', [])) if fifth_level_xiji.get('用神') else "无"}
+- 喜神：{"、".join(fifth_level_xiji.get('喜神', [])) if fifth_level_xiji.get('喜神') else "无"}
+- 忌神：{"、".join(fifth_level_xiji.get('忌神', [])) if fifth_level_xiji.get('忌神') else "无"}
 
-### 一、基础性格分析
-结合日主、五行强弱、身强身弱分析核心性格特质。
+## 五、四柱神煞信息
+- 年柱神煞：{shensha_nian}
+- 月柱神煞：{shensha_yue}
+- 日柱神煞：{shensha_ri}
+- 时柱神煞：{shensha_shi}
 
-### 二、天赋与技能分析
-1. **核心天赋**：根据十神能量占比，分析最突出的才华领域
-2. **适合领域**：结合五行和十神，给出职业/发展方向建议
+## 六、天干地支作用关系
 
-### 三、成长建议
-1. 如何发挥优势
-2. 需要注意的短板
-3. 个人发展建议
+### 原局天干关系（冲克合等）
+{format_relations(third_level, ['天干五合', '天干相冲', '天干相克'])}
 
-请用专业但易懂的语言撰写，整体控制在1500字左右。
+### 原局地支关系（刑冲合害等）
+{format_relations(second_level, ['三会', '三合', '半合', '六合', '六冲', '三刑', '六破', '六害', '自刑'])}
+
+### 原局干支关系（伏吟、天克地冲、截脚、盖头）
+{format_relations(fourth_level, ['伏吟', '天克地冲', '截脚', '盖头'])}
+
+### 岁运天干关系（冲克合等）
+{format_relations(sixth_level.get('岁运天干分析', {}) if sixth_level else {}, ['天干五合', '天干相冲', '天干相克'])}
+
+### 岁运地支关系（刑冲合害等）
+{format_relations(sixth_level.get('岁运地支分析', {}) if sixth_level else {}, ['六合', '六冲', '三刑', '六害'])}
+
+### 岁运干支关系（伏吟、天克地冲、截脚、盖头）
+{format_relations(sixth_level.get('岁运干支分析', {}) if sixth_level else {}, ['伏吟', '天克地冲', '截脚', '盖头'])}
+
+## 七、大运流年信息
+- 当前流年：{liunian_ganzhi}
+- 当前大运：{dayun_ganzhi}（{dayun_age}岁）
+- 未来五年流年信息：{future_liunian_str}
+
+# 分析步骤（请严格遵守）
+
+1. **格局定性**：先看主格局。这决定了一个人最核心的生存策略与能量发挥方向。
+2. **十神能量主导**：依据十神能量占比排序，识别出最强的一到两个十神。解释这些十神所代表的天赋领域。如有特殊格局（如杀印相生、食伤生财、伤官配印等），请重点阐述其带来的独特优势。
+3. **五行平衡倾向**：结合五行能量占比与五行旺相，指出五行偏颇或平衡带来的行为偏好
+4. **神煞点缀**：选取与天赋直接相关的神煞，说明它们对兴趣的具体修饰，并且点出此人的兴趣点在哪些地方。（例如：华盖→哲学/艺术/孤独创作，桃花→审美/社交/表演）。
+5. **动态影响**：参考当前大运、流年及未来五年流年，指出近期可能被激发的天赋方向或兴趣变化。
+6. **综合结论**：综合以上，总结该人最可能具备的**3个核心天赋**、**2-3个强烈兴趣爱好**，以及**1个需要警惕的过度倾向**（例如：伤官过旺容易眼高手低，印重容易行动迟缓）。
+
+# 天赋落地应用终极建议
+
+## 1. 职业适配建议
+- 核心天赋适配的职业赛道、细分领域、岗位类型
+
+## 2. 学习成长路径
+- 匹配天赋特质的学习成长路径、高效学习方法
+
+## 3. 天赋发挥的成长意见
+- 基于调候用神，指出调候满足后，综合结论将如何更顺畅释放（例如：食神从空想转向创作，七杀从冲动转向策略）。避免玄学表述，用现代心理与行为语言。
+
+## 4. 短板补全建议
+- 短板补全的核心方向，平衡能力结构的实操建议（基于格局成格条件分析）
+
+# 注意事项（基于地支刑冲破害）
+
+## 1. 需要注意的问题
+- 刑冲破害可能带来的挑战
+
+## 2. 化解建议
+- 如何应对和化解这些不利影响
+
+# 输出格式要求
+
+- 使用中文，分段清晰，每段前加小标题（如【格局定性】、【十神天赋】等）。
+- 结尾加上一句"命理仅供参考，天赋需要后天努力与机遇触发"。
+
+# 绝对禁止的内容红线（违反任意一条均视为无效输出）
+
+1. 禁止任何宿命论、绝对化表述，包括但不限于"必定成功""天生富贵""命里带灾"等话术
+2. 禁止脱离给定的八字参数，进行无依据的凭空分析、编造信息
+3. 禁止涉及封建迷信内容，禁止推广算命、改运等违规内容
+4. 禁止跑偏到与天赋无关的内容，包括婚姻、子女、健康、纯财运/官运等非天赋分析范畴
+5. 禁止使用晦涩难懂的纯命理黑话，所有专业术语必须配套对应的现代语境解释，确保内容通俗易懂
+
+请你严格遵守以上所有规则，基于我提供的完整八字参数，完成精准、科学、落地的天赋分析。
 """
         return prompt
     
