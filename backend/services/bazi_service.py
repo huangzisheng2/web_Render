@@ -471,6 +471,13 @@ class BaziAnalysisService:
         geju_summary = lunji_data.get('格局综合判定', {})
         first_level = lunji_data.get('第一论级_月令与格局', {})
         
+        # 构建AI分析提示词（供调试使用）
+        user_info = {
+            "name": birth_data.get("name", "匿名"),
+            "gender": "male" if is_male else "female",
+        }
+        ai_prompt = self._build_deepseek_prompt(bazi_dict, merged_data, user_info)
+        
         result = {
             "report_id": f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{hash(birth_data['name']) % 10000:04d}",
             "user_info": {
@@ -527,6 +534,7 @@ class BaziAnalysisService:
                 }
             },
             "raw_data": merged_data,  # 原始完整论级数据，供前端显示和AI分析使用
+            "ai_prompt": ai_prompt,  # AI分析提示词，供调试使用
             "ai_report": None  # AI分析结果，初始为None
         }
         

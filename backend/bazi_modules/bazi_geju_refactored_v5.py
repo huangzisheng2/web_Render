@@ -6213,10 +6213,7 @@ class GeJuAnalyzerV5:
             "日支": "",
             "月令": "",
             "五行旺相": "",
-            "身强身弱判定": "",
             "格局类型": [],
-            "旺衰类型": "",
-            "最旺五行": "",
             "调候用神": [],
             "原局天干关系": [],
             "原局地支关系": [],
@@ -6293,14 +6290,6 @@ class GeJuAnalyzerV5:
         xiji_info = self.analysis_result.get('第五论级_定喜忌', {})
         tiaohou_yongshen = xiji_info.get('调候用神', [])
         
-        # 获取格局综合判定信息
-        final_geju = self.analysis_result.get('格局综合判定', {})
-        wangshuai_type = final_geju.get('旺衰类型', '')
-        strongest_wuxing = final_geju.get('最旺五行', '')
-        
-        # 获取身强身弱分析结果 - 从第一论级中获取
-        rizhu_wangshuai = first_level.get('身强身弱', '')
-        
         # 获取第二论级_地支关系
         second_level = self.analysis_result.get('第二论级_地支关系', {})
         
@@ -6309,6 +6298,12 @@ class GeJuAnalyzerV5:
         
         # 获取第四论级_天干与地支的关系
         fourth_level = self.analysis_result.get('第四论级_天干与地支的关系', {})
+        
+        # 默认使用当前年份进行大运流年分析
+        if not self.liunian_year:
+            self.liunian_year = datetime.now().year
+            # 重新执行第六论级分析
+            self._analyze_sixth_level()
         
         # 打印基础信息
         print(f"性别：{gender}")
@@ -6352,21 +6347,12 @@ class GeJuAnalyzerV5:
         print(f"月令：{yueling}月")
         if wuxing_qiangruo:
             print(f"五行旺相：{wuxing_qiangruo}")
-        # 新增：身强身弱分析 
-        if rizhu_wangshuai:
-            print(f"身强身弱判定：{rizhu_wangshuai}")
         geju_list = [zhugeju] if zhugeju else []
         if cigeju:
             geju_list.extend(cigeju)
         if geju_list:
             print(f"格局类型：{'、'.join(geju_list)}")
         print(f"")
-        
-        # 打印旺衰类型和最旺五行
-        if wangshuai_type:
-            print(f"\n旺衰类型：{wangshuai_type}")
-        if strongest_wuxing:
-            print(f"最旺五行（不算藏干）：{strongest_wuxing}")
         
         # 打印调候用神
         if tiaohou_yongshen:
@@ -6762,16 +6748,90 @@ class GeJuAnalyzerV5:
         basic_info_analysis["日支"] = self.zhis[2] if len(self.zhis) > 2 else ""
         basic_info_analysis["月令"] = yueling
         basic_info_analysis["五行旺相"] = wuxing_qiangruo
-        basic_info_analysis["身强身弱判定"] = rizhu_wangshuai
         basic_info_analysis["格局类型"] = geju_list
-        basic_info_analysis["旺衰类型"] = wangshuai_type
-        basic_info_analysis["最旺五行"] = strongest_wuxing
         basic_info_analysis["调候用神"] = tiaohou_yongshen
         
         # 保存原局关系数据
         basic_info_analysis["原局天干关系"] = third_level.get('天干五合', []) + third_level.get('天干相克', [])
         basic_info_analysis["原局地支关系"] = [f"{k}：{v}" for k, v in second_level.items() if v and v != '无' and k != '刑冲克害说明']
         basic_info_analysis["原局干支关系"] = [f"{k}：{v}" for k, v in fourth_level.items() if v and v != '无']
+        
+        # 保存岁运数据（默认使用当前年份）
+        if self.liunian_year and hasattr(self, 'dayun_liunian') and self.dayun_liunian:
+            sixth_level = self.analysis_result.get('第六论级', {})
+            
+            # 获取当前流年
+            liunian_gan = getattr(self.dayun_liunian, 'current_liunian_gan', '')
+            liunian_zhi = getattr(self.dayun_liunian, 'current_liunian_zhi', '')
+            if liunian_gan and liunian_zhi:
+                basic_info_analysis["当前流年"] = f"{self.liunian_year}年{liunian_gan}{liunian_zhi}"
+            
+            # 获取当前大运
+            dayun_gan = getattr(self.dayun_liunian, 'current_dayun_gan', '')
+            dayun_zhi = getattr(self.dayun_liunian, 'current_dayun_zhi', '')
+            if dayun_gan and dayun_zhi:
+                # 获取大运年龄范围
+                current_dayun = None
+                for dayun in self.dayun_liunian.dayuns:
+                    start_year = self.dayun_liunian.qiyun_year + (dayun['index'] - 1) * 10
+                    end_year = start_year + 9
+                    if start_year <= self.liunian_year <= end_year:
+                        current_dayun = dayun
+                        break
+                if current_dayun:
+                    start_age = current_dayun.get('start_age', '')
+                    end_age = current_dayun.get('end_age', '')
+                    age_range = f"{start_age}-{end_age}岁" if start_age and end_age else ""
+                    basic_info_analysis["当前大运"] = f"{dayun_gan}{dayun_zhi} ({age_range})"
+                else:
+                    basic_info_analysis["当前大运"] = f"{dayun_gan}{dayun_zhi}"
+            
+            # 获取岁运天干关系
+            suiyun_gan_analysis = sixth_level.get('岁运天干分析', {})
+            suiyun_tian_gan = []
+            for pillar, impacts in suiyun_gan_analysis.get('大运天干影响', {}).items():
+                for impact in impacts:
+                    if impact.get('类型') and impact.get('描述'):
+                        suiyun_tian_gan.append(impact['描述'])
+            for pillar, impacts in suiyun_gan_analysis.get('流年天干影响', {}).items():
+                for impact in impacts:
+                    if impact.get('类型') and impact.get('描述'):
+                        suiyun_tian_gan.append(impact['描述'])
+            for relation, impacts in suiyun_gan_analysis.get('大运流年天干关系', {}).items():
+                for impact in impacts:
+                    if impact.get('类型') and impact.get('描述'):
+                        suiyun_tian_gan.append(impact['描述'])
+            basic_info_analysis["岁运天干关系"] = suiyun_tian_gan
+            
+            # 获取岁运地支关系
+            suiyun_zhi_analysis = sixth_level.get('岁运地支分析', {})
+            suiyun_di_zhi = []
+            for pillar, impacts in suiyun_zhi_analysis.get('大运地支影响', {}).items():
+                for impact in impacts:
+                    if impact.get('类型') and impact.get('描述'):
+                        suiyun_di_zhi.append(impact['描述'])
+            for pillar, impacts in suiyun_zhi_analysis.get('流年地支影响', {}).items():
+                for impact in impacts:
+                    if impact.get('类型') and impact.get('描述'):
+                        suiyun_di_zhi.append(impact['描述'])
+            for relation, impacts in suiyun_zhi_analysis.get('大运流年地支关系', {}).items():
+                for impact in impacts:
+                    if impact.get('类型') and impact.get('描述'):
+                        suiyun_di_zhi.append(impact['描述'])
+            basic_info_analysis["岁运地支关系"] = suiyun_di_zhi
+            
+            # 获取未来五年流年
+            future_liunian = []
+            from ganzhi import Gan, Zhi
+            if Gan and Zhi and liunian_gan and liunian_zhi:
+                gan_idx = Gan.index(liunian_gan) if liunian_gan in Gan else 0
+                zhi_idx = Zhi.index(liunian_zhi) if liunian_zhi in Zhi else 0
+                for i in range(5):
+                    future_gan = Gan[(gan_idx + i) % 10]
+                    future_zhi = Zhi[(zhi_idx + i) % 12]
+                    future_year = self.liunian_year + i
+                    future_liunian.append(f"{future_year}年{future_gan}{future_zhi}")
+            basic_info_analysis["未来五年流年"] = future_liunian
         
         # 将基础信息综合分析存储到analysis_result
         self.analysis_result['基础信息综合分析'] = basic_info_analysis

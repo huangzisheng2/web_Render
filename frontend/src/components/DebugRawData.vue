@@ -20,7 +20,8 @@
       </div>
       
       <div class="debug-panel">
-        <pre v-if="activeData">{{ JSON.stringify(activeData, null, 2) }}</pre>
+        <pre v-if="activeData && activeTab !== 'ai_prompt'">{{ JSON.stringify(activeData, null, 2) }}</pre>
+        <pre v-else-if="activeTab === 'ai_prompt' && activeData" class="ai-prompt">{{ activeData }}</pre>
         <p v-else class="no-data">暂无数据</p>
       </div>
     </div>
@@ -34,6 +35,10 @@ const props = defineProps({
   rawData: {
     type: Object,
     default: () => ({})
+  },
+  aiPrompt: {
+    type: String,
+    default: ''
   }
 })
 
@@ -50,6 +55,7 @@ const tabs = [
   { key: 'level4', label: '第四论级' },
   { key: 'level5', label: '第五论级' },
   { key: 'level6', label: '第六论级' },
+  { key: 'ai_prompt', label: 'AI分析提示词' },
 ]
 
 const activeData = computed(() => {
@@ -76,6 +82,8 @@ const activeData = computed(() => {
       }
     case 'level6':
       return data['第六论级_大运流年']
+    case 'ai_prompt':
+      return props.aiPrompt || '暂无AI分析提示词'
     default:
       return data
   }
@@ -174,5 +182,13 @@ const activeData = computed(() => {
   color: #94a3b8;
   text-align: center;
   padding: 40px;
+}
+
+.ai-prompt {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.8;
+  color: #334155;
+  font-family: 'Monaco', 'Menlo', 'Consolas', 'Microsoft YaHei', sans-serif;
 }
 </style>

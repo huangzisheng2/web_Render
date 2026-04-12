@@ -78,6 +78,7 @@
     <!-- 调试面板 - 显示原始数据 -->
     <DebugRawData 
       :rawData="rawAnalysisData"
+      :aiPrompt="aiPrompt"
       class="section-block"
     />
 
@@ -231,6 +232,11 @@ const dayunEnergy = computed(() => {
 // AI 报告
 const aiReport = computed(() => {
   return props.result?.ai_report || ''
+})
+
+// AI 分析提示词（用于调试）
+const aiPrompt = computed(() => {
+  return props.result?.ai_prompt || ''
 })
 
 // 处理 AI 分析
