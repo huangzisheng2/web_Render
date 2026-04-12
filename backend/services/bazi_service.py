@@ -253,21 +253,27 @@ class BaziAnalysisService:
         shensha_ri = "、".join(shensha_data.get('日柱', [])) if shensha_data.get('日柱') else "无"
         shensha_shi = "、".join(shensha_data.get('时柱', [])) if shensha_data.get('时柱') else "无"
         
-        # 获取大运流年
-        dayun_info = sixth_level.get('当前大运', {}) if sixth_level else {}
-        liunian_info = sixth_level.get('当前流年', {}) if sixth_level else {}
-        dayun_ganzhi = dayun_info.get('干支', '未知')
-        dayun_age = dayun_info.get('年龄范围', '未知')
-        liunian_ganzhi = liunian_info.get('干支', '未知')
+        # 获取大运流年 - 从基础信息综合分析中提取
+        dayun_ganzhi = basic_info.get('当前大运', '未知')
+        liunian_ganzhi = basic_info.get('当前流年', '未知')
         
-        # 未来五年流年
-        future_liunian = []
-        from datetime import datetime
-        current_year = datetime.now().year
-        for i in range(5):
-            year = current_year + i
-            future_liunian.append(f"{year}年")
-        future_liunian_str = "、".join(future_liunian)
+        # 岁运关系 - 从基础信息综合分析中提取
+        suiyun_tiangan = basic_info.get('岁运天干关系', [])
+        suiyun_dizhi = basic_info.get('岁运地支关系', [])
+        
+        # 未来五年流年 - 从基础信息综合分析中提取
+        future_liunian = basic_info.get('未来五年流年', [])
+        if future_liunian:
+            future_liunian_str = "、".join(future_liunian)
+        else:
+            # 备用：如果基础信息中没有，使用当前年份生成
+            from datetime import datetime
+            current_year = datetime.now().year
+            future_liunian = []
+            for i in range(5):
+                year = current_year + i
+                future_liunian.append(f"{year}年")
+            future_liunian_str = "、".join(future_liunian)
         
         prompt = f"""# 角色
 你是一位兼具传统命理逻辑与现代心理学视角的天赋分析师。你的分析不宣扬宿命论，而是基于八字中的十神、五行、神煞、格局等信息，推导一个人可能具有的潜在心理倾向、能力特质与兴趣爱好。请使用"可能倾向于"、"大概率擅长"等概率性语言，避免绝对化断言。
@@ -323,17 +329,17 @@ class BaziAnalysisService:
 {format_relations(fourth_level, ['伏吟', '天克地冲', '截脚', '盖头'])}
 
 ### 岁运天干关系（冲克合等）
-{format_relations(sixth_level.get('岁运天干分析', {}) if sixth_level else {}, ['天干五合', '天干相冲', '天干相克'])}
+{"、".join(suiyun_tiangan) if suiyun_tiangan else "无"}
 
 ### 岁运地支关系（刑冲合害等）
-{format_relations(sixth_level.get('岁运地支分析', {}) if sixth_level else {}, ['六合', '六冲', '三刑', '六害'])}
+{"、".join(suiyun_dizhi) if suiyun_dizhi else "无"}
 
 ### 岁运干支关系（伏吟、天克地冲、截脚、盖头）
 {format_relations(sixth_level.get('岁运干支分析', {}) if sixth_level else {}, ['伏吟', '天克地冲', '截脚', '盖头'])}
 
 ## 七、大运流年信息
 - 当前流年：{liunian_ganzhi}
-- 当前大运：{dayun_ganzhi}（{dayun_age}岁）
+- 当前大运：{dayun_ganzhi}
 - 未来五年流年信息：{future_liunian_str}
 
 # 分析步骤（请严格遵守）
