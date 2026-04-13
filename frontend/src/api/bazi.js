@@ -74,4 +74,13 @@ export const downloadReport = (reportId) => {
   return api.get(`/api/download/${reportId}`)
 }
 
+/**
+ * 提交用户反馈
+ * @param {Object} data - 反馈数据 {rating, feedback_text, experience_type}
+ * @returns {Promise}
+ */
+export const submitFeedback = (data) => {
+  return api.post('/api/feedback', data)
+}
+
 export default api

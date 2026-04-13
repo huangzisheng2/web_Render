@@ -195,9 +195,6 @@ const handleDownload = async () => {
 // 前端生成 PDF（备用方案 - 仅AI报告）
 const generatePDF = async () => {
   try {
-    const { jsPDF } = await import('jspdf')
-    
-    // 只获取AI报告内容
     const aiReport = result.value?.ai_report
     if (!aiReport) {
       showToast('AI报告尚未生成', 'error')
@@ -206,61 +203,80 @@ const generatePDF = async () => {
     
     showToast('正在生成 PDF...')
     
-    const pdf = new jsPDF('p', 'mm', 'a4')
     const userName = result.value.user_info?.name || '匿名'
+    const gender = result.value.user_info?.gender || '未知'
     
-    // 设置中文字体（使用内置的helvetica，中文会显示为乱码，需要特殊处理）
-    pdf.setFont('helvetica')
+    // 创建临时容器用于渲染PDF内容
+    const container = document.createElement('div')
+    container.style.cssText = `
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 595px;
+      padding: 40px;
+      background: white;
+      font-family: "Microsoft YaHei", "SimHei", sans-serif;
+    `
     
-    // 标题
-    pdf.setFontSize(20)
-    pdf.text('八字天赋与性格分析报告', 105, 20, { align: 'center' })
+    // 转换Markdown为HTML
+    const htmlContent = aiReport
+      .replace(/### (.*)/g, '<h3 style="color:#4A5568;font-size:16px;margin:20px 0 10px;padding-bottom:8px;border-bottom:2px solid #8EC5FC;">$1</h3>')
+      .replace(/## (.*)/g, '<h2 style="color:#4A5568;font-size:18px;margin:24px 0 12px;padding-bottom:10px;border-bottom:3px solid #8EC5FC;">$1</h2>')
+      .replace(/# (.*)/g, '<h1 style="color:#4A5568;font-size:22px;margin:28px 0 16px;text-align:center;">$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#4A5568;">$1</strong>')
+      .replace(/\n/g, '<br>')
     
-    // 分隔线
-    pdf.setDrawColor(102, 126, 234)
-    pdf.line(20, 25, 190, 25)
+    container.innerHTML = `
+      <div style="text-align:center;margin-bottom:30px;">
+        <h1 style="font-size:24px;color:#4A5568;margin:0 0 8px;">${userName}天赋分析报告</h1>
+        <p style="font-size:12px;color:#718096;margin:0;">性别：${gender}</p>
+      </div>
+      <div style="line-height:1.8;color:#4A5568;font-size:13px;">
+        ${htmlContent}
+      </div>
+      <div style="margin-top:40px;padding-top:20px;border-top:1px solid #E2E8F0;text-align:center;font-size:10px;color:#A0AEC0;">
+        <p>本报告由 AI 生成，仅供参考</p>
+        <p>生成时间：${new Date().toLocaleString('zh-CN')}</p>
+      </div>
+    `
     
-    // 用户信息
-    pdf.setFontSize(12)
-    pdf.text(`姓名：${userName}`, 20, 35)
-    pdf.text(`性别：${result.value.user_info?.gender || '未知'}`, 20, 42)
+    document.body.appendChild(container)
     
-    // AI报告标题
-    pdf.setFontSize(14)
-    pdf.setTextColor(102, 126, 234)
-    pdf.text('【AI 分析报告】', 20, 55)
-    pdf.setTextColor(0, 0, 0)
-    pdf.setFontSize(11)
+    // 使用html2canvas渲染为图片
+    const html2canvas = await import('html2canvas')
+    const canvas = await html2canvas.default(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    })
     
-    // 处理AI报告文本（简单处理Markdown）
-    let content = aiReport
-      .replace(/### /g, '')
-      .replace(/## /g, '')
-      .replace(/# /g, '')
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '  * ')
+    document.body.removeChild(container)
     
-    // 分页添加文本
-    const lines = pdf.splitTextToSize(content, 170)
-    let y = 65
+    // 创建PDF
+    const { jsPDF } = await import('jspdf')
+    const pdf = new jsPDF('p', 'mm', 'a4')
     
-    for (let i = 0; i < lines.length; i++) {
-      if (y > 280) {
-        pdf.addPage()
-        y = 20
-      }
-      pdf.text(lines[i], 20, y)
-      y += 6
+    const imgData = canvas.toDataURL('image/png')
+    const imgWidth = 210
+    const pageHeight = 297
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    
+    let heightLeft = imgHeight
+    let position = 0
+    
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+    
+    // 处理多页
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
     }
     
-    // 页脚
-    const now = new Date().toLocaleString('zh-CN')
-    pdf.setFontSize(9)
-    pdf.setTextColor(128, 128, 128)
-    pdf.text('本报告由 AI 生成，仅供参考', 105, 290, { align: 'center' })
-    pdf.text(`生成时间：${now}`, 105, 295, { align: 'center' })
-    
-    pdf.save(`八字分析报告_${userName}.pdf`)
+    pdf.save(`${userName}天赋分析报告.pdf`)
     showToast('PDF 已生成')
   } catch (error) {
     console.error('PDF生成错误:', error)

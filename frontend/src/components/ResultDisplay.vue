@@ -140,7 +140,7 @@
         <button 
           class="feedback-submit-btn"
           :disabled="feedbackRating === 0 || feedbackSubmitting"
-          @click="submitFeedback"
+          @click="handleSubmitFeedback"
         >
           <svg v-if="!feedbackSubmitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="22" y1="2" x2="11" y2="13"/>
@@ -202,6 +202,7 @@ import SixLevelAnalysis from './SixLevelAnalysis.vue'
 import EnergyCharts from './EnergyCharts.vue'
 import AIReport from './AIReport.vue'
 import DebugRawData from './DebugRawData.vue'
+import { submitFeedback } from '../api/bazi'
 
 const props = defineProps({
   result: {
@@ -247,23 +248,17 @@ const ratingText = computed(() => {
 })
 
 // 提交反馈
-const submitFeedback = async () => {
+const handleSubmitFeedback = async () => {
   if (feedbackRating.value === 0) return
   
   feedbackSubmitting.value = true
   
   try {
-    const response = await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rating: feedbackRating.value,
-        feedback_text: feedbackText.value,
-        experience_type: selectedType.value
-      })
+    const result = await submitFeedback({
+      rating: feedbackRating.value,
+      feedback_text: feedbackText.value,
+      experience_type: selectedType.value
     })
-    
-    const result = await response.json()
     
     if (result.success) {
       feedbackSubmitted.value = true

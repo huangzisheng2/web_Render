@@ -101,18 +101,6 @@
           </svg>
         </div>
 
-        <!-- 时辰未知按钮 -->
-        <button 
-          class="unknown-time-btn"
-          :class="{ active: form.hour === null }"
-          @click="setUnknownTime"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v6l4 2"/>
-          </svg>
-          时辰未知
-        </button>
       </div>
 
       <!-- 出生地点 -->
@@ -126,41 +114,20 @@
           <span class="optional">（可选）</span>
         </label>
         
-        <!-- 城市输入 -->
-        <div class="city-input-wrapper">
-          <input
-            v-model="cityInput"
-            type="text"
-            class="city-input"
-            placeholder="输入城市名自动匹配"
-            @input="onCityInput"
-            @focus="showCitySuggestions = true"
-          />
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          
-          <!-- 城市建议列表 -->
-          <div v-if="showCitySuggestions && citySuggestions.length > 0" class="city-suggestions">
-            <div
-              v-for="item in citySuggestions"
-              :key="item.city"
-              class="suggestion-item"
-              @click="selectCitySuggestion(item)"
-            >
-              <span class="city-name">{{ item.city }}</span>
-              <span class="province-name">{{ item.province }}</span>
-            </div>
+        <!-- 地点选择触发区 -->
+        <div class="location-trigger" @click="showLocationPicker = true">
+          <div class="location-display">
+            <template v-if="form.province && form.city">
+              {{ form.province }} {{ form.city }}
+            </template>
+            <template v-else>
+              <span class="placeholder">点击选择出生地点</span>
+            </template>
           </div>
-        </div>
-
-        <!-- 已选地点显示 -->
-        <div v-if="form.province && form.city" class="selected-location">
-          <span class="location-tag">
-            {{ form.province }} {{ form.city }}
-            <button class="clear-btn" @click="clearLocation">×</button>
-          </span>
+          <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
         </div>
 
         <p class="location-hint">
@@ -189,6 +156,98 @@
       <p class="disclaimer">本测试为成长娱乐参考，非科学诊断</p>
     </div>
 
+    <!-- 地点选择弹窗 -->
+    <Transition name="modal">
+      <div v-if="showLocationPicker" class="modal-overlay" @click.self="showLocationPicker = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>选择出生地点</h3>
+            <button class="modal-close" @click="showLocationPicker = false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- 文本搜索区域 -->
+          <div class="location-search-section">
+            <div class="location-search-input-wrapper">
+              <input
+                v-model="cityInput"
+                type="text"
+                class="location-search-input"
+                placeholder="输入城市名快速搜索"
+                @input="onCityInput"
+              />
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+            </div>
+            
+            <!-- 搜索结果 -->
+            <div v-if="cityInput.trim() && filteredCities.length > 0" class="location-search-results">
+              <div
+                v-for="item in filteredCities"
+                :key="item.city"
+                class="location-result-item"
+                @click="selectLocationFromPicker(item)"
+              >
+                <span class="result-city">{{ item.city }}</span>
+                <span class="result-province">{{ item.province }}</span>
+              </div>
+            </div>
+            <div v-else-if="cityInput.trim() && filteredCities.length === 0" class="no-results">
+              未找到匹配的城市
+            </div>
+          </div>
+          
+          <!-- 滚轮选择区域 -->
+          <div class="location-picker-body" v-if="!cityInput.trim()">
+            <div class="location-picker-columns">
+              <!-- 省份列 -->
+              <div class="location-picker-column">
+                <div class="location-column-label">省份</div>
+                <div class="location-column-options">
+                  <div
+                    v-for="province in provinceList"
+                    :key="province"
+                    class="location-column-option"
+                    :class="{ active: tempLocation.province === province }"
+                    @click="selectProvince(province)"
+                  >
+                    {{ province }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 城市列 -->
+              <div class="location-picker-column">
+                <div class="location-column-label">城市</div>
+                <div class="location-column-options">
+                  <div
+                    v-for="city in cityListForSelectedProvince"
+                    :key="city"
+                    class="location-column-option"
+                    :class="{ active: tempLocation.city === city }"
+                    @click="selectCity(city)"
+                  >
+                    {{ city }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button class="btn-skip" @click="skipLocation">跳过</button>
+            <button class="btn-confirm" @click="confirmLocation" :disabled="!tempLocation.city">确定</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 日期时间选择弹窗 -->
     <Transition name="modal">
       <div v-if="showDatePicker" class="modal-overlay" @click.self="showDatePicker = false">
@@ -201,6 +260,68 @@
                 <line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
+          </div>
+          
+          <!-- 文本输入区域 -->
+          <div class="text-input-section">
+            <div class="text-input-row">
+              <div class="text-input-group">
+                <label>年</label>
+                <input 
+                  v-model.number="tempDate.year" 
+                  type="number" 
+                  min="1900" 
+                  max="2100"
+                  placeholder="2000"
+                  @change="validateDateInput"
+                />
+              </div>
+              <div class="text-input-group">
+                <label>月</label>
+                <input 
+                  v-model.number="tempDate.month" 
+                  type="number" 
+                  min="1" 
+                  max="12"
+                  placeholder="1"
+                  @change="validateDateInput"
+                />
+              </div>
+              <div class="text-input-group">
+                <label>日</label>
+                <input 
+                  v-model.number="tempDate.day" 
+                  type="number" 
+                  min="1" 
+                  :max="daysInMonth"
+                  placeholder="1"
+                  @change="validateDateInput"
+                />
+              </div>
+              <div class="text-input-group">
+                <label>时</label>
+                <input 
+                  v-model.number="tempDate.hour" 
+                  type="number" 
+                  min="0" 
+                  max="23"
+                  placeholder="12"
+                  @change="validateDateInput"
+                />
+              </div>
+              <div class="text-input-group narrow">
+                <label>分</label>
+                <input 
+                  v-model.number="tempDate.minute" 
+                  type="number" 
+                  min="0" 
+                  max="59"
+                  placeholder="0"
+                  @change="validateDateInput"
+                />
+              </div>
+            </div>
+            <p class="input-hint">可直接输入数字，或使用下方滚轮选择</p>
           </div>
           
           <div class="picker-body">
@@ -322,6 +443,13 @@ const showCitySuggestions = ref(false)
 
 // 弹窗控制
 const showDatePicker = ref(false)
+const showLocationPicker = ref(false)
+
+// 临时地点数据
+const tempLocation = reactive({
+  province: '',
+  city: ''
+})
 
 // 临时日期数据
 const tempDate = reactive({
@@ -363,6 +491,68 @@ const citySuggestions = computed(() => {
   
   return suggestions
 })
+
+// 地点选择器相关计算属性和方法
+const provinceList = computed(() => {
+  return Object.keys(cityData)
+})
+
+const cityListForSelectedProvince = computed(() => {
+  if (!tempLocation.province) return []
+  return cityData[tempLocation.province] || []
+})
+
+const filteredCities = computed(() => {
+  if (!cityInput.value.trim()) return []
+  
+  const input = cityInput.value.trim().toLowerCase()
+  const results = []
+  
+  for (const [province, cities] of Object.entries(cityData)) {
+    for (const city of cities) {
+      if (city.toLowerCase().includes(input) || province.toLowerCase().includes(input)) {
+        results.push({ province, city })
+        if (results.length >= 10) break
+      }
+    }
+    if (results.length >= 10) break
+  }
+  
+  return results
+})
+
+const selectProvince = (province) => {
+  tempLocation.province = province
+  tempLocation.city = ''
+}
+
+const selectCity = (city) => {
+  tempLocation.city = city
+}
+
+const selectLocationFromPicker = (item) => {
+  tempLocation.province = item.province
+  tempLocation.city = item.city
+  confirmLocation()
+}
+
+const skipLocation = () => {
+  form.value.province = ''
+  form.value.city = ''
+  cityInput.value = ''
+  tempLocation.province = ''
+  tempLocation.city = ''
+  showLocationPicker.value = false
+}
+
+const confirmLocation = () => {
+  if (tempLocation.city) {
+    form.value.province = tempLocation.province
+    form.value.city = tempLocation.city
+    cityInput.value = tempLocation.city
+  }
+  showLocationPicker.value = false
+}
 
 // 获取时辰名称
 const getShichenName = (hour) => {
@@ -419,6 +609,24 @@ const confirmDateTime = () => {
   form.value.hour = tempDate.hour
   form.value.minute = tempDate.minute
   showDatePicker.value = false
+}
+
+// 验证日期输入
+const validateDateInput = () => {
+  // 确保数值在有效范围内
+  if (tempDate.year < 1900) tempDate.year = 1900
+  if (tempDate.year > 2100) tempDate.year = 2100
+  if (tempDate.month < 1) tempDate.month = 1
+  if (tempDate.month > 12) tempDate.month = 12
+  
+  const maxDay = daysInMonth.value
+  if (tempDate.day < 1) tempDate.day = 1
+  if (tempDate.day > maxDay) tempDate.day = maxDay
+  
+  if (tempDate.hour < 0) tempDate.hour = 0
+  if (tempDate.hour > 23) tempDate.hour = 23
+  if (tempDate.minute < 0) tempDate.minute = 0
+  if (tempDate.minute > 59) tempDate.minute = 59
 }
 
 const submit = () => {
@@ -625,38 +833,30 @@ const submit = () => {
   color: #A0AEC0;
 }
 
-/* 时辰未知按钮 */
-.unknown-time-btn {
-  width: 100%;
-  margin-top: 12px;
-  padding: 12px;
-  background: transparent;
-  border: 2px dashed #E2E8F0;
-  border-radius: 10px;
-  color: #A0AEC0;
-  font-size: 14px;
-  cursor: pointer;
+/* 地点选择触发 */
+.location-trigger {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  justify-content: space-between;
+  padding: 16px;
+  background: #F7FAFC;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.unknown-time-btn svg {
-  width: 16px;
-  height: 16px;
+.location-trigger:hover {
+  border-color: #8EC5FC;
 }
 
-.unknown-time-btn:hover {
-  border-color: #8EC5FC;
-  color: #8EC5FC;
+.location-display {
+  font-size: 15px;
+  color: #4A5568;
 }
 
-.unknown-time-btn.active {
-  border-color: #8EC5FC;
-  color: #8EC5FC;
-  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+.location-display .placeholder {
+  color: #A0AEC0;
 }
 
 /* 城市输入 */
@@ -734,6 +934,148 @@ const submit = () => {
 .province-name {
   font-size: 13px;
   color: #A0AEC0;
+}
+
+/* 地点选择弹窗样式 */
+.location-search-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #F0F0F0;
+  background: #F7FAFC;
+}
+
+.location-search-input-wrapper {
+  position: relative;
+}
+
+.location-search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  font-size: 15px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: #4A5568;
+}
+
+.location-search-input:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+.location-search-results {
+  margin-top: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.location-result-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.location-result-item:last-child {
+  border-bottom: none;
+}
+
+.location-result-item:hover {
+  background: #F0F9FF;
+}
+
+.result-city {
+  font-size: 15px;
+  color: #4A5568;
+  font-weight: 500;
+}
+
+.result-province {
+  font-size: 13px;
+  color: #A0AEC0;
+}
+
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: #A0AEC0;
+  font-size: 14px;
+}
+
+.location-picker-body {
+  padding: 16px;
+}
+
+.location-picker-columns {
+  display: flex;
+  gap: 12px;
+  height: 240px;
+}
+
+.location-picker-column {
+  flex: 1;
+  text-align: center;
+}
+
+.location-column-label {
+  font-size: 13px;
+  color: #A0AEC0;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.location-column-options {
+  height: 210px;
+  overflow-y: auto;
+  background: #F7FAFC;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.location-column-option {
+  padding: 12px 8px;
+  font-size: 14px;
+  color: #4A5568;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+}
+
+.location-column-option:last-child {
+  margin-bottom: 0;
+}
+
+.location-column-option:hover {
+  background: #F0F9FF;
+}
+
+.location-column-option.active {
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-skip {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  background: #F7FAFC;
+  color: #718096;
+}
+
+.btn-skip:hover {
+  background: #F0F9FF;
 }
 
 /* 已选地点 */
@@ -884,6 +1226,60 @@ const submit = () => {
   font-size: 17px;
   font-weight: 600;
   color: #4A5568;
+}
+
+/* 文本输入区域 */
+.text-input-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #F0F0F0;
+  background: #F7FAFC;
+}
+
+.text-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.text-input-group {
+  flex: 1;
+  text-align: center;
+}
+
+.text-input-group.narrow {
+  flex: 0.8;
+}
+
+.text-input-group label {
+  display: block;
+  font-size: 12px;
+  color: #A0AEC0;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.text-input-group input {
+  width: 100%;
+  padding: 10px 4px;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #4A5568;
+  transition: all 0.2s;
+}
+
+.text-input-group input:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 3px rgba(142, 197, 252, 0.15);
+}
+
+.input-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #A0AEC0;
+  margin: 10px 0 0;
 }
 
 .modal-close {
