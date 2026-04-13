@@ -143,6 +143,13 @@
 
     <!-- 底部提交按钮 -->
     <div class="form-footer">
+      <div class="accuracy-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        <span>信息填写越准确，分析结果越准确，请认真填写</span>
+      </div>
       <button 
         class="submit-btn"
         :disabled="!canSubmit"
@@ -262,6 +269,25 @@
             </button>
           </div>
           
+          <!-- 快速输入区域 -->
+          <div class="quick-input-section">
+            <label class="quick-input-label">快速输入</label>
+            <input
+              v-model="quickDateInput"
+              type="text"
+              class="quick-input"
+              placeholder="输入数字串，如：200008151230"
+              @input="handleQuickDateInput"
+            />
+            <p class="input-hint">
+              支持格式：8位(YYYYMMDD) / 10位(YYYYMMDDHH) / 12位(YYYYMMDDHHmm)
+            </p>
+          </div>
+
+          <div class="input-divider">
+            <span>或分项输入</span>
+          </div>
+
           <!-- 文本输入区域 -->
           <div class="text-input-section">
             <div class="text-input-row">
@@ -321,7 +347,6 @@
                 />
               </div>
             </div>
-            <p class="input-hint">可直接输入数字，或使用下方滚轮选择</p>
           </div>
           
           <div class="picker-body">
@@ -459,6 +484,9 @@ const tempDate = reactive({
   hour: 12,
   minute: 0
 })
+
+// 快速输入
+const quickDateInput = ref('')
 
 // 年份选项
 const yearOptions = Array.from({ length: 125 }, (_, i) => 2025 - i)
@@ -627,6 +655,69 @@ const validateDateInput = () => {
   if (tempDate.hour > 23) tempDate.hour = 23
   if (tempDate.minute < 0) tempDate.minute = 0
   if (tempDate.minute > 59) tempDate.minute = 59
+}
+
+// 处理快速日期输入
+const handleQuickDateInput = () => {
+  const input = quickDateInput.value.trim().replace(/\D/g, '') // 只保留数字
+  
+  if (input.length === 8) {
+    // 8位: YYYYMMDD
+    const year = parseInt(input.substring(0, 4))
+    const month = parseInt(input.substring(4, 6))
+    const day = parseInt(input.substring(6, 8))
+    
+    if (validateDate(year, month, day)) {
+      tempDate.year = year
+      tempDate.month = month
+      tempDate.day = day
+      tempDate.hour = 12
+      tempDate.minute = 0
+    }
+  } else if (input.length === 10) {
+    // 10位: YYYYMMDDHH
+    const year = parseInt(input.substring(0, 4))
+    const month = parseInt(input.substring(4, 6))
+    const day = parseInt(input.substring(6, 8))
+    const hour = parseInt(input.substring(8, 10))
+    
+    if (validateDate(year, month, day, hour)) {
+      tempDate.year = year
+      tempDate.month = month
+      tempDate.day = day
+      tempDate.hour = hour
+      tempDate.minute = 0
+    }
+  } else if (input.length === 12) {
+    // 12位: YYYYMMDDHHmm
+    const year = parseInt(input.substring(0, 4))
+    const month = parseInt(input.substring(4, 6))
+    const day = parseInt(input.substring(6, 8))
+    const hour = parseInt(input.substring(8, 10))
+    const minute = parseInt(input.substring(10, 12))
+    
+    if (validateDate(year, month, day, hour, minute)) {
+      tempDate.year = year
+      tempDate.month = month
+      tempDate.day = day
+      tempDate.hour = hour
+      tempDate.minute = minute
+    }
+  }
+}
+
+// 验证日期有效性
+const validateDate = (year, month, day, hour = null, minute = null) => {
+  if (year < 1900 || year > 2100) return false
+  if (month < 1 || month > 12) return false
+  
+  const maxDay = new Date(year, month, 0).getDate()
+  if (day < 1 || day > maxDay) return false
+  
+  if (hour !== null && (hour < 0 || hour > 23)) return false
+  if (minute !== null && (minute < 0 || minute > 59)) return false
+  
+  return true
 }
 
 const submit = () => {
@@ -1135,6 +1226,26 @@ const submit = () => {
   border-top: 1px solid rgba(142, 197, 252, 0.2);
 }
 
+.accuracy-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #4A5568;
+}
+
+.accuracy-hint svg {
+  width: 16px;
+  height: 16px;
+  color: #8EC5FC;
+  flex-shrink: 0;
+}
+
 .submit-btn {
   width: 100%;
   padding: 16px;
@@ -1280,6 +1391,67 @@ const submit = () => {
   font-size: 12px;
   color: #A0AEC0;
   margin: 10px 0 0;
+}
+
+/* 快速输入区域 */
+.quick-input-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #F0F0F0;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+}
+
+.quick-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A5568;
+  margin-bottom: 10px;
+}
+
+.quick-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 18px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: #4A5568;
+  text-align: center;
+  letter-spacing: 2px;
+  font-family: monospace;
+}
+
+.quick-input:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+.quick-input::placeholder {
+  color: #A0AEC0;
+  letter-spacing: 0;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  padding: 12px 20px;
+}
+
+.input-divider::before,
+.input-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.input-divider span {
+  padding: 0 12px;
+  font-size: 12px;
+  color: #A0AEC0;
 }
 
 .modal-close {
