@@ -26,21 +26,34 @@
       <div class="intro-card">
         <div class="feature-list">
           <div class="feature-item">
-            <div class="feature-icon">🎯</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
             <div class="feature-text">
               <h3>了解你的天赋优势</h3>
               <p>通过传统命理智慧，发现你与生俱来的潜能</p>
             </div>
           </div>
           <div class="feature-item">
-            <div class="feature-icon">🌟</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
             <div class="feature-text">
               <h3>探索适合的发展方向</h3>
               <p>找到与你性格特质相匹配的成长路径</p>
             </div>
           </div>
           <div class="feature-item">
-            <div class="feature-icon">💡</div>
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+              </svg>
+            </div>
             <div class="feature-text">
               <h3>获得个性化建议</h3>
               <p>AI智能分析，为你提供专属的成长指南</p>
@@ -51,8 +64,19 @@
       
       <!-- 免责声明 -->
       <div class="disclaimer">
-        <p>📌 本测试为成长娱乐参考，非科学诊断</p>
-        <p>🔒 不收集敏感信息，数据仅临时使用</p>
+        <p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          本测试为成长娱乐参考，非科学诊断
+        </p>
+        <p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          不收集敏感信息，数据仅临时使用
+        </p>
       </div>
       
       <!-- 开始按钮 -->
@@ -73,7 +97,7 @@ defineEmits(['start'])
 <style scoped>
 .landing-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #e8f4f8 0%, #f5f0e8 100%);
+  background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -101,7 +125,7 @@ defineEmits(['start'])
 .circle-1 {
   width: 300px;
   height: 300px;
-  background: linear-gradient(135deg, #7dd3c0 0%, #a8d5ba 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   top: -100px;
   right: -100px;
 }
@@ -109,7 +133,7 @@ defineEmits(['start'])
 .circle-2 {
   width: 200px;
   height: 200px;
-  background: linear-gradient(135deg, #87ceeb 0%, #b8d4e3 100%);
+  background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC1 100%);
   bottom: 10%;
   left: -50px;
 }
@@ -117,7 +141,7 @@ defineEmits(['start'])
 .circle-3 {
   width: 150px;
   height: 150px;
-  background: linear-gradient(135deg, #f5deb3 0%, #fae5c3 100%);
+  background: linear-gradient(135deg, #DDBEA9 0%, #E8D5C4 100%);
   bottom: 20%;
   right: 10%;
 }
@@ -136,34 +160,40 @@ defineEmits(['start'])
 }
 
 .logo-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 20px;
-  background: linear-gradient(135deg, #7dd3c0 0%, #5fb3a3 100%);
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(125, 211, 192, 0.3);
+  box-shadow: 0 8px 24px rgba(142, 197, 252, 0.4);
+  animation: breathe 3s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 8px 24px rgba(142, 197, 252, 0.4); }
+  50% { box-shadow: 0 8px 32px rgba(142, 197, 252, 0.6); }
 }
 
 .logo-icon svg {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   color: white;
 }
 
 .main-title {
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: #4A5568;
   margin: 0 0 8px;
   letter-spacing: -0.5px;
 }
 
 .subtitle {
   font-size: 16px;
-  color: #7f8c8d;
+  color: #718096;
   margin: 0;
 }
 
@@ -173,7 +203,8 @@ defineEmits(['start'])
   border-radius: 20px;
   padding: 28px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.1);
+  border: 1px solid rgba(142, 197, 252, 0.2);
 }
 
 .feature-list {
@@ -190,27 +221,33 @@ defineEmits(['start'])
 }
 
 .feature-icon {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #f5f0e8 0%, #e8f4f8 100%);
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
   flex-shrink: 0;
+  border: 1px solid rgba(142, 197, 252, 0.3);
+}
+
+.feature-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #8EC5FC;
 }
 
 .feature-text h3 {
   font-size: 15px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #4A5568;
   margin: 0 0 4px;
 }
 
 .feature-text p {
   font-size: 13px;
-  color: #95a5a6;
+  color: #718096;
   margin: 0;
   line-height: 1.5;
 }
@@ -219,22 +256,32 @@ defineEmits(['start'])
 .disclaimer {
   margin-bottom: 28px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 12px;
-  border: 1px solid rgba(125, 211, 192, 0.2);
+  border: 1px solid rgba(142, 197, 252, 0.2);
 }
 
 .disclaimer p {
   font-size: 12px;
-  color: #7f8c8d;
-  margin: 4px 0;
+  color: #718096;
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.disclaimer p svg {
+  width: 14px;
+  height: 14px;
+  color: #A8E6CF;
 }
 
 /* 开始按钮 */
 .start-btn {
   width: 100%;
   padding: 18px 32px;
-  background: linear-gradient(135deg, #7dd3c0 0%, #5fb3a3 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
   border: none;
   border-radius: 16px;
@@ -245,13 +292,13 @@ defineEmits(['start'])
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 6px 20px rgba(125, 211, 192, 0.4);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
   transition: all 0.3s ease;
 }
 
 .start-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(125, 211, 192, 0.5);
+  box-shadow: 0 8px 24px rgba(142, 197, 252, 0.5);
 }
 
 .start-btn:active {

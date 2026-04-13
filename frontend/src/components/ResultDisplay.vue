@@ -82,6 +82,95 @@
       class="section-block"
     />
 
+    <!-- 用户反馈模块 -->
+    <div class="feedback-section section-block">
+      <div class="feedback-card">
+        <div class="feedback-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          <h3>您的反馈对我们很重要</h3>
+        </div>
+        
+        <!-- 评分区域 -->
+        <div class="rating-area">
+          <p class="rating-label">您对本次体验的满意度</p>
+          <div class="star-rating">
+            <button
+              v-for="star in 5"
+              :key="star"
+              class="star-btn"
+              :class="{ active: feedbackRating >= star }"
+              @click="feedbackRating = star"
+              @mouseenter="hoverRating = star"
+              @mouseleave="hoverRating = 0"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </button>
+          </div>
+          <p class="rating-text">{{ ratingText }}</p>
+        </div>
+
+        <!-- 反馈类型选择 -->
+        <div class="feedback-types">
+          <button
+            v-for="type in feedbackTypes"
+            :key="type.value"
+            class="type-btn"
+            :class="{ active: selectedType === type.value }"
+            @click="selectedType = type.value"
+          >
+            {{ type.label }}
+          </button>
+        </div>
+
+        <!-- 反馈文字输入 -->
+        <textarea
+          v-model="feedbackText"
+          class="feedback-textarea"
+          placeholder="欢迎分享您的使用体验、建议或任何想法..."
+          maxlength="500"
+          rows="4"
+        ></textarea>
+        <p class="char-count">{{ feedbackText.length }}/500</p>
+
+        <!-- 提交按钮 -->
+        <button 
+          class="feedback-submit-btn"
+          :disabled="feedbackRating === 0 || feedbackSubmitting"
+          @click="submitFeedback"
+        >
+          <svg v-if="!feedbackSubmitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          <svg v-else class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          {{ feedbackSubmitting ? '提交中...' : '提交反馈' }}
+        </button>
+
+        <!-- 提交成功提示 -->
+        <div v-if="feedbackSubmitted" class="feedback-success">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span>感谢您的反馈！我们会持续改进。</span>
+        </div>
+
+        <p class="feedback-privacy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          完全匿名，不收集任何个人隐私信息
+        </p>
+      </div>
+    </div>
+
     <!-- 底部操作 -->
     <div class="action-bar">
       <button class="action-btn secondary" @click="$emit('reset')">
@@ -133,6 +222,68 @@ const emit = defineEmits(['reset', 'download', 'analyze-ai'])
 
 // AI 分析状态
 const aiLoading = computed(() => props.aiAnalyzing)
+
+// 反馈相关状态
+const feedbackRating = ref(0)
+const hoverRating = ref(0)
+const feedbackText = ref('')
+const selectedType = ref('overall')
+const feedbackSubmitting = ref(false)
+const feedbackSubmitted = ref(false)
+
+// 反馈类型选项
+const feedbackTypes = [
+  { label: '整体体验', value: 'overall' },
+  { label: '界面设计', value: 'design' },
+  { label: '分析内容', value: 'content' },
+  { label: '功能建议', value: 'feature' }
+]
+
+// 评分文字
+const ratingText = computed(() => {
+  const rating = hoverRating.value || feedbackRating.value
+  const texts = ['', '需要改进', '一般', '还不错', '很满意', '非常棒！']
+  return texts[rating] || ''
+})
+
+// 提交反馈
+const submitFeedback = async () => {
+  if (feedbackRating.value === 0) return
+  
+  feedbackSubmitting.value = true
+  
+  try {
+    const response = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rating: feedbackRating.value,
+        feedback_text: feedbackText.value,
+        experience_type: selectedType.value
+      })
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      feedbackSubmitted.value = true
+      // 3秒后重置表单
+      setTimeout(() => {
+        feedbackRating.value = 0
+        feedbackText.value = ''
+        selectedType.value = 'overall'
+        feedbackSubmitted.value = false
+      }, 3000)
+    } else {
+      alert('提交失败，请稍后重试')
+    }
+  } catch (error) {
+    console.error('提交反馈失败:', error)
+    alert('提交失败，请检查网络连接')
+  } finally {
+    feedbackSubmitting.value = false
+  }
+}
 
 // 用户信息
 const userName = computed(() => {
@@ -253,22 +404,24 @@ const handleRegenerateAI = () => {
 
 <style scoped>
 .result-container {
-  max-width: 800px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px;
+  background: linear-gradient(180deg, #FDFCF8 0%, #F0F9FF 100%);
+  min-height: 100vh;
 }
 
 /* 报告头部 */
 .report-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   border-radius: 20px;
   padding: 28px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   color: white;
-  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 24px rgba(142, 197, 252, 0.3);
 }
 
 .user-name {
@@ -309,32 +462,44 @@ const handleRegenerateAI = () => {
 
 /* AI 触发区域 */
 .ai-trigger-section {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .ai-trigger-card {
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
-  border: 2px dashed #667eea;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  border: 2px dashed #8EC5FC;
   border-radius: 16px;
   padding: 32px;
   text-align: center;
 }
 
 .ai-trigger-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-trigger-icon svg {
+  width: 32px;
+  height: 32px;
+  color: white;
 }
 
 .ai-trigger-title {
   font-size: 20px;
   font-weight: 700;
-  color: #1e293b;
+  color: #4A5568;
   margin: 0 0 8px;
 }
 
 .ai-trigger-desc {
   font-size: 14px;
-  color: #64748b;
+  color: #718096;
   margin: 0 0 20px;
   line-height: 1.6;
 }
@@ -344,7 +509,7 @@ const handleRegenerateAI = () => {
   align-items: center;
   gap: 8px;
   padding: 14px 28px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -352,12 +517,12 @@ const handleRegenerateAI = () => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
 }
 
 .ai-trigger-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
 }
 
 .ai-trigger-btn svg {
@@ -367,18 +532,18 @@ const handleRegenerateAI = () => {
 
 /* AI 加载状态 */
 .ai-loading-section {
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
   border-radius: 16px;
   padding: 40px;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .ai-loading-spinner {
   width: 48px;
   height: 48px;
-  border: 3px solid #e0e7ff;
-  border-top-color: #667eea;
+  border: 3px solid #E2E8F0;
+  border-top-color: #8EC5FC;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;
@@ -387,14 +552,230 @@ const handleRegenerateAI = () => {
 .ai-loading-text {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: #4A5568;
   margin: 0 0 4px;
 }
 
 .ai-loading-subtext {
   font-size: 14px;
-  color: #64748b;
+  color: #718096;
   margin: 0;
+}
+
+/* 反馈模块 */
+.feedback-section {
+  margin-bottom: 24px;
+}
+
+.feedback-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.1);
+  border: 1px solid rgba(142, 197, 252, 0.2);
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.feedback-header svg {
+  width: 24px;
+  height: 24px;
+  color: #8EC5FC;
+}
+
+.feedback-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4A5568;
+  margin: 0;
+}
+
+/* 评分区域 */
+.rating-area {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.rating-label {
+  font-size: 14px;
+  color: #718096;
+  margin: 0 0 12px;
+}
+
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.star-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.star-btn svg {
+  width: 100%;
+  height: 100%;
+  color: #E2E8F0;
+  transition: color 0.2s;
+}
+
+.star-btn.active svg {
+  color: #F6E05E;
+}
+
+.rating-text {
+  font-size: 14px;
+  color: #8EC5FC;
+  font-weight: 500;
+  margin: 0;
+  min-height: 20px;
+}
+
+/* 反馈类型选择 */
+.feedback-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.type-btn {
+  padding: 8px 16px;
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #718096;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-btn:hover {
+  border-color: #8EC5FC;
+  color: #8EC5FC;
+}
+
+.type-btn.active {
+  background: rgba(142, 197, 252, 0.15);
+  border-color: #8EC5FC;
+  color: #4A5568;
+  font-weight: 500;
+}
+
+/* 反馈文字输入 */
+.feedback-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #4A5568;
+  resize: vertical;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.feedback-textarea:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+.feedback-textarea::placeholder {
+  color: #A0AEC0;
+}
+
+.char-count {
+  text-align: right;
+  font-size: 12px;
+  color: #A0AEC0;
+  margin: 4px 0 16px;
+}
+
+/* 提交按钮 */
+.feedback-submit-btn {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
+}
+
+.feedback-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
+}
+
+.feedback-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback-submit-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 提交成功提示 */
+.feedback-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(168, 230, 207, 0.2);
+  border-radius: 12px;
+  margin-top: 16px;
+  color: #38A169;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.feedback-success svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 隐私说明 */
+.feedback-privacy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: #A0AEC0;
+}
+
+.feedback-privacy svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* 底部操作栏 */
@@ -403,7 +784,7 @@ const handleRegenerateAI = () => {
   gap: 12px;
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #E2E8F0;
 }
 
 .action-btn {
@@ -427,14 +808,14 @@ const handleRegenerateAI = () => {
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
 }
 
 .action-btn.primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
 }
 
 .action-btn.primary:disabled {
@@ -443,12 +824,14 @@ const handleRegenerateAI = () => {
 }
 
 .action-btn.secondary {
-  background: #f1f5f9;
-  color: #475569;
+  background: #FFFFFF;
+  color: #718096;
+  border: 2px solid #E2E8F0;
 }
 
 .action-btn.secondary:hover {
-  background: #e2e8f0;
+  border-color: #8EC5FC;
+  color: #8EC5FC;
 }
 
 .spinner {
@@ -491,6 +874,19 @@ const handleRegenerateAI = () => {
   
   .ai-trigger-title {
     font-size: 18px;
+  }
+  
+  .feedback-card {
+    padding: 20px;
+  }
+  
+  .star-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .feedback-types {
+    justify-content: center;
   }
 }
 </style>

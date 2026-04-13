@@ -1,208 +1,200 @@
 <template>
   <div class="step-form-page">
-    <!-- 顶部导航 -->
+    <!-- 头部 -->
     <div class="form-header">
-      <button v-if="currentStep > 0" class="back-btn" @click="prevStep">
+      <button class="back-btn" @click="$emit('back')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
       </button>
       <h1 class="form-title">填写出生信息</h1>
-      <div class="step-indicator">
-        <span class="current">{{ currentStep + 1 }}</span>
-        <span class="total">/ {{ totalSteps }}</span>
-      </div>
+      <div class="placeholder"></div>
     </div>
-    
-    <!-- 进度条 -->
-    <div class="progress-bar">
-      <div class="progress-fill" :style="{ width: ((currentStep + 1) / totalSteps) * 100 + '%' }"></div>
-    </div>
-    
+
     <!-- 表单内容 -->
     <div class="form-content">
-      <!-- 步骤1: 姓名 -->
-      <transition name="slide" mode="out-in">
-        <div v-if="currentStep === 0" class="step-content" key="step0">
-          <div class="step-icon">👋</div>
-          <h2 class="step-title">你好，请告诉我你的名字</h2>
-          <p class="step-desc">这将出现在你的专属报告中</p>
-          
-          <div class="input-wrapper">
-            <input
-              v-model="form.name"
-              type="text"
-              class="name-input"
-              placeholder="请输入姓名"
-              maxlength="10"
-              @keyup.enter="nextStep"
-            />
-            <span class="input-hint">{{ form.name.length }}/10</span>
-          </div>
-        </div>
-        
-        <!-- 步骤2: 性别 -->
-        <div v-else-if="currentStep === 1" class="step-content" key="step1">
-          <div class="step-icon">⚥</div>
-          <h2 class="step-title">你的性别是？</h2>
-          <p class="step-desc">不同性别的命理分析有所不同</p>
-          
-          <div class="gender-options">
-            <button
-              class="gender-card"
-              :class="{ active: form.gender === 'male' }"
-              @click="selectGender('male')"
-            >
-              <span class="gender-emoji">👦</span>
-              <span class="gender-label">男生</span>
-            </button>
-            <button
-              class="gender-card"
-              :class="{ active: form.gender === 'female' }"
-              @click="selectGender('female')"
-            >
-              <span class="gender-emoji">👧</span>
-              <span class="gender-label">女生</span>
-            </button>
-          </div>
-        </div>
-        
-        <!-- 步骤3: 出生日期 -->
-        <div v-else-if="currentStep === 2" class="step-content" key="step2">
-          <div class="step-icon">📅</div>
-          <h2 class="step-title">你的出生日期是？</h2>
-          <p class="step-desc">请准确填写，这将影响分析结果</p>
-          
-          <!-- 快速输入 -->
-          <div class="quick-input-section">
-            <input
-              v-model="quickInput"
-              type="text"
-              class="quick-input"
-              placeholder="快速输入: 200001011200"
-              @blur="parseQuickInput"
-            />
-            <button class="parse-btn" @click="parseQuickInput">解析</button>
-          </div>
-          <p class="quick-hint">支持格式: 年月日时分 或 年月日</p>
-          
-          <!-- 日期选择 -->
-          <div class="datetime-picker" @click="showDatePicker = true">
-            <div class="picker-display">
-              <span v-if="!dateText" class="placeholder">点击选择日期</span>
-              <span v-else>{{ dateText }}</span>
-            </div>
-            <svg class="picker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          
-          <!-- 时辰未知选项 -->
-          <button 
-            class="unknown-time-btn"
-            :class="{ active: form.hour === null }"
-            @click="setUnknownTime"
+      <!-- 姓名 -->
+      <div class="form-card">
+        <label class="card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          姓名
+        </label>
+        <input
+          v-model="form.name"
+          type="text"
+          class="name-input"
+          placeholder="请输入姓名"
+          maxlength="10"
+        />
+      </div>
+
+      <!-- 性别 -->
+      <div class="form-card">
+        <label class="card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          性别
+        </label>
+        <div class="gender-options">
+          <button
+            class="gender-btn"
+            :class="{ active: form.gender === 'male' }"
+            @click="form.gender = 'male'"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-            时辰未知
+            <span class="gender-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="5"/>
+                <path d="M12 13v8M9 18h6"/>
+              </svg>
+            </span>
+            <span>男生</span>
+          </button>
+          <button
+            class="gender-btn"
+            :class="{ active: form.gender === 'female' }"
+            @click="form.gender = 'female'"
+          >
+            <span class="gender-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="5"/>
+                <path d="M12 13v8M9 16h6"/>
+              </svg>
+            </span>
+            <span>女生</span>
           </button>
         </div>
+      </div>
+
+      <!-- 出生日期时间 -->
+      <div class="form-card">
+        <label class="card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          出生日期时间
+        </label>
         
-        <!-- 步骤4: 出生地点 -->
-        <div v-else-if="currentStep === 3" class="step-content" key="step3">
-          <div class="step-icon">📍</div>
-          <h2 class="step-title">你的出生地点是？</h2>
-          <p class="step-desc">用于计算真太阳时，让结果更准确</p>
-          
-          <!-- 省份选择 -->
-          <div class="location-section">
-            <div class="location-label">省份</div>
-            <div class="location-picker" @click="showProvincePicker = true">
-              <span :class="{ placeholder: !form.province }">
-                {{ form.province || '选择省份' }}
-              </span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
+        <!-- 日期时间选择器触发区 -->
+        <div class="datetime-trigger" @click="showDatePicker = true">
+          <div class="datetime-display">
+            <template v-if="form.hour === null">
+              {{ form.year }}年{{ form.month }}月{{ form.day }}日
+              <span class="unknown-tag">时辰未知</span>
+            </template>
+            <template v-else>
+              {{ form.year }}年{{ form.month }}月{{ form.day }}日
+              {{ form.hour }}时（{{ getShichenName(form.hour) }}）
+              {{ form.minute }}分
+            </template>
           </div>
-          
-          <!-- 城市选择 -->
-          <div class="location-section" v-if="form.province">
-            <div class="location-label">城市</div>
-            <div class="location-picker" @click="showCityPicker = true">
-              <span :class="{ placeholder: !form.city }">
-                {{ form.city || '选择城市' }}
-              </span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
-          </div>
-          
-          <!-- 跳过选项 -->
-          <button class="skip-btn" @click="skipLocation">
-            暂不选择，使用标准时间
-          </button>
+          <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
         </div>
+
+        <!-- 时辰未知按钮 -->
+        <button 
+          class="unknown-time-btn"
+          :class="{ active: form.hour === null }"
+          @click="setUnknownTime"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          时辰未知
+        </button>
+      </div>
+
+      <!-- 出生地点 -->
+      <div class="form-card">
+        <label class="card-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          出生地点
+          <span class="optional">（可选）</span>
+        </label>
         
-        <!-- 步骤5: 确认 -->
-        <div v-else-if="currentStep === 4" class="step-content" key="step4">
-          <div class="step-icon">✅</div>
-          <h2 class="step-title">确认信息</h2>
-          <p class="step-desc">请检查以下信息是否正确</p>
+        <!-- 城市输入 -->
+        <div class="city-input-wrapper">
+          <input
+            v-model="cityInput"
+            type="text"
+            class="city-input"
+            placeholder="输入城市名自动匹配"
+            @input="onCityInput"
+            @focus="showCitySuggestions = true"
+          />
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
           
-          <div class="info-summary">
-            <div class="info-item">
-              <span class="info-label">姓名</span>
-              <span class="info-value">{{ form.name }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">性别</span>
-              <span class="info-value">{{ form.gender === 'male' ? '男' : '女' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">出生日期</span>
-              <span class="info-value">{{ dateText || '未选择' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">出生地点</span>
-              <span class="info-value">{{ locationText || '未选择' }}</span>
+          <!-- 城市建议列表 -->
+          <div v-if="showCitySuggestions && citySuggestions.length > 0" class="city-suggestions">
+            <div
+              v-for="item in citySuggestions"
+              :key="item.city"
+              class="suggestion-item"
+              @click="selectCitySuggestion(item)"
+            >
+              <span class="city-name">{{ item.city }}</span>
+              <span class="province-name">{{ item.province }}</span>
             </div>
           </div>
         </div>
-      </transition>
+
+        <!-- 已选地点显示 -->
+        <div v-if="form.province && form.city" class="selected-location">
+          <span class="location-tag">
+            {{ form.province }} {{ form.city }}
+            <button class="clear-btn" @click="clearLocation">×</button>
+          </span>
+        </div>
+
+        <p class="location-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          选择城市可使用真太阳时计算，让结果更准确
+        </p>
+      </div>
     </div>
-    
-    <!-- 底部按钮 -->
+
+    <!-- 底部提交按钮 -->
     <div class="form-footer">
       <button 
-        class="next-btn"
-        :disabled="!canProceed"
-        @click="currentStep === totalSteps - 1 ? submit() : nextStep()"
+        class="submit-btn"
+        :disabled="!canSubmit"
+        @click="submit"
       >
-        {{ currentStep === totalSteps - 1 ? '开始分析' : '下一步' }}
-        <svg v-if="currentStep < totalSteps - 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        开始分析
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
-        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
       </button>
+      <p class="disclaimer">本测试为成长娱乐参考，非科学诊断</p>
     </div>
-    
-    <!-- 日期选择弹窗 -->
+
+    <!-- 日期时间选择弹窗 -->
     <Transition name="modal">
       <div v-if="showDatePicker" class="modal-overlay" @click.self="showDatePicker = false">
         <div class="modal-content">
           <div class="modal-header">
-            <h3>选择出生日期</h3>
+            <h3>选择出生日期时间</h3>
             <button class="modal-close" @click="showDatePicker = false">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -210,13 +202,15 @@
               </svg>
             </button>
           </div>
+          
           <div class="picker-body">
             <div class="picker-columns">
+              <!-- 年 -->
               <div class="picker-column">
                 <div class="column-label">年</div>
                 <div class="column-options">
-                  <div 
-                    v-for="year in yearOptions" 
+                  <div
+                    v-for="year in yearOptions"
                     :key="year"
                     class="column-option"
                     :class="{ active: tempDate.year === year }"
@@ -226,11 +220,13 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- 月 -->
               <div class="picker-column">
                 <div class="column-label">月</div>
                 <div class="column-options">
-                  <div 
-                    v-for="month in 12" 
+                  <div
+                    v-for="month in 12"
                     :key="month"
                     class="column-option"
                     :class="{ active: tempDate.month === month }"
@@ -240,11 +236,13 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- 日 -->
               <div class="picker-column">
                 <div class="column-label">日</div>
                 <div class="column-options">
-                  <div 
-                    v-for="day in daysInMonth" 
+                  <div
+                    v-for="day in daysInMonth"
                     :key="day"
                     class="column-option"
                     :class="{ active: tempDate.day === day }"
@@ -254,91 +252,44 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- 时 -->
               <div class="picker-column">
                 <div class="column-label">时</div>
                 <div class="column-options">
-                  <div 
-                    v-for="(shichen, idx) in shichenList" 
-                    :key="idx"
+                  <div
+                    v-for="hour in 24"
+                    :key="hour - 1"
                     class="column-option"
-                    :class="{ active: tempDate.hour === shichen.hour }"
-                    @click="tempDate.hour = shichen.hour"
+                    :class="{ active: tempDate.hour === hour - 1 }"
+                    @click="tempDate.hour = hour - 1"
                   >
-                    {{ shichen.name }}
+                    {{ hour - 1 }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 分 -->
+              <div class="picker-column narrow">
+                <div class="column-label">分</div>
+                <div class="column-options">
+                  <div
+                    v-for="minute in [0, 10, 20, 30, 40, 50]"
+                    :key="minute"
+                    class="column-option"
+                    :class="{ active: tempDate.minute === minute }"
+                    @click="tempDate.minute = minute"
+                  >
+                    {{ minute }}
                   </div>
                 </div>
               </div>
             </div>
-            <div class="minute-input">
-              <label>分钟（可选）</label>
-              <input 
-                v-model.number="tempDate.minute"
-                type="number"
-                min="0"
-                max="59"
-                placeholder="0-59"
-              />
-            </div>
           </div>
+          
           <div class="modal-footer">
-            <button class="btn-unknown" @click="selectUnknownTime">时辰未知</button>
-            <button class="btn-confirm" @click="confirmDate">确定</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-    
-    <!-- 省份选择弹窗 -->
-    <Transition name="modal">
-      <div v-if="showProvincePicker" class="modal-overlay" @click.self="showProvincePicker = false">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>选择省份</h3>
-            <button class="modal-close" @click="showProvincePicker = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          </div>
-          <div class="picker-body list-picker">
-            <div 
-              v-for="province in provinceList" 
-              :key="province"
-              class="list-option"
-              :class="{ active: form.province === province }"
-              @click="selectProvince(province)"
-            >
-              {{ province }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-    
-    <!-- 城市选择弹窗 -->
-    <Transition name="modal">
-      <div v-if="showCityPicker" class="modal-overlay" @click.self="showCityPicker = false">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>选择城市</h3>
-            <button class="modal-close" @click="showCityPicker = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          </div>
-          <div class="picker-body list-picker">
-            <div 
-              v-for="city in cityList" 
-              :key="city"
-              class="list-option"
-              :class="{ active: form.city === city }"
-              @click="selectCity(city)"
-            >
-              {{ city }}
-            </div>
+            <button class="btn-unknown" @click="selectUnknownTimeInModal">时辰未知</button>
+            <button class="btn-confirm" @click="confirmDateTime">确定</button>
           </div>
         </div>
       </div>
@@ -350,7 +301,7 @@
 import { ref, computed, reactive } from 'vue'
 import { cityData } from '../data/cities'
 
-const emit = defineEmits(['submit'])
+const emit = defineEmits(['submit', 'back'])
 
 // 表单数据
 const form = ref({
@@ -365,16 +316,14 @@ const form = ref({
   city: ''
 })
 
-// 步骤控制
-const currentStep = ref(0)
-const totalSteps = 5
+// 城市输入
+const cityInput = ref('')
+const showCitySuggestions = ref(false)
 
 // 弹窗控制
 const showDatePicker = ref(false)
-const showProvincePicker = ref(false)
-const showCityPicker = ref(false)
 
-// 临时数据
+// 临时日期数据
 const tempDate = reactive({
   year: 2000,
   month: 1,
@@ -383,140 +332,93 @@ const tempDate = reactive({
   minute: 0
 })
 
-const quickInput = ref('')
-
-// 计算属性
+// 年份选项
 const yearOptions = Array.from({ length: 125 }, (_, i) => 2025 - i)
 
+// 计算属性
 const daysInMonth = computed(() => {
   return new Date(tempDate.year, tempDate.month, 0).getDate()
 })
 
-const dateText = computed(() => {
-  if (form.value.hour === null) {
-    return `${form.value.year}年${form.value.month}月${form.value.day}日（时辰未知）`
+const canSubmit = computed(() => {
+  return form.value.name.trim().length > 0 && form.value.gender
+})
+
+// 城市建议列表
+const citySuggestions = computed(() => {
+  if (!cityInput.value.trim()) return []
+  
+  const input = cityInput.value.trim().toLowerCase()
+  const suggestions = []
+  
+  for (const [province, cities] of Object.entries(cityData)) {
+    for (const city of cities) {
+      if (city.toLowerCase().includes(input) || province.toLowerCase().includes(input)) {
+        suggestions.push({ province, city })
+        if (suggestions.length >= 5) break
+      }
+    }
+    if (suggestions.length >= 5) break
   }
-  const shichen = shichenList.find(s => s.hour === form.value.hour)
-  const timeStr = shichen ? `${shichen.name}(${shichen.time})` : `${form.value.hour}时`
-  return `${form.value.year}年${form.value.month}月${form.value.day}日 ${timeStr}`
+  
+  return suggestions
 })
 
-const locationText = computed(() => {
-  if (form.value.province && form.value.city) {
-    return `${form.value.province} ${form.value.city}`
+// 获取时辰名称
+const getShichenName = (hour) => {
+  const shichenList = [
+    { name: '子时', hour: 0 }, { name: '丑时', hour: 1 },
+    { name: '寅时', hour: 3 }, { name: '卯时', hour: 5 },
+    { name: '辰时', hour: 7 }, { name: '巳时', hour: 9 },
+    { name: '午时', hour: 11 }, { name: '未时', hour: 13 },
+    { name: '申时', hour: 15 }, { name: '酉时', hour: 17 },
+    { name: '戌时', hour: 19 }, { name: '亥时', hour: 21 }
+  ]
+  
+  for (let i = shichenList.length - 1; i >= 0; i--) {
+    if (hour >= shichenList[i].hour) {
+      return shichenList[i].name
+    }
   }
-  return ''
-})
-
-const canProceed = computed(() => {
-  switch (currentStep.value) {
-    case 0: return form.value.name.trim().length > 0
-    case 1: return !!form.value.gender
-    case 2: return true // 日期有默认值
-    case 3: return true // 地点可选
-    case 4: return true
-    default: return false
-  }
-})
-
-const provinceList = computed(() => Object.keys(cityData))
-
-const cityList = computed(() => {
-  return form.value.province ? cityData[form.value.province] || [] : []
-})
-
-// 时辰列表
-const shichenList = [
-  { name: '子时', time: '23:00-01:00', hour: 0 },
-  { name: '丑时', time: '01:00-03:00', hour: 1 },
-  { name: '寅时', time: '03:00-05:00', hour: 3 },
-  { name: '卯时', time: '05:00-07:00', hour: 5 },
-  { name: '辰时', time: '07:00-09:00', hour: 7 },
-  { name: '巳时', time: '09:00-11:00', hour: 9 },
-  { name: '午时', time: '11:00-13:00', hour: 11 },
-  { name: '未时', time: '13:00-15:00', hour: 13 },
-  { name: '申时', time: '15:00-17:00', hour: 15 },
-  { name: '酉时', time: '17:00-19:00', hour: 17 },
-  { name: '戌时', time: '19:00-21:00', hour: 19 },
-  { name: '亥时', time: '21:00-23:00', hour: 21 }
-]
+  return '子时'
+}
 
 // 方法
-const nextStep = () => {
-  if (currentStep.value < totalSteps - 1) {
-    currentStep.value++
-  }
-}
-
-const prevStep = () => {
-  if (currentStep.value > 0) {
-    currentStep.value--
-  }
-}
-
-const selectGender = (gender) => {
-  form.value.gender = gender
-  nextStep()
-}
-
 const setUnknownTime = () => {
   form.value.hour = null
   form.value.minute = 0
 }
 
-const selectUnknownTime = () => {
-  tempDate.hour = null
-  confirmDate()
+const onCityInput = () => {
+  showCitySuggestions.value = true
 }
 
-const confirmDate = () => {
+const selectCitySuggestion = (item) => {
+  form.value.province = item.province
+  form.value.city = item.city
+  cityInput.value = item.city
+  showCitySuggestions.value = false
+}
+
+const clearLocation = () => {
+  form.value.province = ''
+  form.value.city = ''
+  cityInput.value = ''
+}
+
+const selectUnknownTimeInModal = () => {
+  form.value.hour = null
+  form.value.minute = 0
+  showDatePicker.value = false
+}
+
+const confirmDateTime = () => {
   form.value.year = tempDate.year
   form.value.month = tempDate.month
   form.value.day = tempDate.day
   form.value.hour = tempDate.hour
   form.value.minute = tempDate.minute
   showDatePicker.value = false
-}
-
-const selectProvince = (province) => {
-  form.value.province = province
-  form.value.city = ''
-  showProvincePicker.value = false
-  showCityPicker.value = true
-}
-
-const selectCity = (city) => {
-  form.value.city = city
-  showCityPicker.value = false
-}
-
-const skipLocation = () => {
-  form.value.province = ''
-  form.value.city = ''
-  nextStep()
-}
-
-const parseQuickInput = () => {
-  const input = quickInput.value.trim()
-  if (!input) return
-
-  const digits = input.replace(/\D/g, '')
-
-  if (digits.length === 8) {
-    form.value.year = parseInt(digits.substring(0, 4))
-    form.value.month = parseInt(digits.substring(4, 6))
-    form.value.day = parseInt(digits.substring(6, 8))
-    form.value.hour = 12
-    form.value.minute = 0
-    quickInput.value = ''
-  } else if (digits.length >= 10) {
-    form.value.year = parseInt(digits.substring(0, 4))
-    form.value.month = parseInt(digits.substring(4, 6))
-    form.value.day = parseInt(digits.substring(6, 8))
-    form.value.hour = parseInt(digits.substring(8, 10))
-    form.value.minute = digits.length >= 12 ? parseInt(digits.substring(10, 12)) : 0
-    quickInput.value = ''
-  }
 }
 
 const submit = () => {
@@ -527,7 +429,7 @@ const submit = () => {
 <style scoped>
 .step-form-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #e8f4f8 0%, #f5f0e8 100%);
+  background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   display: flex;
   flex-direction: column;
 }
@@ -539,329 +441,365 @@ const submit = () => {
   justify-content: space-between;
   padding: 16px 20px;
   background: white;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(142, 197, 252, 0.2);
 }
 
 .back-btn {
   width: 40px;
   height: 40px;
   border: none;
-  background: #f5f5f5;
-  border-radius: 10px;
+  background: #F7FAFC;
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #F0F9FF;
 }
 
 .back-btn svg {
   width: 20px;
   height: 20px;
-  color: #666;
+  color: #718096;
 }
 
 .form-title {
   font-size: 17px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #4A5568;
   margin: 0;
 }
 
-.step-indicator {
-  font-size: 14px;
-  color: #95a5a6;
-}
-
-.step-indicator .current {
-  color: #7dd3c0;
-  font-weight: 600;
-}
-
-/* 进度条 */
-.progress-bar {
-  height: 3px;
-  background: #e0e0e0;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #7dd3c0 0%, #5fb3a3 100%);
-  transition: width 0.3s ease;
+.placeholder {
+  width: 40px;
 }
 
 /* 表单内容 */
 .form-content {
   flex: 1;
-  padding: 32px 20px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  max-width: 400px;
+  gap: 16px;
+  max-width: 480px;
   margin: 0 auto;
   width: 100%;
 }
 
-.step-content {
-  text-align: center;
+/* 卡片样式 */
+.form-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(142, 197, 252, 0.08);
+  border: 1px solid rgba(142, 197, 252, 0.15);
 }
 
-.step-icon {
-  font-size: 48px;
-  margin-bottom: 20px;
-}
-
-.step-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #2c3e50;
-  margin: 0 0 8px;
-}
-
-.step-desc {
+.card-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
-  color: #95a5a6;
-  margin: 0 0 32px;
+  font-weight: 600;
+  color: #4A5568;
+  margin-bottom: 16px;
+}
+
+.card-label svg {
+  width: 18px;
+  height: 18px;
+  color: #8EC5FC;
+}
+
+.optional {
+  font-size: 12px;
+  color: #A0AEC0;
+  font-weight: normal;
 }
 
 /* 姓名输入 */
-.input-wrapper {
-  position: relative;
-}
-
 .name-input {
   width: 100%;
-  padding: 18px 20px;
-  font-size: 18px;
-  border: 2px solid #e0e0e0;
-  border-radius: 16px;
-  text-align: center;
-  transition: all 0.3s ease;
+  padding: 14px 16px;
+  font-size: 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: #4A5568;
 }
 
 .name-input:focus {
   outline: none;
-  border-color: #7dd3c0;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
 }
 
-.input-hint {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  color: #95a5a6;
+.name-input::placeholder {
+  color: #A0AEC0;
 }
 
 /* 性别选择 */
 .gender-options {
   display: flex;
-  gap: 16px;
-  justify-content: center;
+  gap: 12px;
 }
 
-.gender-card {
+.gender-btn {
   flex: 1;
-  max-width: 140px;
-  padding: 32px 20px;
-  background: white;
+  padding: 16px;
+  background: #F7FAFC;
   border: 2px solid transparent;
-  border-radius: 20px;
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.gender-card:hover {
-  border-color: #7dd3c0;
-}
-
-.gender-card.active {
-  border-color: #7dd3c0;
-  background: linear-gradient(135deg, #e8f4f8 0%, #d4ede6 100%);
-}
-
-.gender-emoji {
-  font-size: 48px;
-}
-
-.gender-label {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-/* 日期选择 */
-.quick-input-section {
-  display: flex;
   gap: 8px;
-  margin-bottom: 8px;
-}
-
-.quick-input {
-  flex: 1;
-  padding: 14px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 15px;
-}
-
-.parse-btn {
-  padding: 14px 20px;
-  background: #7dd3c0;
-  color: white;
-  border: none;
-  border-radius: 12px;
+  transition: all 0.2s;
   font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+  color: #718096;
 }
 
-.quick-hint {
-  font-size: 12px;
-  color: #95a5a6;
-  margin: 0 0 20px;
+.gender-btn:hover {
+  background: #F0F9FF;
 }
 
-.datetime-picker {
+.gender-btn.active {
+  border-color: #8EC5FC;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  color: #4A5568;
+}
+
+.gender-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.gender-icon svg {
+  width: 100%;
+  height: 100%;
+  color: #8EC5FC;
+}
+
+/* 日期时间显示 */
+.datetime-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 16px;
+  padding: 16px;
+  background: #F7FAFC;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
   cursor: pointer;
-  margin-bottom: 12px;
+  transition: all 0.2s;
 }
 
-.datetime-picker .placeholder {
-  color: #95a5a6;
+.datetime-trigger:hover {
+  border-color: #8EC5FC;
 }
 
-.picker-icon {
-  width: 24px;
-  height: 24px;
-  color: #7dd3c0;
+.datetime-display {
+  font-size: 15px;
+  color: #4A5568;
+  line-height: 1.6;
 }
 
+.unknown-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  color: #8EC5FC;
+  font-size: 12px;
+  border-radius: 20px;
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+.edit-icon {
+  width: 20px;
+  height: 20px;
+  color: #A0AEC0;
+}
+
+/* 时辰未知按钮 */
 .unknown-time-btn {
   width: 100%;
-  padding: 14px;
+  margin-top: 12px;
+  padding: 12px;
   background: transparent;
-  border: 2px dashed #d0d0d0;
-  border-radius: 12px;
-  color: #95a5a6;
+  border: 2px dashed #E2E8F0;
+  border-radius: 10px;
+  color: #A0AEC0;
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  transition: all 0.2s;
 }
 
 .unknown-time-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+}
+
+.unknown-time-btn:hover {
+  border-color: #8EC5FC;
+  color: #8EC5FC;
 }
 
 .unknown-time-btn.active {
-  border-color: #7dd3c0;
-  color: #7dd3c0;
-  background: #e8f4f8;
+  border-color: #8EC5FC;
+  color: #8EC5FC;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
 }
 
-/* 地点选择 */
-.location-section {
-  margin-bottom: 16px;
+/* 城市输入 */
+.city-input-wrapper {
+  position: relative;
 }
 
-.location-label {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-bottom: 8px;
-  text-align: left;
-}
-
-.location-picker {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px;
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 16px;
-  cursor: pointer;
-}
-
-.location-picker .placeholder {
-  color: #95a5a6;
-}
-
-.location-picker svg {
-  width: 20px;
-  height: 20px;
-  color: #95a5a6;
-}
-
-.skip-btn {
+.city-input {
   width: 100%;
-  padding: 14px;
-  background: transparent;
-  border: none;
-  color: #95a5a6;
-  font-size: 14px;
-  cursor: pointer;
-  text-decoration: underline;
+  padding: 14px 40px 14px 16px;
+  font-size: 15px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: #4A5568;
 }
 
-/* 信息确认 */
-.info-summary {
+.city-input:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+.city-input::placeholder {
+  color: #A0AEC0;
+}
+
+.search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #A0AEC0;
+}
+
+/* 城市建议列表 */
+.city-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
   background: white;
-  border-radius: 16px;
-  padding: 20px;
-  text-align: left;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(142, 197, 252, 0.15);
+  z-index: 100;
+  overflow: hidden;
+  border: 1px solid rgba(142, 197, 252, 0.2);
 }
 
-.info-item {
+.suggestion-item {
+  padding: 14px 16px;
+  cursor: pointer;
   display: flex;
   justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+  border-bottom: 1px solid #F0F0F0;
 }
 
-.info-item:last-child {
+.suggestion-item:last-child {
   border-bottom: none;
 }
 
-.info-label {
-  font-size: 14px;
-  color: #7f8c8d;
+.suggestion-item:hover {
+  background: #F0F9FF;
 }
 
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
+.city-name {
+  font-size: 15px;
+  color: #4A5568;
 }
 
-/* 底部按钮 */
+.province-name {
+  font-size: 13px;
+  color: #A0AEC0;
+}
+
+/* 已选地点 */
+.selected-location {
+  margin-top: 12px;
+}
+
+.location-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  color: #4A5568;
+  font-size: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(142, 197, 252, 0.3);
+}
+
+.clear-btn {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: rgba(142, 197, 252, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #718096;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover {
+  background: rgba(142, 197, 252, 0.5);
+}
+
+.location-hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #A0AEC0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.location-hint svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 底部 */
 .form-footer {
   padding: 20px;
   background: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(142, 197, 252, 0.2);
 }
 
-.next-btn {
+.submit-btn {
   width: 100%;
-  padding: 18px;
-  background: linear-gradient(135deg, #7dd3c0 0%, #5fb3a3 100%);
+  padding: 16px;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
@@ -869,23 +807,30 @@ const submit = () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 16px rgba(125, 211, 192, 0.3);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
+  transition: all 0.3s;
 }
 
-.next-btn:hover:not(:disabled) {
+.submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(125, 211, 192, 0.4);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
 }
 
-.next-btn:disabled {
+.submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.next-btn svg {
+.submit-btn svg {
   width: 20px;
   height: 20px;
+}
+
+.disclaimer {
+  text-align: center;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #A0AEC0;
 }
 
 /* 弹窗样式 */
@@ -895,7 +840,7 @@ const submit = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(74, 85, 104, 0.5);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -912,6 +857,7 @@ const submit = () => {
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease;
+  box-shadow: 0 -4px 24px rgba(142, 197, 252, 0.2);
 }
 
 @keyframes slideUp {
@@ -929,39 +875,45 @@ const submit = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F0F0F0;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 17px;
   font-weight: 600;
+  color: #4A5568;
 }
 
 .modal-close {
   width: 32px;
   height: 32px;
   border: none;
-  background: #f5f5f5;
-  border-radius: 8px;
+  background: #F7FAFC;
+  border-radius: 10px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #F0F9FF;
 }
 
 .modal-close svg {
   width: 18px;
   height: 18px;
+  color: #718096;
 }
 
 .picker-body {
   padding: 16px;
-  overflow-y: auto;
 }
 
 .picker-columns {
   display: flex;
   gap: 8px;
-  height: 200px;
+  height: 220px;
 }
 
 .picker-column {
@@ -969,57 +921,46 @@ const submit = () => {
   text-align: center;
 }
 
+.picker-column.narrow {
+  flex: 0.7;
+}
+
 .column-label {
   font-size: 13px;
-  color: #95a5a6;
+  color: #A0AEC0;
   margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .column-options {
-  height: 170px;
+  height: 190px;
   overflow-y: auto;
 }
 
 .column-option {
-  padding: 10px;
+  padding: 10px 4px;
   font-size: 15px;
-  color: #2c3e50;
+  color: #4A5568;
   cursor: pointer;
   border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.column-option:hover {
+  background: #F0F9FF;
 }
 
 .column-option.active {
-  background: #7dd3c0;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
-}
-
-.minute-input {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.minute-input label {
-  display: block;
-  font-size: 13px;
-  color: #95a5a6;
-  margin-bottom: 8px;
-}
-
-.minute-input input {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  text-align: center;
-  font-size: 16px;
+  font-weight: 600;
 }
 
 .modal-footer {
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #F0F0F0;
 }
 
 .btn-unknown,
@@ -1031,57 +972,28 @@ const submit = () => {
   font-weight: 600;
   cursor: pointer;
   border: none;
+  transition: all 0.2s;
 }
 
 .btn-unknown {
-  background: #f5f5f5;
-  color: #666;
+  background: #F7FAFC;
+  color: #718096;
+}
+
+.btn-unknown:hover {
+  background: #F0F9FF;
 }
 
 .btn-confirm {
-  background: #7dd3c0;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
 }
 
-/* 列表选择器 */
-.list-picker {
-  max-height: 300px;
-}
-
-.list-option {
-  padding: 16px 20px;
-  font-size: 15px;
-  color: #2c3e50;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.list-option:last-child {
-  border-bottom: none;
-}
-
-.list-option.active {
-  color: #7dd3c0;
-  font-weight: 600;
-  background: #e8f4f8;
+.btn-confirm:hover {
+  box-shadow: 0 4px 12px rgba(142, 197, 252, 0.3);
 }
 
 /* 过渡动画 */
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-.slide-leave-to {
-  opacity: 0;
-  transform: translateX(-30px);
-}
-
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.3s;

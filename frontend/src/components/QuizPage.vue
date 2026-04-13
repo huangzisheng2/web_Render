@@ -73,7 +73,14 @@
     </div>
     
     <!-- 提示文字 -->
-    <p class="quiz-tip">💡 没有标准答案，凭直觉选择最符合你的选项</p>
+    <p class="quiz-tip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      没有标准答案，凭直觉选择最符合你的选项
+    </p>
   </div>
 </template>
 
@@ -118,6 +125,12 @@ const progress = computed(() => ((currentIndex.value + 1) / questions.length) * 
 
 const selectOption = (idx) => {
   answers.value[currentIndex.value] = idx
+  // 自动下一题，最后一题不自动跳转
+  if (currentIndex.value < questions.length - 1) {
+    setTimeout(() => {
+      currentIndex.value++
+    }, 300)
+  }
 }
 
 const nextQuestion = () => {
@@ -141,7 +154,7 @@ const submitQuiz = () => {
 <style scoped>
 .quiz-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #e8f4f8 0%, #f5f0e8 100%);
+  background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -151,7 +164,7 @@ const submitQuiz = () => {
 .progress-bar {
   width: 100%;
   height: 4px;
-  background: rgba(125, 211, 192, 0.2);
+  background: rgba(142, 197, 252, 0.2);
   border-radius: 2px;
   margin-bottom: 32px;
   overflow: hidden;
@@ -159,7 +172,7 @@ const submitQuiz = () => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7dd3c0 0%, #5fb3a3 100%);
+  background: linear-gradient(90deg, #8EC5FC 0%, #A8E6CF 100%);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -183,12 +196,12 @@ const submitQuiz = () => {
 .current {
   font-size: 32px;
   font-weight: 700;
-  color: #7dd3c0;
+  color: #8EC5FC;
 }
 
 .total {
   font-size: 16px;
-  color: #95a5a6;
+  color: #A0AEC0;
 }
 
 /* 问题卡片 */
@@ -197,14 +210,15 @@ const submitQuiz = () => {
   border-radius: 20px;
   padding: 28px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.1);
+  border: 1px solid rgba(142, 197, 252, 0.2);
   flex: 1;
 }
 
 .question-text {
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #4A5568;
   margin: 0 0 24px;
   line-height: 1.6;
 }
@@ -221,7 +235,7 @@ const submitQuiz = () => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f8f9fa;
+  background: #F7FAFC;
   border: 2px solid transparent;
   border-radius: 12px;
   cursor: pointer;
@@ -230,13 +244,13 @@ const submitQuiz = () => {
 }
 
 .option-btn:hover {
-  background: #e8f4f8;
-  border-color: #7dd3c0;
+  background: #F0F9FF;
+  border-color: #8EC5FC;
 }
 
 .option-btn.selected {
-  background: linear-gradient(135deg, #e8f4f8 0%, #d4ede6 100%);
-  border-color: #7dd3c0;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  border-color: #8EC5FC;
 }
 
 .option-letter {
@@ -248,19 +262,21 @@ const submitQuiz = () => {
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #7dd3c0;
+  color: #8EC5FC;
   font-size: 14px;
   flex-shrink: 0;
+  border: 1px solid rgba(142, 197, 252, 0.3);
 }
 
 .option-btn.selected .option-letter {
-  background: #7dd3c0;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
+  border-color: transparent;
 }
 
 .option-text {
   font-size: 15px;
-  color: #2c3e50;
+  color: #4A5568;
   line-height: 1.5;
 }
 
@@ -293,26 +309,26 @@ const submitQuiz = () => {
 
 .nav-btn.prev {
   background: white;
-  color: #7f8c8d;
-  border: 2px solid #e0e0e0;
+  color: #718096;
+  border: 2px solid #E2E8F0;
 }
 
 .nav-btn.prev:hover {
-  border-color: #7dd3c0;
-  color: #7dd3c0;
+  border-color: #8EC5FC;
+  color: #8EC5FC;
 }
 
 .nav-btn.next,
 .nav-btn.submit {
-  background: linear-gradient(135deg, #7dd3c0 0%, #5fb3a3 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
-  box-shadow: 0 4px 16px rgba(125, 211, 192, 0.3);
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
 }
 
 .nav-btn.next:hover,
 .nav-btn.submit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(125, 211, 192, 0.4);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
 }
 
 .nav-btn:disabled {
@@ -325,8 +341,18 @@ const submitQuiz = () => {
 .quiz-tip {
   text-align: center;
   font-size: 13px;
-  color: #95a5a6;
+  color: #A0AEC0;
   margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.quiz-tip svg {
+  width: 16px;
+  height: 16px;
+  color: #8EC5FC;
 }
 
 /* 过渡动画 */

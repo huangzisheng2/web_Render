@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).parent
 BAZI_DIR = BASE_DIR / "bazi_modules"
 sys.path.insert(0, str(BAZI_DIR))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
@@ -22,6 +22,7 @@ import traceback
 # 导入业务服务
 from services.bazi_service_web import BaziAnalysisServiceWeb
 from services.pdf_service import PDFService
+from feedback import submit_feedback, get_feedback_stats
 
 app = FastAPI(
     title="天赋性格测评系统 API",
@@ -67,6 +68,19 @@ class AnalyzeResponse(BaseModel):
 class PDFDownloadResponse(BaseModel):
     success: bool
     download_url: Optional[str] = None
+    error: Optional[str] = None
+
+
+class FeedbackRequest(BaseModel):
+    rating: int = Field(..., ge=1, le=5, description="评分 1-5星")
+    feedback_text: Optional[str] = Field(None, max_length=500, description="反馈文字内容")
+    experience_type: Optional[str] = Field("overall", description="体验类型: overall/design/content/feature")
+
+
+class FeedbackResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    feedback_id: Optional[int] = None
     error: Optional[str] = None
 
 
@@ -184,6 +198,62 @@ def download_report(report_id: str):
         return {
             "success": False,
             "error": f"获取下载链接失败: {str(e)}"
+        }
+
+
+@app.post("/api/feedback", response_model=FeedbackResponse)
+def submit_user_feedback(request: FeedbackRequest, http_request: Request):
+    """
+    提交用户反馈（完全匿名）
+    
+    用户可以对使用体验、外观设计、分析内容等进行评分和留言
+    数据存储在 PostgreSQL 数据库中，不收集任何个人隐私信息
+    """
+    try:
+        # 获取请求信息（仅用于防止滥用）
+        user_agent = http_request.headers.get("user-agent")
+        
+        # 获取客户端IP（在Render环境中可能经过代理）
+        forwarded_for = http_request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+        else:
+            client_ip = http_request.client.host if http_request.client else None
+        
+        # 提交反馈
+        result = submit_feedback(
+            rating=request.rating,
+            feedback_text=request.feedback_text,
+            experience_type=request.experience_type,
+            user_agent=user_agent,
+            ip_address=client_ip
+        )
+        
+        return result
+        
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        print(f"提交反馈错误: {str(e)}\n{error_trace}")
+        return {
+            "success": False,
+            "error": f"提交反馈失败: {str(e)}"
+        }
+
+
+@app.get("/api/feedback/stats")
+def get_feedback_statistics():
+    """
+    获取反馈统计信息（管理用途）
+    
+    返回评分分布、平均评分等统计信息
+    """
+    try:
+        stats = get_feedback_stats()
+        return stats
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"获取统计失败: {str(e)}"
         }
 
 

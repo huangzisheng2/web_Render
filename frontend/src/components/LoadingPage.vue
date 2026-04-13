@@ -16,7 +16,11 @@
           <div class="spinner-ring"></div>
           <div class="spinner-ring"></div>
         </div>
-        <div class="loading-icon">✨</div>
+        <div class="loading-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
       </div>
       
       <!-- 标题 -->
@@ -58,11 +62,11 @@ const steps = ['分析八字', '计算五行', 'AI解读', '生成报告']
 const currentStep = ref(0)
 
 const tips = [
-  '🌟 每个人的天赋都是独一无二的',
-  '🎯 发现优势，比弥补短板更重要',
-  '💡 传统智慧 + AI技术 = 专属分析',
-  '🌱 了解自己的潜能，是成长的第一步',
-  '🎨 你的独特之处，正是你的价值所在'
+  '每个人的天赋都是独一无二的',
+  '发现优势，比弥补短板更重要',
+  '传统智慧 + AI技术 = 专属分析',
+  '了解自己的潜能，是成长的第一步',
+  '你的独特之处，正是你的价值所在'
 ]
 const currentTip = ref(0)
 
@@ -92,7 +96,7 @@ onUnmounted(() => {
 <style scoped>
 .loading-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #e8f4f8 0%, #f5f0e8 100%);
+  background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -121,7 +125,7 @@ onUnmounted(() => {
 .shape-1 {
   width: 200px;
   height: 200px;
-  background: linear-gradient(135deg, #7dd3c0 0%, #5fb3a3 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   top: 10%;
   left: -50px;
   animation-delay: 0s;
@@ -130,7 +134,7 @@ onUnmounted(() => {
 .shape-2 {
   width: 150px;
   height: 150px;
-  background: linear-gradient(135deg, #87ceeb 0%, #5fb3a3 100%);
+  background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC1 100%);
   top: 50%;
   right: -30px;
   animation-delay: 2s;
@@ -139,7 +143,7 @@ onUnmounted(() => {
 .shape-3 {
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, #f5deb3 0%, #fae5c3 100%);
+  background: linear-gradient(135deg, #DDBEA9 0%, #E8D5C4 100%);
   bottom: 20%;
   left: 20%;
   animation-delay: 4s;
@@ -181,7 +185,7 @@ onUnmounted(() => {
   position: absolute;
   border-radius: 50%;
   border: 3px solid transparent;
-  border-top-color: #7dd3c0;
+  border-top-color: #8EC5FC;
   animation: spin 1.5s linear infinite;
 }
 
@@ -197,7 +201,7 @@ onUnmounted(() => {
   left: 10px;
   right: 10px;
   bottom: 10px;
-  border-top-color: #87ceeb;
+  border-top-color: #A8E6CF;
   animation-duration: 1.2s;
   animation-direction: reverse;
 }
@@ -207,7 +211,7 @@ onUnmounted(() => {
   left: 20px;
   right: 20px;
   bottom: 20px;
-  border-top-color: #f5deb3;
+  border-top-color: #DDBEA9;
   animation-duration: 0.9s;
 }
 
@@ -222,8 +226,15 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 36px;
+  width: 36px;
+  height: 36px;
   animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-icon svg {
+  width: 100%;
+  height: 100%;
+  color: #8EC5FC;
 }
 
 @keyframes pulse {
@@ -239,7 +250,7 @@ onUnmounted(() => {
 .loading-title {
   font-size: 22px;
   font-weight: 700;
-  color: #2c3e50;
+  color: #4A5568;
   margin: 0 0 32px;
 }
 
@@ -263,13 +274,13 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #e0e0e0;
+  background: #E2E8F0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 600;
-  color: #95a5a6;
+  color: #A0AEC0;
   transition: all 0.3s ease;
 }
 
@@ -279,32 +290,32 @@ onUnmounted(() => {
 }
 
 .step.active .step-dot {
-  background: linear-gradient(135deg, #7dd3c0 0%, #5fb3a3 100%);
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(125, 211, 192, 0.4);
+  box-shadow: 0 4px 12px rgba(142, 197, 252, 0.4);
 }
 
 .step.completed .step-dot {
-  background: #7dd3c0;
+  background: #8EC5FC;
   color: white;
 }
 
 .step-text {
   font-size: 12px;
-  color: #95a5a6;
+  color: #A0AEC0;
   transition: all 0.3s ease;
 }
 
 .step.active .step-text,
 .step.completed .step-text {
-  color: #2c3e50;
+  color: #4A5568;
   font-weight: 500;
 }
 
 /* 趣味提示 */
 .fun-tip {
   font-size: 15px;
-  color: #7f8c8d;
+  color: #718096;
   margin: 0 0 16px;
   min-height: 24px;
 }
@@ -312,7 +323,7 @@ onUnmounted(() => {
 /* 预计时间 */
 .time-estimate {
   font-size: 13px;
-  color: #95a5a6;
+  color: #A0AEC0;
   margin: 0;
 }
 
