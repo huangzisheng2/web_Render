@@ -50,13 +50,17 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, getCurrentInstance } from 'vue'
 import LandingPage from './components/LandingPage.vue'
 import QuizPage from './components/QuizPage.vue'
 import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
 import ResultDisplay from './components/ResultDisplay.vue'
 import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
+
+// 检测调试模式
+const { appContext } = getCurrentInstance()
+const isDebug = appContext.config.globalProperties.$isDebug || false
 
 // 页面路由状态
 const currentPage = ref('landing') // landing, quiz, form, loading, result
@@ -100,16 +104,42 @@ const handleAnalyze = async (formData) => {
   goToLoading()
   
   try {
+    // 1. 执行基础八字分析
     const response = await analyzeBazi(formData)
     
-    if (response.success) {
-      result.value = response.data
-      currentPage.value = 'result'
-      showToast('分析完成')
-    } else {
+    if (!response.success) {
       showToast(response.error || '分析失败', 'error')
       currentPage.value = 'form'
+      return
     }
+    
+    result.value = response.data
+    
+    // 2. 用户模式：自动执行AI分析
+    if (!isDebug && result.value?.report_id) {
+      console.log('[用户模式] 自动执行AI分析...')
+      try {
+        const aiResponse = await analyzeAI({
+          report_id: result.value.report_id,
+          basic_result: result.value
+        })
+        
+        if (aiResponse.success) {
+          result.value.ai_report = aiResponse.ai_report
+          console.log('[用户模式] AI分析完成')
+        } else {
+          console.error('[用户模式] AI分析失败:', aiResponse.error)
+        }
+      } catch (aiError) {
+        console.error('[用户模式] AI分析错误:', aiError)
+        // AI失败不影响展示基础结果
+      }
+    }
+    
+    // 3. 显示结果页
+    currentPage.value = 'result'
+    showToast('分析完成')
+    
   } catch (error) {
     console.error('分析错误:', error)
     showToast('网络错误，请稍后重试', 'error')
