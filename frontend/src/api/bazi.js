@@ -12,7 +12,7 @@ const isDebugMode = urlParams.get('debug') === 'true'
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 120000, // 120秒超时（AI分析可能较慢）
+  timeout: 180000, // 180秒超时（Render 免费版唤醒+AI分析可能较慢）
   headers: {
     'Content-Type': 'application/json'
   }
@@ -41,10 +41,16 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error)
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('请求超时，服务器可能正在唤醒，请稍后再试'))
+    }
     if (error.response) {
       return Promise.reject(new Error(error.response.data?.error || '服务器错误'))
     }
-    return Promise.reject(new Error('网络错误'))
+    if (error.message?.includes('Network Error')) {
+      return Promise.reject(new Error('网络连接失败，服务器可能正在唤醒（约需30秒-2分钟）'))
+    }
+    return Promise.reject(new Error(error.message || '网络错误'))
   }
 )
 

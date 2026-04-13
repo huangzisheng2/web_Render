@@ -27,6 +27,7 @@
       <LoadingPage 
         v-else-if="currentPage === 'loading'" 
         key="loading"
+        :is-waking-up="isServerWakingUp"
       />
       
       <!-- 5. 结果展示页 -->
@@ -49,7 +50,29 @@
   </div>
 </template>
 
-<script setup>
+/*
+================================================================================
+【用户模式 vs 调试模式 设计原则】
+
+用户模式（默认，不带 ?debug=true）：
+- 隐私优先：不返回任何原始命理数据（raw_data、bazi、analysis等）
+- 简化流程：后端自动完成基础分析+AI分析，前端只接收 ai_report
+- 前端展示：只显示AI报告文本 + PDF下载 + 用户反馈
+- 数据流向：填写信息 → /api/analyze → 后端计算+AI分析 → 返回{ai_report}
+
+调试模式（带 ?debug=true）：
+- 完整数据：返回所有命理计算数据（raw_data、bazi、analysis等）
+- 分步流程：后端基础分析 → 前端显示 → 手动触发AI分析
+- 前端展示：显示完整命理图表 + AI报告 + 原始JSON调试面板
+- 数据流向：填写信息 → /api/analyze → 返回完整数据 → /api/analyze-ai → AI报告
+
+关键规则：
+1. 用户模式绝不返回敏感计算数据，保护用户隐私
+2. AI分析统一在后端完成，确保两种模式使用相同的提示词逻辑
+3. 调试模式用于开发调试，用户模式用于生产环境
+================================================================================
+*/
+
 import { ref, reactive, getCurrentInstance } from 'vue'
 import LandingPage from './components/LandingPage.vue'
 import QuizPage from './components/QuizPage.vue'
@@ -69,6 +92,7 @@ const downloading = ref(false)
 const aiAnalyzing = ref(false)
 const result = ref(null)
 const quizAnswers = ref([])
+const isServerWakingUp = ref(false) // 服务器是否正在唤醒
 
 // 页面导航
 const goToQuiz = () => {
@@ -99,13 +123,56 @@ const showToast = (message, type = 'success') => {
   }, 3000)
 }
 
+// Render 服务唤醒检查
+const checkServerWakeUp = async () => {
+  try {
+    // 发送一个轻量级请求唤醒服务
+    const response = await fetch('https://bazi-talent-api.onrender.com/')
+    console.log('[服务器状态]', response.status)
+    return true
+  } catch (e) {
+    console.warn('[服务器唤醒失败]', e)
+    return false
+  }
+}
+
+// 带重试的请求
+const requestWithRetry = async (requestFn, maxRetries = 2) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await requestFn()
+    } catch (error) {
+      console.warn(`[请求重试 ${i + 1}/${maxRetries}]`, error.message)
+      if (i === maxRetries - 1) throw error
+      // 等待 3 秒后重试
+      await new Promise(resolve => setTimeout(resolve, 3000))
+    }
+  }
+}
+
 // 执行分析
 const handleAnalyze = async (formData) => {
   goToLoading()
+  isServerWakingUp.value = false
   
   try {
-    // 1. 执行基础八字分析
-    const response = await analyzeBazi(formData)
+    // 0. 先唤醒服务器（Render 免费版休眠问题）
+    console.log('[步骤0] 检查服务器状态...')
+    const isServerReady = await checkServerWakeUp()
+    
+    if (!isServerReady) {
+      // 服务器可能在休眠，显示唤醒界面
+      console.log('[步骤0] 服务器可能在休眠，显示唤醒界面...')
+      isServerWakingUp.value = true
+      
+      // 等待 3 秒后重试
+      await new Promise(resolve => setTimeout(resolve, 3000))
+    }
+    
+    // 1. 执行基础八字分析（带重试）
+    console.log('[步骤1] 执行基础分析...')
+    isServerWakingUp.value = false
+    const response = await requestWithRetry(() => analyzeBazi(formData), 3)
     
     if (!response.success) {
       showToast(response.error || '分析失败', 'error')
@@ -115,25 +182,13 @@ const handleAnalyze = async (formData) => {
     
     result.value = response.data
     
-    // 2. 用户模式：自动执行AI分析
-    if (!isDebug && result.value?.report_id) {
-      console.log('[用户模式] 自动执行AI分析...')
-      try {
-        const aiResponse = await analyzeAI({
-          report_id: result.value.report_id,
-          basic_result: result.value
-        })
-        
-        if (aiResponse.success) {
-          result.value.ai_report = aiResponse.ai_report
-          console.log('[用户模式] AI分析完成')
-        } else {
-          console.error('[用户模式] AI分析失败:', aiResponse.error)
-        }
-      } catch (aiError) {
-        console.error('[用户模式] AI分析错误:', aiError)
-        // AI失败不影响展示基础结果
-      }
+    // 2. 调试模式：需要手动触发AI分析（前端调用/api/analyze-ai）
+    // 用户模式：后端已在/api/analyze中自动完成AI分析，只返回了{ai_report}
+    if (isDebug) {
+      console.log('[步骤2] 调试模式，等待用户手动触发AI分析')
+    } else {
+      console.log('[步骤2] 用户模式，后端已自动完成AI分析')
+      console.log('[步骤2] ai_report长度:', result.value?.ai_report?.length || 0)
     }
     
     // 3. 显示结果页
@@ -142,7 +197,13 @@ const handleAnalyze = async (formData) => {
     
   } catch (error) {
     console.error('分析错误:', error)
-    showToast('网络错误，请稍后重试', 'error')
+    isServerWakingUp.value = false
+    const errorMsg = error.message || '网络错误'
+    if (errorMsg.includes('Network Error') || errorMsg.includes('network') || errorMsg.includes('唤醒')) {
+      showToast('服务器正在唤醒，请刷新页面重试（约需30秒-2分钟）', 'error')
+    } else {
+      showToast(errorMsg, 'error')
+    }
     currentPage.value = 'form'
   }
 }

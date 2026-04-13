@@ -162,36 +162,26 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
         
         if debug_mode:
             # ========== 调试模式 ==========
-            # Step 4: 只执行基础分析，返回完整数据（含raw_data）
-            # Step 5: AI分析保持异步，由前端点击按钮后调用 /api/analyze-ai
+            # 返回完整数据（含raw_data），不自动执行AI分析
             if "ai_prompt" in result:
                 del result["ai_prompt"]
-            print("[DEBUG] 调试模式，返回基础分析数据（Step 4完成，Step 5需手动触发）")
+            print("[DEBUG] 调试模式，返回完整数据")
             
         else:
             # ========== 用户模式 ==========
-            # Step 4: 执行基础分析（已完成）
-            # Step 5: 【优化】自动执行AI分析，一次性返回完整结果
-            print("[DEBUG] 用户模式，Step 4完成，自动执行Step 5（AI分析）...")
+            # 自动执行AI分析，只返回 ai_report
+            print("[DEBUG] 用户模式，执行AI分析...")
             try:
-                # 自动调用AI分析
                 ai_report = bazi_service.analyze_ai(result["report_id"], result)
-                
-                # 用户模式：只返回必要信息（保护隐私，不返回raw_data等敏感数据）
+                # 只保留 ai_report，其他数据不返回（保护隐私）
                 result = {
-                    "report_id": result["report_id"],
-                    "user_info": result["user_info"],
                     "ai_report": ai_report
                 }
-                print("[DEBUG] 用户模式，Step 5完成，返回AI报告")
+                print("[DEBUG] 用户模式，AI分析完成")
             except Exception as ai_error:
                 print(f"[DEBUG] 用户模式AI分析失败: {ai_error}")
-                import traceback
-                traceback.print_exc()
                 result = {
-                    "report_id": result.get("report_id", ""),
-                    "user_info": result.get("user_info", {}),
-                    "ai_report": "AI分析暂时不可用，请稍后重试。您可以先查看基础八字信息，或稍后再试。"
+                    "ai_report": "AI分析暂时不可用，请稍后重试"
                 }
 
         return {

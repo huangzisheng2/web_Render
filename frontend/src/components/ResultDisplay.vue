@@ -3,26 +3,33 @@
     <!-- 报告头部 -->
     <div class="report-header">
       <div class="user-info">
-        <h1 class="user-name">{{ userName }} 的命理报告</h1>
-        <p class="user-meta">
-          <span class="meta-item">{{ genderText }}</span>
-          <span class="meta-separator">·</span>
-          <span class="meta-item">{{ birthDateText }}</span>
-          <span class="meta-separator">·</span>
-          <span class="meta-item">{{ birthTimeText }}</span>
-        </p>
-        <!-- 真太阳时提示 -->
-        <p v-if="hasTrueSolarTime" class="true-solar-hint">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v6l4 2"/>
-          </svg>
-          已按真太阳时校正：{{ originalTimeText }} → {{ adjustedTimeText }}
-        </p>
+        <!-- 调试模式显示完整信息，用户模式简化 -->
+        <template v-if="isDebug">
+          <h1 class="user-name">{{ userName }} 的命理报告</h1>
+          <p class="user-meta">
+            <span class="meta-item">{{ genderText }}</span>
+            <span class="meta-separator">·</span>
+            <span class="meta-item">{{ birthDateText }}</span>
+            <span class="meta-separator">·</span>
+            <span class="meta-item">{{ birthTimeText }}</span>
+          </p>
+          <p v-if="hasTrueSolarTime" class="true-solar-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            已按真太阳时校正：{{ originalTimeText }} → {{ adjustedTimeText }}
+          </p>
+        </template>
+        <template v-else>
+          <h1 class="user-name">您的天赋分析报告</h1>
+          <p class="user-meta">
+            <span class="meta-item">AI 智能生成</span>
+          </p>
+        </template>
       </div>
       <div class="report-badge">
         <span class="badge-text">{{ aiReport ? 'AI报告已生成' : '基础报告' }}</span>
-        <!-- 调试模式标识 -->
         <span v-if="isDebug" class="debug-badge">DEBUG</span>
       </div>
     </div>
@@ -95,43 +102,29 @@
       />
     </template>
 
-    <!-- ==================== 用户模式：简化报告区域 ==================== -->
+    <!-- ==================== 用户模式：只显示AI报告 ==================== -->
     <template v-else>
-      <!-- AI 分析按钮（未分析时显示） -->
-      <div v-if="!aiReport && !aiLoading" class="ai-trigger-section">
-        <div class="ai-trigger-card">
-          <div class="ai-trigger-icon">🤖</div>
-          <h3 class="ai-trigger-title">想要更深入的 AI 天赋分析？</h3>
-          <p class="ai-trigger-desc">
-            基于 DeepSeek 大模型，为您生成个性化的<br>
-            性格特质、天赋优势、成长建议报告
-          </p>
-          <button class="ai-trigger-btn" @click="handleAIAnalyze">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-            一键分析天赋
-          </button>
-        </div>
-      </div>
-
-      <!-- AI 分析加载状态 -->
-      <div v-if="aiLoading" class="ai-loading-section">
-        <div class="ai-loading-spinner"></div>
-        <p class="ai-loading-text">AI 正在分析您的命盘...</p>
-        <p class="ai-loading-subtext">这需要 10-30 秒，请稍候</p>
-      </div>
-
-      <!-- AI 报告（分析完成后显示） -->
+      <!-- AI 报告（后端已自动生成） -->
       <AIReport 
         v-if="aiReport"
         :report="aiReport"
         :loading="false"
         @download="$emit('download')"
-        @regenerate="handleRegenerateAI"
         class="section-block"
       />
+      
+      <!-- 如果AI报告未生成（异常情况） -->
+      <div v-else class="ai-error-section">
+        <div class="ai-error-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p>AI报告生成失败，请返回重试</p>
+          <button class="retry-btn" @click="$emit('reset')">重新分析</button>
+        </div>
+      </div>
     </template>
 
     <!-- 用户反馈模块 -->
