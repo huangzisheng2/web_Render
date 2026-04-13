@@ -109,14 +109,20 @@ def get_cities():
 
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
-def analyze_bazi(request: AnalyzeRequest):
+def analyze_bazi(request: AnalyzeRequest, http_request: Request):
     """
     八字分析主接口（仅基础分析，不含AI）
 
     接收用户出生信息，返回八字基础分析结果（四柱、六级论级等）
     AI分析请调用 /api/analyze-ai 接口
+    
+    调试模式：添加请求头 X-Debug-Mode: true 可获取完整命理数据
     """
     try:
+        # 检查是否为调试模式
+        debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
+        print(f"[DEBUG] 调试模式: {debug_mode}")
+        
         # 转换为内部格式
         birth_data = {
             "name": request.name,
@@ -132,6 +138,21 @@ def analyze_bazi(request: AnalyzeRequest):
 
         # 执行基础分析（不含AI）
         result = bazi_service.analyze_basic(birth_data)
+        
+        # 如果不是调试模式，移除原始命理数据
+        if not debug_mode:
+            # 保存一份完整数据供AI分析使用，但返回时过滤掉
+            full_data = result.get("raw_data", {})
+            # 在调试模式下才会包含 _debug_full_data
+            result["_debug_full_data"] = full_data if debug_mode else None
+            # 用户模式下只保留必要信息
+            if "raw_data" in result:
+                del result["raw_data"]
+            if "ai_prompt" in result:
+                del result["ai_prompt"]
+        else:
+            # 调试模式：保留完整数据
+            result["_debug_full_data"] = result.get("raw_data", {})
 
         return {
             "success": True,
@@ -148,11 +169,13 @@ def analyze_bazi(request: AnalyzeRequest):
 
 
 @app.post("/api/analyze-ai")
-def analyze_ai_endpoint(request: dict):
+def analyze_ai_endpoint(request: dict, http_request: Request):
     """
     AI 天赋分析接口
     
     接收基础分析结果，返回 AI 分析报告
+    
+    调试模式：添加请求头 X-Debug-Mode: true 可获取调试信息
     """
     try:
         report_id = request.get("report_id")
@@ -164,13 +187,25 @@ def analyze_ai_endpoint(request: dict):
                 "error": "缺少 report_id 或 basic_result 参数"
             }
         
+        # 检查是否为调试模式
+        debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
+        
         # 执行 AI 分析
         ai_report = bazi_service.analyze_ai(report_id, basic_result)
         
-        return {
+        response = {
             "success": True,
             "ai_report": ai_report
         }
+        
+        # 调试模式下添加额外信息
+        if debug_mode:
+            response["_debug_info"] = {
+                "report_id": report_id,
+                "prompt_length": len(basic_result.get("ai_prompt", ""))
+            }
+        
+        return response
         
     except Exception as e:
         error_trace = traceback.format_exc()
