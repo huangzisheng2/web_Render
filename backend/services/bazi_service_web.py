@@ -56,19 +56,34 @@ class BaziAnalysisServiceWeb:
             (longitude, latitude) 或 (None, None)
         """
         try:
+            # 清理输入
+            province = province.strip() if province else ""
+            city = city.strip() if city else ""
+            
+            print(f"[DEBUG] 查找城市: province='{province}', city='{city}'")
+            
+            if not province or not city:
+                print("[DEBUG] 省份或城市为空，跳过真太阳时计算")
+                return (None, None)
+            
             # 遍历城市数据库查找
             for prov, c, lon, lat in self.city_data:
                 if prov == province and c == city:
+                    print(f"[DEBUG] 找到城市: {prov} {c}, 经度: {lon}, 纬度: {lat}")
                     return (lon, lat)
             
             # 尝试仅按城市名查找
             for prov, c, lon, lat in self.city_data:
                 if c == city:
+                    print(f"[DEBUG] 按城市名找到: {prov} {c}, 经度: {lon}, 纬度: {lat}")
                     return (lon, lat)
             
+            print(f"[DEBUG] 未找到城市: {province} {city}")
             return (None, None)
         except Exception as e:
             print(f"获取城市位置失败: {e}")
+            import traceback
+            traceback.print_exc()
             return (None, None)
     
     # ==================== 2. 时间转换服务 ====================
@@ -175,13 +190,17 @@ class BaziAnalysisServiceWeb:
             基础分析结果字典
         """
         # 1. 获取地理位置
-        longitude, latitude = self.get_location(
-            birth_data.get("province", ""),
-            birth_data.get("city", "")
-        )
+        province = birth_data.get("province", "")
+        city = birth_data.get("city", "")
+        print(f"[DEBUG] analyze_basic 接收到的地点: province='{province}', city='{city}'")
+        
+        longitude, latitude = self.get_location(province, city)
+        print(f"[DEBUG] 获取到的经纬度: longitude={longitude}, latitude={latitude}")
         
         # 2. 真太阳时转换
         hour = birth_data.get("hour")
+        print(f"[DEBUG] 原始时间: {birth_data['year']}-{birth_data['month']}-{birth_data['day']} {hour}:{birth_data.get('minute', 0)}")
+        
         if hour is not None:
             adj_year, adj_month, adj_day, adj_hour, adj_minute = self.apply_true_solar_time(
                 birth_data["year"],
@@ -191,12 +210,14 @@ class BaziAnalysisServiceWeb:
                 birth_data.get("minute", 0),
                 longitude
             )
+            print(f"[DEBUG] 真太阳时调整后: {adj_year}-{adj_month}-{adj_day} {adj_hour}:{adj_minute}")
         else:
             adj_year = birth_data["year"]
             adj_month = birth_data["month"]
             adj_day = birth_data["day"]
             adj_hour = None
             adj_minute = 0
+            print("[DEBUG] 时辰未知，跳过真太阳时调整")
         
         # 3. 转换为八字
         bazi_dict = self.convert_to_bazi(adj_year, adj_month, adj_day, adj_hour, adj_minute)

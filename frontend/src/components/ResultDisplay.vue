@@ -11,6 +11,14 @@
           <span class="meta-separator">·</span>
           <span class="meta-item">{{ birthTimeText }}</span>
         </p>
+        <!-- 真太阳时提示 -->
+        <p v-if="hasTrueSolarTime" class="true-solar-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          已按真太阳时校正：{{ originalTimeText }} → {{ adjustedTimeText }}
+        </p>
       </div>
       <div class="report-badge">
         <span class="badge-text">{{ aiReport ? 'AI报告已生成' : '基础报告' }}</span>
@@ -296,9 +304,39 @@ const birthDateText = computed(() => {
 })
 
 const birthTimeText = computed(() => {
-  const time = props.result?.user_info?.birth_time?.original
-  if (!time || time.hour === null) return '时辰未知'
-  return `${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}`
+  const original = props.result?.user_info?.birth_time?.original
+  const adjusted = props.result?.user_info?.birth_time?.adjusted
+  const location = props.result?.user_info?.birth_time?.location
+  
+  if (!original || original.hour === null) return '时辰未知'
+  
+  // 如果有真太阳时调整且地点信息，显示调整后的时间
+  if (adjusted && location?.city) {
+    return `${adjusted.hour.toString().padStart(2, '0')}:${adjusted.minute.toString().padStart(2, '0')}`
+  }
+  
+  return `${original.hour.toString().padStart(2, '0')}:${original.minute.toString().padStart(2, '0')}`
+})
+
+// 是否有真太阳时调整
+const hasTrueSolarTime = computed(() => {
+  const adjusted = props.result?.user_info?.birth_time?.adjusted
+  const location = props.result?.user_info?.birth_time?.location
+  return adjusted && location?.city && location?.longitude
+})
+
+// 原始时间显示
+const originalTimeText = computed(() => {
+  const original = props.result?.user_info?.birth_time?.original
+  if (!original) return ''
+  return `${original.hour?.toString().padStart(2, '0') || '--'}:${original.minute?.toString().padStart(2, '0') || '--'}`
+})
+
+// 调整后时间显示
+const adjustedTimeText = computed(() => {
+  const adjusted = props.result?.user_info?.birth_time?.adjusted
+  if (!adjusted) return ''
+  return `${adjusted.hour?.toString().padStart(2, '0') || '--'}:${adjusted.minute?.toString().padStart(2, '0') || '--'}`
 })
 
 // 八字数据 - 直接使用后端返回的bazi数据
@@ -436,6 +474,21 @@ const handleRegenerateAI = () => {
 
 .meta-separator {
   opacity: 0.5;
+}
+
+.true-solar-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #A8E6CF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.true-solar-hint svg {
+  width: 14px;
+  height: 14px;
 }
 
 .report-badge {
