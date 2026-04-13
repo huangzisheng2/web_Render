@@ -1,57 +1,46 @@
 <template>
   <div class="app">
-    <!-- 顶部导航 -->
-    <header class="app-header">
-      <div class="header-content">
-        <div class="logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v6l4 2"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          <span class="logo-text">天赋命理</span>
-        </div>
-        <p class="header-subtitle">八字格局 · 性格分析 · 天赋发掘</p>
-      </div>
-    </header>
-
-    <!-- 主内容区 -->
-    <main class="main-content">
-      <!-- 输入表单 -->
-      <Transition name="fade" mode="out-in">
-        <div v-if="!result" class="form-wrapper" key="form">
-          <div class="form-intro">
-            <h1 class="intro-title">探索您的天赋与性格</h1>
-            <p class="intro-desc">
-              基于传统八字命理，结合 AI 智能分析<br>
-              揭示您的性格特质、天赋优势与发展方向
-            </p>
-          </div>
-          <BaziForm 
-            @submit="handleAnalyze"
-            :loading="loading"
-          />
-        </div>
-        
-        <!-- 结果展示 -->
-        <ResultDisplay
-          v-else
-          key="result"
-          :result="result"
-          :ai-analyzing="aiAnalyzing"
-          @reset="handleReset"
-          @download="handleDownload"
-          @analyze-ai="handleAIAnalyze"
-          :downloading="downloading"
-        />
-      </Transition>
-    </main>
-
-    <!-- 底部信息 -->
-    <footer class="app-footer">
-      <p class="footer-text">基于《渊海子平》《三命通会》等经典命理著作</p>
-      <p class="footer-copyright">© 2026 天赋命理分析系统</p>
-    </footer>
+    <!-- 主内容区 - 页面路由 -->
+    <Transition name="fade" mode="out-in">
+      <!-- 1. 引导启动页 -->
+      <LandingPage 
+        v-if="currentPage === 'landing'" 
+        key="landing"
+        @start="goToQuiz"
+      />
+      
+      <!-- 2. 趣味答题页 -->
+      <QuizPage 
+        v-else-if="currentPage === 'quiz'" 
+        key="quiz"
+        @complete="goToForm"
+      />
+      
+      <!-- 3. 信息填写页 -->
+      <StepForm 
+        v-else-if="currentPage === 'form'" 
+        key="form"
+        @submit="handleAnalyze"
+      />
+      
+      <!-- 4. AI生成等待页 -->
+      <LoadingPage 
+        v-else-if="currentPage === 'loading'" 
+        key="loading"
+      />
+      
+      <!-- 5. 结果展示页 -->
+      <ResultDisplay
+        v-else-if="currentPage === 'result'"
+        key="result"
+        :result="result"
+        :ai-analyzing="aiAnalyzing"
+        @reset="handleReset"
+        @download="handleDownload"
+        @analyze-ai="handleAIAnalyze"
+        :downloading="downloading"
+      />
+    </Transition>
 
     <!-- Toast 提示 -->
     <div v-if="toast.show" class="toast" :class="toast.type">
@@ -62,14 +51,34 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import BaziForm from './components/BaziForm.vue'
+import LandingPage from './components/LandingPage.vue'
+import QuizPage from './components/QuizPage.vue'
+import StepForm from './components/StepForm.vue'
+import LoadingPage from './components/LoadingPage.vue'
 import ResultDisplay from './components/ResultDisplay.vue'
 import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
 
-const loading = ref(false)
+// 页面路由状态
+const currentPage = ref('landing') // landing, quiz, form, loading, result
+
 const downloading = ref(false)
 const aiAnalyzing = ref(false)
 const result = ref(null)
+const quizAnswers = ref([])
+
+// 页面导航
+const goToQuiz = () => {
+  currentPage.value = 'quiz'
+}
+
+const goToForm = (answers) => {
+  quizAnswers.value = answers
+  currentPage.value = 'form'
+}
+
+const goToLoading = () => {
+  currentPage.value = 'loading'
+}
 
 const toast = reactive({
   show: false,
@@ -88,24 +97,23 @@ const showToast = (message, type = 'success') => {
 
 // 执行分析
 const handleAnalyze = async (formData) => {
-  loading.value = true
+  goToLoading()
   
   try {
     const response = await analyzeBazi(formData)
     
     if (response.success) {
       result.value = response.data
+      currentPage.value = 'result'
       showToast('分析完成')
-      // 滚动到顶部
-      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       showToast(response.error || '分析失败', 'error')
+      currentPage.value = 'form'
     }
   } catch (error) {
     console.error('分析错误:', error)
     showToast('网络错误，请稍后重试', 'error')
-  } finally {
-    loading.value = false
+    currentPage.value = 'form'
   }
 }
 
@@ -113,7 +121,8 @@ const handleAnalyze = async (formData) => {
 const handleReset = () => {
   result.value = null
   aiAnalyzing.value = false
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  quizAnswers.value = []
+  currentPage.value = 'landing'
 }
 
 // AI 天赋分析
@@ -279,8 +288,6 @@ body {
 
 .app {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 /* 顶部导航 */
