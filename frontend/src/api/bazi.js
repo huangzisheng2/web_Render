@@ -6,6 +6,10 @@ const BASE_URL = import.meta.env.PROD
   ? 'https://bazi-talent-api.onrender.com'  // Render 服务地址
   : ''
 
+// 检测调试模式
+const urlParams = new URLSearchParams(window.location.search)
+const isDebugMode = urlParams.get('debug') === 'true'
+
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 120000, // 120秒超时（AI分析可能较慢）
@@ -14,10 +18,15 @@ const api = axios.create({
   }
 })
 
-// 请求拦截器
+// 请求拦截器 - 根据调试模式添加请求头
 api.interceptors.request.use(
   (config) => {
     console.log('API Request:', config.method?.toUpperCase(), config.url)
+    // 调试模式下添加 X-Debug-Mode 请求头
+    if (isDebugMode) {
+      config.headers['X-Debug-Mode'] = 'true'
+      console.log('[DEBUG] 已添加 X-Debug-Mode 请求头')
+    }
     return config
   },
   (error) => {

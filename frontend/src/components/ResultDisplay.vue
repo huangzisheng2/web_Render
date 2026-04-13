@@ -22,73 +22,117 @@
       </div>
       <div class="report-badge">
         <span class="badge-text">{{ aiReport ? 'AI报告已生成' : '基础报告' }}</span>
+        <!-- 调试模式标识 -->
+        <span v-if="isDebug" class="debug-badge">DEBUG</span>
       </div>
     </div>
 
-    <!-- 四柱排盘 -->
-    <BaziPillars 
-      :bazi="baziData"
-      :shishen="shishenData"
-      :dayMaster="dayMaster"
-      class="section-block"
-    />
+    <!-- ==================== 调试模式：完整报告区域 ==================== -->
+    <template v-if="isDebug">
+      <!-- 四柱排盘 -->
+      <BaziPillars 
+        :bazi="baziData"
+        :shishen="shishenData"
+        :dayMaster="dayMaster"
+        class="section-block"
+      />
 
-    <!-- 六级论级分析 -->
-    <SixLevelAnalysis 
-      :analysisData="rawAnalysisData"
-      class="section-block"
-    />
+      <!-- 六级论级分析 -->
+      <SixLevelAnalysis 
+        :analysisData="rawAnalysisData"
+        class="section-block"
+      />
 
-    <!-- 能量分析 -->
-    <EnergyCharts 
-      :wuxingEnergy="wuxingEnergy"
-      :shishenEnergy="shishenEnergy"
-      :dayunEnergy="dayunEnergy"
-      class="section-block"
-    />
+      <!-- 能量分析 -->
+      <EnergyCharts 
+        :wuxingEnergy="wuxingEnergy"
+        :shishenEnergy="shishenEnergy"
+        :dayunEnergy="dayunEnergy"
+        class="section-block"
+      />
 
-    <!-- AI 分析按钮（未分析时显示） -->
-    <div v-if="!aiReport && !aiLoading" class="ai-trigger-section">
-      <div class="ai-trigger-card">
-        <div class="ai-trigger-icon">🤖</div>
-        <h3 class="ai-trigger-title">想要更深入的 AI 天赋分析？</h3>
-        <p class="ai-trigger-desc">
-          基于 DeepSeek 大模型，为您生成个性化的<br>
-          性格特质、天赋优势、成长建议报告
-        </p>
-        <button class="ai-trigger-btn" @click="handleAIAnalyze">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-            <path d="M12 6v6l4 2"/>
-          </svg>
-          一键分析天赋
-        </button>
+      <!-- AI 分析按钮（未分析时显示） -->
+      <div v-if="!aiReport && !aiLoading" class="ai-trigger-section">
+        <div class="ai-trigger-card">
+          <div class="ai-trigger-icon">🤖</div>
+          <h3 class="ai-trigger-title">想要更深入的 AI 天赋分析？</h3>
+          <p class="ai-trigger-desc">
+            基于 DeepSeek 大模型，为您生成个性化的<br>
+            性格特质、天赋优势、成长建议报告
+          </p>
+          <button class="ai-trigger-btn" @click="handleAIAnalyze">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            一键分析天赋
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- AI 分析加载状态 -->
-    <div v-if="aiLoading" class="ai-loading-section">
-      <div class="ai-loading-spinner"></div>
-      <p class="ai-loading-text">AI 正在分析您的命盘...</p>
-      <p class="ai-loading-subtext">这需要 10-30 秒，请稍候</p>
-    </div>
+      <!-- AI 分析加载状态 -->
+      <div v-if="aiLoading" class="ai-loading-section">
+        <div class="ai-loading-spinner"></div>
+        <p class="ai-loading-text">AI 正在分析您的命盘...</p>
+        <p class="ai-loading-subtext">这需要 10-30 秒，请稍候</p>
+      </div>
 
-    <!-- AI 报告（分析完成后显示） -->
-    <AIReport 
-      v-if="aiReport"
-      :report="aiReport"
-      :loading="false"
-      @download="$emit('download')"
-      @regenerate="handleRegenerateAI"
-      class="section-block"
-    />
+      <!-- AI 报告（分析完成后显示） -->
+      <AIReport 
+        v-if="aiReport"
+        :report="aiReport"
+        :loading="false"
+        @download="$emit('download')"
+        @regenerate="handleRegenerateAI"
+        class="section-block"
+      />
 
-    <!-- 调试面板 - 显示原始数据 -->
-    <DebugRawData 
-      :rawData="rawAnalysisData"
-      :aiPrompt="aiPrompt"
-      class="section-block"
-    />
+      <!-- 调试面板 - 显示原始数据 -->
+      <DebugRawData 
+        :rawData="rawAnalysisData"
+        :aiPrompt="aiPrompt"
+        class="section-block"
+      />
+    </template>
+
+    <!-- ==================== 用户模式：简化报告区域 ==================== -->
+    <template v-else>
+      <!-- AI 分析按钮（未分析时显示） -->
+      <div v-if="!aiReport && !aiLoading" class="ai-trigger-section">
+        <div class="ai-trigger-card">
+          <div class="ai-trigger-icon">🤖</div>
+          <h3 class="ai-trigger-title">想要更深入的 AI 天赋分析？</h3>
+          <p class="ai-trigger-desc">
+            基于 DeepSeek 大模型，为您生成个性化的<br>
+            性格特质、天赋优势、成长建议报告
+          </p>
+          <button class="ai-trigger-btn" @click="handleAIAnalyze">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            一键分析天赋
+          </button>
+        </div>
+      </div>
+
+      <!-- AI 分析加载状态 -->
+      <div v-if="aiLoading" class="ai-loading-section">
+        <div class="ai-loading-spinner"></div>
+        <p class="ai-loading-text">AI 正在分析您的命盘...</p>
+        <p class="ai-loading-subtext">这需要 10-30 秒，请稍候</p>
+      </div>
+
+      <!-- AI 报告（分析完成后显示） -->
+      <AIReport 
+        v-if="aiReport"
+        :report="aiReport"
+        :loading="false"
+        @download="$emit('download')"
+        @regenerate="handleRegenerateAI"
+        class="section-block"
+      />
+    </template>
 
     <!-- 用户反馈模块 -->
     <div class="feedback-section section-block">
@@ -204,7 +248,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, getCurrentInstance } from 'vue'
 import BaziPillars from './BaziPillars.vue'
 import SixLevelAnalysis from './SixLevelAnalysis.vue'
 import EnergyCharts from './EnergyCharts.vue'
@@ -228,6 +272,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['reset', 'download', 'analyze-ai'])
+
+// 检测调试模式
+const { appContext } = getCurrentInstance()
+const isDebug = computed(() => appContext.config.globalProperties.$isDebug || false)
 
 // AI 分析状态
 const aiLoading = computed(() => props.aiAnalyzing)
@@ -501,6 +549,18 @@ const handleRegenerateAI = () => {
 .badge-text {
   font-size: 13px;
   font-weight: 600;
+}
+
+.debug-badge {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  background: #e53e3e;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-align: center;
 }
 
 /* 区块间距 */
