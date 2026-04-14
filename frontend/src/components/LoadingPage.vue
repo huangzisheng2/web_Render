@@ -51,6 +51,16 @@
       
       <!-- 预计时间 -->
       <p class="time-estimate">预计需要 10-20 秒</p>
+      
+      <!-- 错误重试提示 -->
+      <div class="error-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>若分析遇到问题，可返回重试或检查网络连接</p>
+      </div>
     </div>
   </div>
 </template>
@@ -324,7 +334,35 @@ onUnmounted(() => {
 .time-estimate {
   font-size: 13px;
   color: #A0AEC0;
+  margin: 0 0 24px;
+}
+
+/* 错误重试提示 */
+.error-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border-radius: 10px;
+  border: 1px solid #FCD34D;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.error-hint svg {
+  width: 18px;
+  height: 18px;
+  color: #D97706;
+  flex-shrink: 0;
+}
+
+.error-hint p {
+  font-size: 13px;
+  color: #92400E;
   margin: 0;
+  line-height: 1.5;
 }
 
 /* 过渡动画 */
@@ -354,6 +392,15 @@ onUnmounted(() => {
   
   .fun-tip {
     font-size: 14px;
+  }
+  
+  .error-hint {
+    padding: 10px 14px;
+    max-width: 260px;
+  }
+  
+  .error-hint p {
+    font-size: 12px;
   }
 }
 </style>

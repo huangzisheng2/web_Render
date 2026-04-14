@@ -93,6 +93,9 @@
         :aiPrompt="aiPrompt"
         class="section-block"
       />
+      
+      <!-- 反馈数据看板（仅调试模式） -->
+      <FeedbackDashboard class="section-block" />
     </template>
 
     <!-- ==================== 用户模式：简化报告区域 ==================== -->
@@ -243,6 +246,7 @@ import SixLevelAnalysis from './SixLevelAnalysis.vue'
 import EnergyCharts from './EnergyCharts.vue'
 import AIReport from './AIReport.vue'
 import DebugRawData from './DebugRawData.vue'
+import FeedbackDashboard from './FeedbackDashboard.vue'
 import { submitFeedback } from '../api/bazi'
 
 const props = defineProps({
