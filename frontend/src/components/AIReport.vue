@@ -418,20 +418,176 @@ const formattedReport = computed(() => {
   background: #e2e8f0;
 }
 
-/* 响应式 */
+/* 响应式 - 手机端优化 */
 @media (max-width: 640px) {
+  .ai-report-container {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  .section-header {
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+  
+  .header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+  
+  .header-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .header-title {
+    font-size: 17px;
+  }
+  
+  .header-subtitle {
+    font-size: 12px;
+  }
+  
+  .ai-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  
   .summary-cards {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  
+  .summary-card {
+    padding: 14px 10px;
+    border-radius: 10px;
+  }
+  
+  .card-icon {
+    font-size: 24px;
+    margin-bottom: 6px;
+  }
+  
+  .card-title {
+    font-size: 13px;
+  }
+  
+  .card-desc {
+    font-size: 11px;
+  }
+  
+  /* 报告内容手机端优化 */
+  .formatted-report {
+    padding: 16px;
+    border-radius: 10px;
+    line-height: 1.75;
+  }
+  
+  :deep(.report-h2) {
+    font-size: 17px;
+    margin: 20px 0 12px;
+    padding-bottom: 6px;
+  }
+  
+  :deep(.report-h3) {
+    font-size: 15px;
+    margin: 16px 0 10px;
+  }
+  
+  :deep(.report-h4) {
+    font-size: 14px;
+    margin: 14px 0 8px;
+  }
+  
+  :deep(.report-p) {
+    font-size: 15px;
+    margin: 0 0 14px;
+    line-height: 1.8;
+  }
+  
+  :deep(.report-ul) {
+    margin: 10px 0 14px;
+    padding-left: 18px;
+  }
+  
+  :deep(.report-li) {
+    font-size: 15px;
+    margin: 8px 0;
+    line-height: 1.7;
+  }
+  
+  /* 操作按钮 */
+  .report-actions {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  
+  .action-btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+  
+  .action-btn svg {
+    width: 16px;
+    height: 16px;
   }
 }
 
 @media (max-width: 480px) {
-  .summary-cards {
-    grid-template-columns: 1fr;
+  .ai-report-container {
+    padding: 14px;
   }
   
-  .report-actions {
-    flex-direction: column;
+  .summary-cards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .summary-card {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    text-align: left;
+    gap: 12px;
+  }
+  
+  .card-icon {
+    font-size: 22px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  
+  .card-title {
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+  
+  .card-desc {
+    font-size: 12px;
+  }
+  
+  .formatted-report {
+    padding: 14px;
+  }
+  
+  :deep(.report-h2) {
+    font-size: 16px;
+  }
+  
+  :deep(.report-h3) {
+    font-size: 15px;
+  }
+  
+  :deep(.report-p) {
+    font-size: 15px;
+  }
+  
+  :deep(.report-li) {
+    font-size: 15px;
   }
 }
 </style>

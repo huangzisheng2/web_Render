@@ -489,6 +489,19 @@ const handleRegenerateAI = () => {
   min-height: 100vh;
 }
 
+/* 全局移动端字体优化 */
+@media (max-width: 640px) {
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
 /* 报告头部 */
 .report-header {
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
@@ -970,49 +983,197 @@ const handleRegenerateAI = () => {
   }
 }
 
-/* 响应式 */
+/* 响应式 - 手机端优化 */
 @media (max-width: 640px) {
   .result-container {
-    padding: 16px;
+    padding: 12px;
   }
   
   .report-header {
     flex-direction: column;
-    gap: 16px;
-    padding: 20px;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 16px;
   }
   
   .user-name {
-    font-size: 20px;
+    font-size: 18px;
+    margin: 0 0 6px;
   }
   
   .user-meta {
     flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 13px;
   }
   
-  .action-bar {
-    flex-direction: column;
+  .meta-separator {
+    display: none;
+  }
+  
+  .true-solar-hint {
+    font-size: 11px;
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 6px;
+    display: inline-flex;
+  }
+  
+  .report-badge {
+    padding: 4px 12px;
+    align-self: flex-start;
+  }
+  
+  .badge-text {
+    font-size: 12px;
+  }
+  
+  .section-block {
+    margin-bottom: 16px;
+  }
+  
+  /* AI 触发区域 */
+  .ai-trigger-section {
+    margin-bottom: 16px;
   }
   
   .ai-trigger-card {
-    padding: 24px;
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+  
+  .ai-trigger-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    font-size: 24px;
   }
   
   .ai-trigger-title {
-    font-size: 18px;
+    font-size: 16px;
+    margin: 0 0 6px;
+  }
+  
+  .ai-trigger-desc {
+    font-size: 13px;
+    margin: 0 0 16px;
+    line-height: 1.6;
+  }
+  
+  .ai-trigger-desc br {
+    display: none;
+  }
+  
+  .ai-trigger-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+  
+  /* AI 加载状态 */
+  .ai-loading-section {
+    padding: 32px 20px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .ai-loading-spinner {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .ai-loading-text {
+    font-size: 15px;
+  }
+  
+  .ai-loading-subtext {
+    font-size: 13px;
+  }
+  
+  /* 反馈模块 */
+  .feedback-section {
+    margin-bottom: 16px;
   }
   
   .feedback-card {
-    padding: 20px;
+    padding: 16px;
+    border-radius: 12px;
   }
   
-  .star-btn {
-    width: 36px;
-    height: 36px;
+  .feedback-header {
+    margin-bottom: 16px;
   }
   
-  .feedback-types {
-    justify-content: center;
+  .feedback-header h3 {
+    font-size: 16px;
+  }
+  
+  /* 评分区域 */
+  .rating-dimensions {
+    margin-bottom: 16px;
+  }
+  
+  .rating-row {
+    padding: 10px 0;
+  }
+  
+  .rating-label {
+    font-size: 14px;
+    min-width: 70px;
+  }
+  
+  .star-btn.small {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .rating-value {
+    font-size: 12px;
+    min-width: 24px;
+  }
+  
+  /* 反馈输入 */
+  .feedback-textarea {
+    padding: 12px;
+    font-size: 15px;
+    border-radius: 10px;
+    line-height: 1.6;
+  }
+  
+  .char-count {
+    font-size: 12px;
+    margin: 4px 0 12px;
+  }
+  
+  .feedback-submit-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+    border-radius: 10px;
+  }
+  
+  .feedback-success {
+    padding: 12px;
+    font-size: 13px;
+  }
+  
+  .feedback-privacy {
+    font-size: 11px;
+    margin-top: 12px;
+  }
+  
+  /* 底部操作栏 */
+  .action-bar {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+  
+  .action-btn {
+    padding: 14px 20px;
+    font-size: 15px;
   }
 }
 </style>
