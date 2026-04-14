@@ -253,25 +253,25 @@ const generatePDF = async () => {
     
     document.body.appendChild(container)
     
-    // 使用html2canvas渲染为图片（优化参数减小文件大小）
+    // 使用html2canvas渲染为图片（平衡清晰度与文件大小）
     const html2canvas = await import('html2canvas')
     const canvas = await html2canvas.default(container, {
-      scale: 1.5,  // 降低缩放比例（原来是2）
+      scale: 2,  // 提高分辨率保证清晰度
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      imageTimeout: 0,  // 禁用图片超时
-      removeContainer: true  // 自动移除容器
+      imageTimeout: 0,
+      removeContainer: true
     })
     
     document.body.removeChild(container)
     
-    // 创建PDF（使用压缩选项）
+    // 创建PDF
     const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF('p', 'mm', 'a4')
     
-    // 使用 JPEG 格式代替 PNG，并设置质量为 0.85（平衡质量和大小）
-    const imgData = canvas.toDataURL('image/jpeg', 0.85)
+    // 使用 JPEG 格式，质量 0.92（清晰度优先，控制在10MB以下）
+    const imgData = canvas.toDataURL('image/jpeg', 0.92)
     const imgWidth = 210
     const pageHeight = 297
     const imgHeight = (canvas.height * imgWidth) / canvas.width
@@ -279,15 +279,15 @@ const generatePDF = async () => {
     let heightLeft = imgHeight
     let position = 0
     
-    // 使用 FAST 压缩选项添加图片
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST')
+    // 添加图片（使用 MEDIUM 压缩平衡质量与大小）
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'MEDIUM')
     heightLeft -= pageHeight
     
     // 处理多页
     while (heightLeft > 0) {
       position = heightLeft - imgHeight
       pdf.addPage()
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST')
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'MEDIUM')
       heightLeft -= pageHeight
     }
     
