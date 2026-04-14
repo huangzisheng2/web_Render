@@ -112,11 +112,29 @@ def init_feedback_table():
                 # 删除旧表
                 cursor.execute("DROP TABLE user_feedback_old;")
                 
-                # 重置序列
-                cursor.execute("""
-                    SELECT setval('user_feedback_id_seq', 
-                        (SELECT MAX(id) FROM user_feedback), true);
-                """)
+                # 重置序列（如果存在）
+                try:
+                    cursor.execute("""
+                        SELECT setval('user_feedback_id_seq', 
+                            (SELECT MAX(id) FROM user_feedback), true);
+                    """)
+                except Exception as seq_error:
+                    # 序列可能不存在，尝试查找正确的序列名
+                    cursor.execute("""
+                        SELECT c.relname FROM pg_class c 
+                        JOIN pg_namespace n ON n.oid = c.relnamespace 
+                        WHERE c.relkind = 'S' AND n.nspname = 'public' 
+                        AND c.relname LIKE 'user_feedback%';
+                    """)
+                    seq_result = cursor.fetchone()
+                    if seq_result:
+                        seq_name = seq_result[0]
+                        cursor.execute(f"""
+                            SELECT setval('{seq_name}', 
+                                (SELECT MAX(id) FROM user_feedback), true);
+                        """)
+                    # 如果没有找到序列，可能是新表使用了 GENERATED ALWAYS AS IDENTITY，不需要手动重置
+                    logger.info(f"序列处理: {seq_error}")
                 
                 logger.info("表迁移完成")
             else:
