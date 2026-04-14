@@ -112,6 +112,13 @@ def init_feedback_table():
                 # 删除旧表
                 cursor.execute("DROP TABLE user_feedback_old;")
                 
+                # 获取当前最大ID并设置序列起始值
+                cursor.execute("SELECT MAX(id) FROM user_feedback;")
+                max_id = cursor.fetchone()[0]
+                if max_id:
+                    cursor.execute(f"ALTER SEQUENCE user_feedback_id_seq RESTART WITH {max_id + 1};")
+                    logger.info(f"序列已重置，从 {max_id + 1} 开始")
+                
                 logger.info("表迁移完成")
             else:
                 # 检查新列是否存在，不存在则添加
@@ -178,6 +185,9 @@ def submit_feedback(
     Returns:
         包含提交结果的字典
     """
+    # 延迟初始化表
+    ensure_feedback_table()
+    
     # 验证评分（至少有一个评分）
     ratings = [rating_overall, rating_design, rating_content, rating_helpful]
     if not any(r is not None and isinstance(r, int) and 1 <= r <= 5 for r in ratings):
@@ -234,6 +244,9 @@ def submit_feedback(
 
 def get_feedback_stats() -> Dict[str, Any]:
     """获取反馈统计信息（用于管理后台）"""
+    # 延迟初始化表
+    ensure_feedback_table()
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -298,6 +311,9 @@ def get_feedback_stats() -> Dict[str, Any]:
 
 def get_admin_feedback_stats() -> Dict[str, Any]:
     """获取管理员反馈统计数据（包含最近评论）"""
+    # 延迟初始化表
+    ensure_feedback_table()
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -388,6 +404,9 @@ def export_feedback_to_csv() -> str:
     import csv
     import io
     
+    # 延迟初始化表
+    ensure_feedback_table()
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -443,5 +462,12 @@ def export_feedback_to_csv() -> str:
             conn.close()
 
 
-# 初始化表（在模块导入时执行）
-init_feedback_table()
+# 表初始化标志
+_table_initialized = False
+
+def ensure_feedback_table():
+    """确保反馈表已初始化（延迟加载）"""
+    global _table_initialized
+    if not _table_initialized:
+        init_feedback_table()
+        _table_initialized = True
