@@ -56,14 +56,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-
-const props = defineProps({
-  isWakingUp: {
-    type: Boolean,
-    default: false
-  }
-})
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const steps = ['分析八字', '计算五行', 'AI解读', '生成报告']
 const currentStep = ref(0)
@@ -77,14 +70,8 @@ const tips = [
 ]
 const currentTip = ref(0)
 
-// 服务器唤醒相关
-const wakeUpStep = ref(1)
-const elapsedTime = ref(0)
-
 let stepInterval = null
 let tipInterval = null
-let wakeUpInterval = null
-let timerInterval = null
 
 onMounted(() => {
   // 步骤进度动画
@@ -100,36 +87,9 @@ onMounted(() => {
   }, 4000)
 })
 
-// 监听服务器唤醒状态
-watch(() => props.isWakingUp, (isWaking) => {
-  if (isWaking) {
-    // 开始唤醒动画
-    wakeUpStep.value = 1
-    elapsedTime.value = 0
-    
-    // 步骤进度动画
-    wakeUpInterval = setInterval(() => {
-      if (wakeUpStep.value < 3) {
-        wakeUpStep.value++
-      }
-    }, 8000) // 每8秒进展一步
-    
-    // 计时器
-    timerInterval = setInterval(() => {
-      elapsedTime.value++
-    }, 1000)
-  } else {
-    // 清理唤醒相关定时器
-    clearInterval(wakeUpInterval)
-    clearInterval(timerInterval)
-  }
-}, { immediate: true })
-
 onUnmounted(() => {
   clearInterval(stepInterval)
   clearInterval(tipInterval)
-  clearInterval(wakeUpInterval)
-  clearInterval(timerInterval)
 })
 </script>
 
@@ -365,184 +325,6 @@ onUnmounted(() => {
   font-size: 13px;
   color: #A0AEC0;
   margin: 0;
-}
-
-/* ===== 服务器唤醒样式 ===== */
-.wake-up-content {
-  max-width: 400px;
-}
-
-.wake-up-animation {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.server-icon {
-  width: 60px;
-  height: 60px;
-  color: #8EC5FC;
-  z-index: 2;
-  animation: serverPulse 2s ease-in-out infinite;
-}
-
-.server-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-@keyframes serverPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-}
-
-.pulse-ring {
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  border: 2px solid #8EC5FC;
-  opacity: 0;
-  animation: pulseRing 2s ease-out infinite;
-}
-
-.pulse-ring.delay-1 {
-  animation-delay: 0.5s;
-}
-
-.pulse-ring.delay-2 {
-  animation-delay: 1s;
-}
-
-@keyframes pulseRing {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-
-/* 唤醒状态条 */
-.wake-up-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin-bottom: 24px;
-}
-
-.status-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #E2E8F0;
-  transition: all 0.5s ease;
-}
-
-.status-dot.active {
-  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
-  box-shadow: 0 0 12px rgba(142, 197, 252, 0.6);
-  animation: statusPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes statusPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-}
-
-.status-line {
-  width: 60px;
-  height: 3px;
-  background: #E2E8F0;
-  border-radius: 2px;
-  transition: all 0.5s ease;
-}
-
-.status-line.active {
-  background: linear-gradient(90deg, #8EC5FC 0%, #A8E6CF 100%);
-}
-
-/* 唤醒步骤 */
-.wake-up-steps {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-}
-
-.wake-up-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  opacity: 0.4;
-  transition: all 0.5s ease;
-}
-
-.wake-up-step.active {
-  opacity: 1;
-}
-
-.wake-up-step .step-number {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #E2E8F0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #A0AEC0;
-  transition: all 0.5s ease;
-}
-
-.wake-up-step.active .step-number {
-  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(142, 197, 252, 0.4);
-}
-
-.wake-up-step .step-label {
-  font-size: 12px;
-  color: #A0AEC0;
-  transition: all 0.5s ease;
-}
-
-.wake-up-step.active .step-label {
-  color: #4A5568;
-  font-weight: 500;
-}
-
-/* 唤醒描述 */
-.wake-up-desc {
-  font-size: 14px;
-  color: #718096;
-  margin: 0 0 20px;
-  line-height: 1.6;
-}
-
-/* 倒计时 */
-.countdown {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.countdown .count {
-  font-size: 36px;
-  font-weight: 700;
-  color: #8EC5FC;
-  font-variant-numeric: tabular-nums;
-}
-
-.countdown .unit {
-  font-size: 14px;
-  color: #A0AEC0;
 }
 
 /* 过渡动画 */

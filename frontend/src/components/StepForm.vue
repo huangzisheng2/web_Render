@@ -279,76 +279,13 @@
               placeholder="输入数字串，如：200008151230"
               @input="handleQuickDateInput"
             />
-            <p class="input-hint">
-              支持格式：8位(YYYYMMDD) / 10位(YYYYMMDDHH) / 12位(YYYYMMDDHHmm)
-            </p>
           </div>
 
           <div class="input-divider">
-            <span>或分项输入</span>
+            <span>或滚轮选择</span>
           </div>
 
-          <!-- 文本输入区域 -->
-          <div class="text-input-section">
-            <div class="text-input-row">
-              <div class="text-input-group">
-                <label>年</label>
-                <input 
-                  v-model.number="tempDate.year" 
-                  type="number" 
-                  min="1900" 
-                  max="2100"
-                  placeholder="2000"
-                  @change="validateDateInput"
-                />
-              </div>
-              <div class="text-input-group">
-                <label>月</label>
-                <input 
-                  v-model.number="tempDate.month" 
-                  type="number" 
-                  min="1" 
-                  max="12"
-                  placeholder="1"
-                  @change="validateDateInput"
-                />
-              </div>
-              <div class="text-input-group">
-                <label>日</label>
-                <input 
-                  v-model.number="tempDate.day" 
-                  type="number" 
-                  min="1" 
-                  :max="daysInMonth"
-                  placeholder="1"
-                  @change="validateDateInput"
-                />
-              </div>
-              <div class="text-input-group">
-                <label>时</label>
-                <input 
-                  v-model.number="tempDate.hour" 
-                  type="number" 
-                  min="0" 
-                  max="23"
-                  placeholder="12"
-                  @change="validateDateInput"
-                />
-              </div>
-              <div class="text-input-group narrow">
-                <label>分</label>
-                <input 
-                  v-model.number="tempDate.minute" 
-                  type="number" 
-                  min="0" 
-                  max="59"
-                  placeholder="0"
-                  @change="validateDateInput"
-                />
-              </div>
-            </div>
-          </div>
-          
+          <!-- 滚轮选择区域 -->
           <div class="picker-body">
             <div class="picker-columns">
               <!-- 年 -->
@@ -637,24 +574,6 @@ const confirmDateTime = () => {
   form.value.hour = tempDate.hour
   form.value.minute = tempDate.minute
   showDatePicker.value = false
-}
-
-// 验证日期输入
-const validateDateInput = () => {
-  // 确保数值在有效范围内
-  if (tempDate.year < 1900) tempDate.year = 1900
-  if (tempDate.year > 2100) tempDate.year = 2100
-  if (tempDate.month < 1) tempDate.month = 1
-  if (tempDate.month > 12) tempDate.month = 12
-  
-  const maxDay = daysInMonth.value
-  if (tempDate.day < 1) tempDate.day = 1
-  if (tempDate.day > maxDay) tempDate.day = maxDay
-  
-  if (tempDate.hour < 0) tempDate.hour = 0
-  if (tempDate.hour > 23) tempDate.hour = 23
-  if (tempDate.minute < 0) tempDate.minute = 0
-  if (tempDate.minute > 59) tempDate.minute = 59
 }
 
 // 处理快速日期输入
@@ -1219,6 +1138,67 @@ const submit = () => {
   height: 14px;
 }
 
+/* 快速输入区域 */
+.quick-input-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #F0F0F0;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+}
+
+.quick-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A5568;
+  margin-bottom: 10px;
+}
+
+.quick-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 18px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: #4A5568;
+  text-align: center;
+  letter-spacing: 2px;
+  font-family: monospace;
+}
+
+.quick-input:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+.quick-input::placeholder {
+  color: #A0AEC0;
+  letter-spacing: 0;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  padding: 12px 20px;
+}
+
+.input-divider::before,
+.input-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.input-divider span {
+  padding: 0 12px;
+  font-size: 12px;
+  color: #A0AEC0;
+}
+
 /* 底部 */
 .form-footer {
   padding: 20px;
@@ -1337,121 +1317,6 @@ const submit = () => {
   font-size: 17px;
   font-weight: 600;
   color: #4A5568;
-}
-
-/* 文本输入区域 */
-.text-input-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid #F0F0F0;
-  background: #F7FAFC;
-}
-
-.text-input-row {
-  display: flex;
-  gap: 8px;
-}
-
-.text-input-group {
-  flex: 1;
-  text-align: center;
-}
-
-.text-input-group.narrow {
-  flex: 0.8;
-}
-
-.text-input-group label {
-  display: block;
-  font-size: 12px;
-  color: #A0AEC0;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.text-input-group input {
-  width: 100%;
-  padding: 10px 4px;
-  border: 2px solid #E2E8F0;
-  border-radius: 8px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: #4A5568;
-  transition: all 0.2s;
-}
-
-.text-input-group input:focus {
-  outline: none;
-  border-color: #8EC5FC;
-  box-shadow: 0 0 0 3px rgba(142, 197, 252, 0.15);
-}
-
-.input-hint {
-  text-align: center;
-  font-size: 12px;
-  color: #A0AEC0;
-  margin: 10px 0 0;
-}
-
-/* 快速输入区域 */
-.quick-input-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid #F0F0F0;
-  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
-}
-
-.quick-input-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #4A5568;
-  margin-bottom: 10px;
-}
-
-.quick-input {
-  width: 100%;
-  padding: 14px 16px;
-  font-size: 18px;
-  border: 2px solid #E2E8F0;
-  border-radius: 12px;
-  transition: all 0.2s;
-  color: #4A5568;
-  text-align: center;
-  letter-spacing: 2px;
-  font-family: monospace;
-}
-
-.quick-input:focus {
-  outline: none;
-  border-color: #8EC5FC;
-  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
-}
-
-.quick-input::placeholder {
-  color: #A0AEC0;
-  letter-spacing: 0;
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.input-divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  padding: 12px 20px;
-}
-
-.input-divider::before,
-.input-divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.input-divider span {
-  padding: 0 12px;
-  font-size: 12px;
-  color: #A0AEC0;
 }
 
 .modal-close {

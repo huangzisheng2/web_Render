@@ -2,260 +2,7 @@
 
 基于中国传统八字命理学的天赋与性格分析系统，结合 AI 技术生成个性化报告。
 
-**技术架构**：Vue3 + Vite（前端）+ FastAPI + Python（后端）+ Render（后端托管）+ GitHub Pages（前端托管）
-
-**在线访问**：
-- 用户版：https://huangzisheng2.github.io/web_Render/
-- 调试版：https://huangzisheng2.github.io/web_Render/debug.html
-
----
-
-## 系统概述
-
-### 双版本架构
-
-本系统采用**双版本架构设计**，分别面向普通用户和开发者：
-
-| 版本 | 访问地址 | 功能特点 | 目标用户 |
-|------|----------|----------|----------|
-| **用户版** | `/index.html` | 简洁界面，仅展示AI报告，隐藏命理数据 | 普通用户 |
-| **调试版** | `/debug.html` | 完整数据展示，支持Debug模式查看原始数据 | 开发者、测试人员 |
-
-### 核心功能
-
-1. **趣味答题**：6道性格测试题，无标准答案，增强互动体验
-2. **信息收集**：姓名、出生日期时间（支持真太阳时）、性别、出生地
-3. **八字计算**：后台自动排盘、计算五行、十神能量
-4. **AI分析**：调用DeepSeek API生成个性化天赋报告
-5. **报告下载**：支持PDF导出
-6. **用户反馈**：1-5星评分+文字反馈，存储到PostgreSQL数据库
-
----
-
-## 功能架构
-
-### 前端功能模块
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     前端应用层                           │
-├─────────────────────────────────────────────────────────┤
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
-│  │ 引导页   │→│ 答题页   │→│ 表单页   │→│ 结果页  │ │
-│  │ Landing  │  │  Quiz    │  │  Form    │  │ Result  │ │
-│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
-│       ↑                                    ↓            │
-│       └──────────── 重新分析 ←─────────────┘            │
-├─────────────────────────────────────────────────────────┤
-│  核心组件：                                             │
-│  • 姓名/性别输入                                        │
-│  • 日期时间选择器（滚轮+快速输入8/10/12位数字）        │
-│  • 省市级联选择器（支持真太阳时计算）                  │
-│  • AI报告渲染（Markdown格式）                          │
-│  • PDF生成（html2canvas + jsPDF）                      │
-│  • 用户反馈模块（星级评分+文字）                       │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 后端功能模块
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     后端服务层                           │
-├─────────────────────────────────────────────────────────┤
-│  FastAPI 应用                                          │
-│  ├─ /api/analyze          # 八字分析主接口             │
-│  ├─ /api/analyze-ai       # AI报告生成接口             │
-│  ├─ /api/feedback         # 用户反馈接口               │
-│  ├─ /api/cities           # 城市列表接口               │
-│  └─ /api/download/{id}    # PDF下载接口                │
-├─────────────────────────────────────────────────────────┤
-│  业务服务层：                                           │
-│  • BaziAnalysisServiceWeb   # 八字分析服务             │
-│  │   ├─ get_location()      # 获取城市经纬度           │
-│  │   ├─ apply_true_solar_time()  # 真太阳时计算        │
-│  │   ├─ convert_to_bazi()   # 转换为八字               │
-│  │   ├─ analyze_basic()     # 基础分析（六级论级）     │
-│  │   └─ analyze_ai()        # AI分析报告生成           │
-│  │                                                      │
-│  • PDFService               # PDF生成服务              │
-│      ├─ generate_pdf_report()  # ReportLab生成PDF      │
-│      └─ get_download_url()     # 获取下载链接          │
-├─────────────────────────────────────────────────────────┤
-│  命理模块层（bazi_modules）：                           │
-│  • lunar_python          # 农历阳历转换                │
-│  • bazi_bridge           # 八字计算核心                │
-│  • true_solar_time       # 真太阳时计算                │
-│  • city_database         # 城市经纬度数据库            │
-│  • bazi_geju_refactored_v5  # 格局分析                 │
-├─────────────────────────────────────────────────────────┤
-│  数据存储层：                                           │
-│  • PostgreSQL (Render)   # 用户反馈数据                │
-│  • DeepSeek API          # AI分析报告生成              │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## 数据处理流程
-
-### 1. 用户输入流程
-
-```
-用户访问页面
-    ↓
-引导页（Landing）→ 点击"开始探索"
-    ↓
-答题页（Quiz）→ 6道选择题，自动跳转
-    ↓
-表单页（Form）→ 填写：
-    • 姓名
-    • 出生日期时间（支持快速输入：YYYYMMDD/HH/mm）
-    • 性别
-    • 出生地（省/市，可选，用于真太阳时）
-    ↓
-点击"开始分析"
-```
-
-### 2. 后端数据处理流程
-
-```
-接收前端请求 POST /api/analyze
-    ↓
-【Step 1: 参数解析】
-    • 解析姓名、性别、出生年月日时分
-    • 解析出生地（省/市）
-    • 检查 X-Debug-Mode 请求头
-    ↓
-【Step 2: 真太阳时计算】（如果提供了出生地）
-    • 根据省市查询 city_database 获取经纬度
-    • calculate_longitude_diff(): 计算经度时差 (经度-120°)×4分钟
-    • get_equation_of_time(): 获取均时差（地球轨道修正）
-    • calculate_true_solar_time(): 计算真太阳时
-    • 输出：调整后的年月日时分
-    ↓
-【Step 3: 八字排盘】
-    • Solar.to_lunar(): 公历转农历
-    • 计算四柱（年柱、月柱、日柱、时柱）
-    • 每柱包含：天干 + 地支
-    ↓
-【Step 4: 命理分析】
-    • 分析日主（日柱天干）
-    • 计算十神（比肩、劫财、食神、伤官、正财、偏财、正官、七杀、正印、偏印）
-    • 判断身强身弱
-    • 判定格局（食神格、伤官格、财格等）
-    • 分析五行能量（金木水火土）
-    • 六级论级分析（月令→地支→天干→干支关系→定喜忌→大运流年）
-    ↓
-【Step 5: AI报告生成】（异步）
-    • 构建 AI Prompt（包含八字数据、格局分析）
-    • 调用 DeepSeek API (deepseek-chat 模型)
-    • 生成个性化天赋分析报告（Markdown格式）
-    ↓
-【Step 6: 响应组装】
-    • 用户模式：返回 {report_id, user_info, ai_report}
-    • 调试模式：额外返回 {_debug_full_data: 完整命理数据}
-```
-
-### 3. 真太阳时计算详解
-
-```
-输入：出生时间 + 出生地经纬度
-    ↓
-1. 经度时差计算
-   公式：(经度 - 120°) × 4 分钟
-   示例：乌鲁木齐（经度87.6°）
-   (87.6 - 120) × 4 = -129.6 分钟（约-2小时10分）
-
-2. 均时差计算
-   根据日期查询均时差表（地球公转轨道椭圆修正）
-   示例：1月1日约 -3分钟
-
-3. 总时差
-   总时差 = 经度时差 + 均时差
-   示例：-129.6 + (-3) = -132.6 分钟
-
-4. 真太阳时
-   真太阳时 = 平太阳时 + 总时差
-   示例：14:20（北京时间）→ 12:07（真太阳时）
-
-输出：调整后的年月日时分
-```
-
-### 4. 数据流向图
-
-```
-┌─────────┐     ┌──────────────────────────────────────────┐
-│  用户   │     │              前端应用                     │
-└────┬────┘     │  ┌─────────┐  ┌─────────┐  ┌──────────┐  │
-     │          │  │Landing  │  │  Quiz   │  │   Form   │  │
-     │          │  └────┬────┘  └────┬────┘  └────┬─────┘  │
-     │          │       └────────────┴────────────┘        │
-     │          │                    │                      │
-     │          │              ┌─────┴──────┐               │
-     │          │              │   Result   │←──────────────┤
-     │          │              │  (AI报告)  │               │
-     │          └──────────────┴─────┬──────┘               │
-     │                               │                      │
-     │          ┌────────────────────┼────────────────────┐ │
-     │          │     后端 API        │                    │ │
-     │          │  ┌──────────────────┼──────────────┐    │ │
-     │          │  │ /api/analyze     │              │    │ │
-     │          │  │ /api/analyze-ai  │              │    │ │
-     │          │  │ /api/feedback    │              │    │ │
-     │          │  └──────────────────┼──────────────┘    │ │
-     │          └─────────────────────┼───────────────────┘ │
-     │                                │                     │
-     │          ┌─────────────────────┼──────────────────┐  │
-     │          │    业务服务层       │                  │  │
-     │          │  ┌────────────────┐ │                  │  │
-     │          │  │ 真太阳时计算   │ │                  │  │
-     │          │  │ 八字排盘       │ │                  │  │
-     │          │  │ 命理分析       │ │                  │  │
-     │          │  │ AI报告生成     │ │                  │  │
-     │          │  └────────────────┘ │                  │  │
-     │          └─────────────────────┼──────────────────┘  │
-     │                                │                      │
-     │          ┌─────────────────────┼──────────────────┐  │
-     │          │    外部服务         │                  │  │
-     │          │  ┌────────────────┐ │                  │  │
-     │          │  │ DeepSeek API   │←┘                  │  │
-     │          │  │ PostgreSQL     │←── 用户反馈        │  │
-     │          │  └────────────────┘                     │  │
-     │          └─────────────────────────────────────────┘  │
-     │                                                       │
-┌────┴────┐                                                 │
-│ AI报告  │←─────────────────────────────────────────────────┘
-└─────────┘
-```
-
-### 5. 用户反馈数据流
-
-```
-用户在结果页提交反馈
-    ↓
-前端 POST /api/feedback
-    {
-        rating: 1-5,
-        feedback_text: "...",
-        experience_type: "overall|design|content|feature"
-    }
-    ↓
-后端接收 → feedback.py submit_feedback()
-    • 验证评分范围（1-5）
-    • 获取 User-Agent 和 IP（防滥用）
-    ↓
-PostgreSQL 存储
-    表：user_feedback
-    字段：id, rating, feedback_text, experience_type, 
-         created_at, user_agent, ip_address
-    ↓
-返回成功响应
-```
-
----
-
-## 📁 项目结构
+**技术架构**：Vue3 + Vite + Vant UI（前端）+ FastAPI + Python（后端）+ Render（后端托管）+ GitHub Pages（前端托管）
 
 ---
 
@@ -307,58 +54,40 @@ npm run dev
 ## 📁 项目结构
 
 ```
-web_Render/
-├── 📂 backend/                      # FastAPI 后端
-│   ├── 📄 main.py                  # 主入口，路由配置，含Debug模式判断
-│   ├── 📄 feedback.py              # 用户反馈模块，PostgreSQL存储
-│   ├── 📂 services/                # 业务服务层
-│   │   ├── 📄 bazi_service_web.py  # 八字分析服务（真太阳时+AI）
-│   │   └── 📄 pdf_service.py       # PDF生成服务
-│   ├── 📂 bazi_modules/            # 命理模块（需从本地复制）
-│   │   ├── 📄 bazi_bridge.py       # 八字计算核心桥接
-│   │   ├── 📄 bazi_geju_refactored_v5.py  # 格局分析
-│   │   ├── 📄 true_solar_time.py   # 真太阳时计算
-│   │   ├── 📄 city_database.py     # 城市经纬度数据库
-│   │   └── 📄 lunar_python/        # 农历阳历转换库
-│   ├── 📄 requirements.txt         # Python依赖
-│   ├── 📄 render.yaml              # Render部署配置
-│   └── 📄 Dockerfile               # Docker配置
+bazi-talent-render/
+├── 📂 backend/                 # FastAPI 后端
+│   ├── 📄 main.py             # 主入口，路由配置
+│   ├── 📂 services/           # 业务服务层
+│   │   ├── 📄 bazi_service.py      # 八字分析核心服务
+│   │   └── 📄 pdf_service.py       # PDF 生成服务
+│   ├── 📂 bazi_modules/       # 命理模块（需从本地复制）
+│   ├── 📄 requirements.txt    # Python 依赖
+│   ├── 📄 render.yaml         # Render 部署配置
+│   ├── 📄 Dockerfile          # Docker 配置
+│   └── 📄 .env.example        # 环境变量模板
 │
-├── 📂 frontend/                     # 前端（双版本）
-│   ├── 📄 index.html               # ⭐ 用户版入口（单文件HTML）
-│   ├── 📄 debug.html               # ⭐ 调试版入口（单文件HTML）
-│   │
-│   ├── 📂 src/                     # Vue3源码（开发版）
-│   │   ├── 📂 components/
-│   │   │   ├── 📄 LandingPage.vue  # 引导页组件
-│   │   │   ├── 📄 QuizPage.vue     # 答题页组件
-│   │   │   ├── 📄 StepForm.vue     # 表单页组件
-│   │   │   ├── 📄 ResultDisplay.vue # 结果展示组件
-│   │   │   └── 📄 ...              # 其他组件
-│   │   ├── 📂 api/
-│   │   │   └── 📄 bazi.js          # API接口封装
-│   │   ├── 📂 data/
-│   │   │   └── 📄 cities.js        # 省市数据
-│   │   └── 📄 App.vue              # Vue应用根组件
-│   │
-│   ├── 📄 package.json             # npm依赖
-│   └── 📄 vite.config.js           # Vite配置
+├── 📂 frontend/               # Vue3 前端
+│   ├── 📂 src/
+│   │   ├── 📂 components/     # Vue 组件
+│   │   │   ├── 📄 BaziForm.vue       # 表单组件（输入出生信息）
+│   │   │   └── 📄 ResultDisplay.vue  # 结果展示组件
+│   │   ├── 📂 api/            # API 接口封装
+│   │   │   └── 📄 bazi.js           # 后端接口调用
+│   │   ├── 📂 data/           # 静态数据
+│   │   │   └── 📄 cities.js         # 全国省市数据
+│   │   ├── 📄 App.vue         # 根组件
+│   │   └── 📄 main.js         # 入口文件
+│   ├── 📄 package.json        # npm 依赖
+│   ├── 📄 vite.config.js      # Vite 配置
+│   └── 📄 index.html          # HTML 模板
 │
-├── 📂 design-system/               # 设计系统文档
-│   └── 📄 MASTER.md                # 设计规范
+├── 📂 .github/workflows/      # GitHub Actions
+│   └── 📄 deploy.yml          # 自动部署到 GitHub Pages
 │
-├── 📄 copy_bazi_modules.bat        # 一键复制命理模块脚本
-├── 📄 README.md                    # 本文件
-└── 📄 .gitignore                   # Git忽略配置
+├── 📄 copy_bazi_modules.bat   # 一键复制命理模块脚本
+├── 📄 README.md               # 本文件
+└── 📄 .gitignore              # Git 忽略配置
 ```
-
-### 前端双版本说明
-
-| 文件 | 类型 | 特点 | 用途 |
-|------|------|------|------|
-| `index.html` | 单文件HTML | 内嵌Vue3 CDN，独立部署 | 用户版，GitHub Pages部署 |
-| `debug.html` | 单文件HTML | 内嵌Vue3 CDN，Debug模式 | 开发者调试用 |
-| `src/` | Vue3源码 | 组件化开发，需构建 | 开发环境使用 |
 
 ---
 
@@ -707,13 +436,6 @@ git push
 
 ## 📚 API 文档
 
-### 请求头说明
-
-| 请求头 | 说明 |
-|--------|------|
-| `Content-Type: application/json` | 必须，所有POST请求 |
-| `X-Debug-Mode: true` | 可选，调试模式返回完整命理数据 |
-
 ### 1. 健康检查
 
 ```http
@@ -732,8 +454,6 @@ GET /
 
 ```http
 POST /api/analyze
-Content-Type: application/json
-X-Debug-Mode: true  # 可选，开启调试模式
 ```
 
 **请求体**：
@@ -747,8 +467,7 @@ X-Debug-Mode: true  # 可选，开启调试模式
   "minute": 30,
   "gender": "male",
   "province": "北京市",
-  "city": "北京市",
-  "answers": [0, 1, 2, 0, 1, 2]  // 答题答案（可选）
+  "city": "北京市"
 }
 ```
 
@@ -762,110 +481,35 @@ X-Debug-Mode: true  # 可选，开启调试模式
 | hour | integer | ✗ | 出生时（0-23），null表示未知 |
 | minute | integer | ✓ | 出生分（0-59） |
 | gender | string | ✓ | male 或 female |
-| province | string | ✗ | 省份（用于真太阳时） |
-| city | string | ✗ | 城市（用于真太阳时） |
-| answers | array | ✗ | 答题答案数组 |
+| province | string | ✓ | 省份 |
+| city | string | ✓ | 城市 |
 
-**用户模式响应**（无 X-Debug-Mode）：
+**响应**：
 ```json
 {
   "success": true,
   "data": {
     "report_id": "20240410120000_1234",
-    "user_info": {
-      "name": "张三",
-      "gender": "男",
-      "birth_time": {
-        "original": { "year": 1990, "month": 5, "day": 15, "hour": 14, "minute": 30 },
-        "adjusted": { "year": 1990, "month": 5, "day": 15, "hour": 14, "minute": 30 },
-        "location": { "province": "北京市", "city": "北京市", "longitude": 116.41, "latitude": 39.91 }
-      }
-    },
-    "ai_report": "AI生成的天赋分析报告..."
-  }
-}
-```
-
-**调试模式响应**（有 X-Debug-Mode: true）：
-```json
-{
-  "success": true,
-  "data": {
-    "report_id": "...",
     "user_info": { ... },
     "bazi": {
-      "year_gan": "庚", "year_zhi": "午",
-      "month_gan": "辛", "month_zhi": "巳",
-      "day_gan": "壬", "day_zhi": "申",
-      "time_gan": "丁", "time_zhi": "未",
+      "year_pillar": "庚午",
+      "month_pillar": "辛巳",
+      "day_pillar": "壬申",
+      "time_pillar": "丁未",
       "day_master": "壬"
     },
     "analysis": {
       "strength": "身强",
       "main_pattern": "食神格",
-      "wuxing_energy": { "金": 25.0, "木": 15.5, "水": 20.3, "火": 18.2, "土": 21.0 },
-      "shishen_energy": { "食神": 25.0, "伤官": 15.0, ... },
-      "yong_shen": ["木", "火"],
-      "xi_shen": ["金", "水"],
-      "ji_shen": ["土"]
+      "wuxing_energy": { "木": 15.5, "火": 20.3, ... },
+      "shishen_energy": { "食神": 25.0, ... }
     },
-    "ai_report": "...",
-    "ai_prompt": "AI提示词...",
-    "_debug_full_data": { ... }  // 完整六级论级数据
+    "ai_report": "AI 生成的分析报告文本..."
   }
 }
 ```
 
-### 3. AI分析报告生成
-
-```http
-POST /api/analyze-ai
-Content-Type: application/json
-X-Debug-Mode: true  # 可选
-```
-
-**请求体**：
-```json
-{
-  "report_id": "20240410120000_1234",
-  "basic_result": { ... }  // /api/analyze 返回的完整数据
-}
-```
-
-**响应**：
-```json
-{
-  "success": true,
-  "ai_report": "# 您的天赋分析报告\n\n## 一、性格特质..."
-}
-```
-
-### 4. 提交用户反馈
-
-```http
-POST /api/feedback
-Content-Type: application/json
-```
-
-**请求体**：
-```json
-{
-  "rating": 5,                    // 评分 1-5
-  "feedback_text": "非常好用！",   // 反馈文字（可选）
-  "experience_type": "overall"    // 类型：overall|design|content|feature
-}
-```
-
-**响应**：
-```json
-{
-  "success": true,
-  "message": "感谢您的反馈！",
-  "feedback_id": 123
-}
-```
-
-### 5. 获取城市列表
+### 3. 获取城市列表
 
 ```http
 GET /api/cities
@@ -878,31 +522,22 @@ GET /api/cities
   "cities": {
     "北京市": ["北京市"],
     "上海市": ["上海市"],
-    "广东省": ["广州市", "深圳市", "珠海市", ...],
     ...
   }
 }
 ```
 
-### 6. 获取反馈统计（管理用途）
+### 4. 下载报告
 
 ```http
-GET /api/feedback/stats
+GET /api/download/{report_id}
 ```
 
 **响应**：
 ```json
 {
   "success": true,
-  "total_feedback": 100,
-  "average_rating": 4.5,
-  "rating_distribution": [
-    { "rating": 1, "count": 5 },
-    { "rating": 2, "count": 3 },
-    { "rating": 3, "count": 12 },
-    { "rating": 4, "count": 30 },
-    { "rating": 5, "count": 50 }
-  ]
+  "download_url": "data:application/pdf;base64,..."
 }
 ```
 
@@ -910,33 +545,7 @@ GET /api/feedback/stats
 
 ## ❓ 常见问题
 
-### 真太阳时相关问题
-
-#### Q1: 什么是真太阳时？为什么要使用？
-
-**解答**：
-- **真太阳时**：根据太阳实际位置计算的时间，与标准北京时间（东经120°）可能有差异
-- **为什么要用**：八字计算需要准确的太阳位置，中国东西跨度大，新疆与北京时差约2小时
-- **使用方式**：选择出生地后，系统自动计算真太阳时校正
-
-#### Q2: 真太阳时计算准确吗？
-
-**计算原理**：
-```
-真太阳时 = 平太阳时 + 经度时差 + 均时差
-
-经度时差 = (当地经度 - 120°) × 4分钟
-均时差 = 地球公转轨道修正（根据日期查表）
-```
-
-**精度**：
-- 经度时差：精确到分钟
-- 均时差：采用插值算法，误差约±30秒
-- 满足八字计算需求
-
-### 部署相关问题
-
-#### Q3: 后端启动报错 `ModuleNotFoundError: No module named 'lunar_python'`
+### Q1: 后端启动报错 `ModuleNotFoundError: No module named 'lunar_python'`
 
 **原因**：命理模块未复制
 
@@ -946,173 +555,105 @@ GET /api/feedback/stats
 copy_bazi_modules.bat
 
 # 或手动复制
-xcopy /Y /E "本地路径\bazi-master\*.py" "backend\bazi_modules\"
-xcopy /Y /E "本地路径\bazi-master\lunar_python" "backend\bazi_modules\lunar_python\"
+xcopy /Y /E "G:\07.Project\02.性格测试\01.八字排盘与计算\bazi-master_new\bazi-master\*" "backend\bazi_modules\"
 ```
 
-#### Q4: 前端调用 API 报 CORS 错误
+### Q2: 前端调用 API 报 CORS 错误
 
-**原因**：后端 CORS 配置不正确
+**原因**：后端 CORS 配置不正确或后端未启动
 
 **解决**：
-1. 确保后端 `main.py` 中 `allow_origins` 包含前端域名
-2. 检查前端 `api/bazi.js` 中 `BASE_URL` 配置正确
-3. 本地开发时使用代理或确保前后端同时运行
+1. 确保后端已启动
+2. 检查 `main.py` 中的 `allow_origins` 是否包含前端域名
 
-#### Q5: Render 服务休眠导致首次访问慢
+### Q3: DeepSeek API 调用失败
+
+**原因**：API Key 无效或网络问题
+
+**解决**：
+1. 检查 `.env` 文件中的 `DEEPSEEK_API_KEY`
+2. 测试 API Key 是否有效
+3. 检查网络是否能访问 `api.deepseek.com`
+
+### Q4: PDF 下载失败
+
+**原因**：reportlab 未安装或浏览器阻止下载
+
+**解决**：
+1. 安装依赖：`pip install reportlab`
+2. 前端会自动回退到 html2pdf 方案
+3. 检查浏览器是否阻止了弹出窗口
+
+### Q5: Render 服务休眠导致首次访问慢
 
 **原因**：Render 免费版 15 分钟无请求会休眠
 
 **解决**：
-- 正常现象，首次访问需要 30-60 秒冷启动
+- 正常现象，首次访问需要 30 秒左右冷启动
 - 可购买 Render 付费版避免休眠
-- 或使用其他免费方案：Fly.io、Railway（也有类似限制）
 
-### 功能使用问题
+### Q6: GitHub Pages 部署后 404
 
-#### Q6: 为什么选择了城市，八字结果没有变化？
+**原因**：路径配置不正确
 
-**可能原因**：
-1. 出生地经度接近东经120°（如上海、杭州），时差很小
-2. 时辰未知时，不参与真太阳时计算
-3. 真太阳时校正后仍在同一时辰内（时辰跨度2小时）
-
-**查看方式**：调试版会显示「已按真太阳时校正：原时间 → 调整后时间」
-
-#### Q7: AI报告生成失败怎么办？
-
-**排查步骤**：
-1. 检查后端日志，确认 DeepSeek API Key 是否有效
-2. 确认网络能访问 `api.deepseek.com`
-3. 检查是否超出 API 调用限制
-4. 后端会自动重试，如仍失败会返回错误提示
-
-**备用方案**：基础八字分析不依赖AI，可正常使用
-
-#### Q8: PDF下载中文乱码？
-
-**解决方式**：
-- 前端已使用 html2canvas + jsPDF 方案，将HTML渲染为图片再生成PDF
-- 避免直接使用中文字体导致的乱码问题
-- 确保 html2canvas 和 jspdf 库正确加载
-
-### 开发调试问题
-
-#### Q9: 如何查看完整命理数据？
-
-**方法一**：使用调试版
-- 访问 `https://你的域名/debug.html`
-- 提交后切换到「调试数据」标签页
-
-**方法二**：API直接调用
-```bash
-curl -X POST https://bazi-talent-api.onrender.com/api/analyze \
-  -H "Content-Type: application/json" \
-  -H "X-Debug-Mode: true" \
-  -d '{"name":"测试","year":2000,"month":1,"day":1,"hour":12,"minute":0,"gender":"male"}'
-```
-
-#### Q10: 如何修改AI报告的提示词？
-
-**位置**：`backend/services/bazi_service_web.py` 中的 `_build_ai_prompt()` 方法
-
-**修改后**：
-1. 本地测试验证
-2. 提交到GitHub
-3. Render自动重新部署
+**解决**：
+1. 检查 `vite.config.js` 中的 `base` 是否为 `/web_Render/`
+2. 检查仓库名是否正确
+3. 确保已启用 GitHub Pages
 
 ---
 
-## 📋 功能更新记录
+## 📋 后续计划
 
-### 已完成功能 ✅
+### 短期计划（1-2周）
 
-- [x] **双版本架构**
-  - [x] 用户版（index.html）- 简洁界面，仅展示AI报告
-  - [x] 调试版（debug.html）- 完整数据展示，Debug模式
-  
-- [x] **用户交互**
-  - [x] 引导启动页
-  - [x] 6道趣味答题（自动跳转）
-  - [x] 出生信息表单（快速输入8/10/12位数字）
-  - [x] 省市级联选择器
-  - [x] 日期时间滚轮选择器
-
-- [x] **命理计算**
-  - [x] 真太阳时自动计算
-  - [x] 八字排盘（四柱）
-  - [x] 五行能量分析
-  - [x] 十神能量分析
-  - [x] 格局判定（食神格、伤官格等）
-  - [x] 身强身弱判断
-
-- [x] **AI报告**
-  - [x] DeepSeek API集成
-  - [x] 个性化天赋分析报告
-  - [x] Markdown格式渲染
-
-- [x] **数据存储**
-  - [x] PostgreSQL用户反馈存储
-  - [x] 星级评分系统
-  - [x] 反馈统计分析
-
-- [x] **导出功能**
-  - [x] PDF报告下载（html2canvas + jsPDF）
-  - [x] 中文无乱码方案
-
----
-
-## 后续计划
-
-### 短期计划（2-4周）
-
-- [ ] **功能增强**
-  - [ ] 添加大运流年分析
+- [ ] **功能完善**
+  - [ ] 添加更多命理分析维度（大运、流年）
   - [ ] 支持八字合婚功能
-  - [ ] 本地历史记录存储
+  - [ ] 添加历史记录功能（本地存储）
 
 - [ ] **体验优化**
-  - [ ] 添加分析进度动画
-  - [ ] 优化真太阳时展示
-  - [ ] 添加时辰参考表（帮助用户选择）
+  - [ ] 添加分析进度条
+  - [ ] 优化移动端适配
+  - [ ] 添加加载动画
 
-### 中期计划（1-2个月）
+- [ ] **Bug修复**
+  - [ ] 修复真太阳时计算精度问题
+  - [ ] 修复部分城市找不到经纬度的问题
 
-- [ ] **报告增强**
-  - [ ] 多模板PDF导出
-  - [ ] 添加命理图表可视化
-  - [ ] 支持报告分享（图片/链接）
+### 中期计划（1个月）
 
-- [ ] **AI升级**
-  - [ ] 支持多AI模型（GPT-4、Claude等）
-  - [ ] 提示词自定义功能
-  - [ ] 报告多语言支持
+- [ ] **存储升级**
+  - [ ] 接入数据库存储（PostgreSQL/SQLite）
+  - [ ] 用户历史报告查询
+  - [ ] 报告分享功能
 
-### 长期计划（3个月+）
+- [ ] **PDF增强**
+  - [ ] 更多 PDF 模板选择
+  - [ ] 添加命理图表到 PDF
+  - [ ] 支持导出 Word 格式
+
+- [ ] **AI优化**
+  - [ ] 支持多个 AI 模型切换
+  - [ ] 自定义提示词功能
+  - [ ] 报告多语言支持（英文、日文）
+
+### 长期计划（3个月）
 
 - [ ] **商业化**
-  - [ ] 接入支付系统
-  - [ ] VIP会员（详细报告、多次分析）
-  - [ ] 专家咨询服务
+  - [ ] 接入支付系统（微信支付、支付宝）
+  - [ ] VIP 会员功能
+  - [ ] 专家在线咨询
 
-- [ ] **多端扩展**
-  - [ ] 微信小程序版本
-  - [ ] App版本（Flutter/React Native）
+- [ ] **生态扩展**
+  - [ ] 小程序版本
+  - [ ] App 版本（Flutter）
+  - [ ] API 开放平台
 
----
-
-## 技术栈总结
-
-| 层级 | 技术 | 用途 |
-|------|------|------|
-| **前端** | Vue 3 (CDN) | 用户交互界面 |
-| **前端构建** | Vite | 开发环境构建 |
-| **后端** | FastAPI | API服务框架 |
-| **命理计算** | Python + 自定义模块 | 八字排盘、真太阳时 |
-| **AI** | DeepSeek API | 个性化报告生成 |
-| **数据库** | PostgreSQL | 用户反馈存储 |
-| **部署** | GitHub Pages + Render | 前后端分离部署 |
-| **PDF** | html2canvas + jsPDF | 前端PDF生成 |
+- [ ] **数据积累**
+  - [ ] 命理案例库
+  - [ ] AI 模型微调
+  - [ ] 预测准确率统计
 
 ---
 
