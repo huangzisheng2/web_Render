@@ -51,6 +51,7 @@
 </template>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 /*
 ================================================================================
 【用户模式 vs 调试模式 设计原则】
@@ -75,6 +76,10 @@
 */
 
 import { ref, reactive, getCurrentInstance } from 'vue'
+=======
+<script setup>
+import { ref, reactive } from 'vue'
+>>>>>>> parent of 9751620 (优化)
 =======
 <script setup>
 import { ref, reactive } from 'vue'
@@ -158,6 +163,7 @@ const handleAnalyze = async (formData) => {
   
   try {
 <<<<<<< HEAD
+<<<<<<< HEAD
     // 0. 先唤醒服务器（Render 免费版休眠问题）
     console.log('[步骤0] 检查服务器状态...')
     const isServerReady = await checkServerWakeUp()
@@ -179,6 +185,10 @@ const handleAnalyze = async (formData) => {
     const response = await analyzeBazi(formData)
 >>>>>>> parent of 9751620 (优化)
     
+=======
+    const response = await analyzeBazi(formData)
+    
+>>>>>>> parent of 9751620 (优化)
     if (response.success) {
       result.value = response.data
       currentPage.value = 'result'
@@ -187,6 +197,7 @@ const handleAnalyze = async (formData) => {
       showToast(response.error || '分析失败', 'error')
       currentPage.value = 'form'
     }
+<<<<<<< HEAD
 <<<<<<< HEAD
     
     result.value = response.data
@@ -204,6 +215,8 @@ const handleAnalyze = async (formData) => {
     currentPage.value = 'result'
     showToast('分析完成')
     
+=======
+>>>>>>> parent of 9751620 (优化)
 =======
 >>>>>>> parent of 9751620 (优化)
   } catch (error) {
