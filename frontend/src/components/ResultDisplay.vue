@@ -144,38 +144,27 @@
           <h3>您的反馈对我们很重要</h3>
         </div>
         
-        <!-- 评分区域 -->
-        <div class="rating-area">
-          <p class="rating-label">您对本次体验的满意度</p>
-          <div class="star-rating">
-            <button
-              v-for="star in 5"
-              :key="star"
-              class="star-btn"
-              :class="{ active: feedbackRating >= star }"
-              @click="feedbackRating = star"
-              @mouseenter="hoverRating = star"
-              @mouseleave="hoverRating = 0"
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            </button>
+        <!-- 多维度评分区域 -->
+        <div class="rating-dimensions">
+          <div v-for="dim in ratingDimensions" :key="dim.key" class="rating-row">
+            <span class="rating-label">{{ dim.label }}</span>
+            <div class="star-rating small">
+              <button
+                v-for="star in 5"
+                :key="star"
+                class="star-btn small"
+                :class="{ active: dimRatings[dim.key] >= star }"
+                @click="dimRatings[dim.key] = star"
+                @mouseenter="dimHover[dim.key] = star"
+                @mouseleave="dimHover[dim.key] = 0"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </button>
+            </div>
+            <span class="rating-value">{{ dimRatings[dim.key] ? dimRatings[dim.key] + '分' : '-' }}</span>
           </div>
-          <p class="rating-text">{{ ratingText }}</p>
-        </div>
-
-        <!-- 反馈类型选择 -->
-        <div class="feedback-types">
-          <button
-            v-for="type in feedbackTypes"
-            :key="type.value"
-            class="type-btn"
-            :class="{ active: selectedType === type.value }"
-            @click="selectedType = type.value"
-          >
-            {{ type.label }}
-          </button>
         </div>
 
         <!-- 反馈文字输入 -->
@@ -191,7 +180,7 @@
         <!-- 提交按钮 -->
         <button 
           class="feedback-submit-btn"
-          :disabled="feedbackRating === 0 || feedbackSubmitting"
+          :disabled="!hasAnyRating || feedbackSubmitting"
           @click="handleSubmitFeedback"
         >
           <svg v-if="!feedbackSubmitting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -280,49 +269,57 @@ const isDebug = computed(() => appContext.config.globalProperties.$isDebug || fa
 // AI 分析状态
 const aiLoading = computed(() => props.aiAnalyzing)
 
-// 反馈相关状态
-const feedbackRating = ref(0)
-const hoverRating = ref(0)
+// 反馈相关状态（多维度评分）
+const dimRatings = ref({
+  overall: 0,
+  design: 0,
+  content: 0,
+  helpful: 0
+})
+const dimHover = ref({
+  overall: 0,
+  design: 0,
+  content: 0,
+  helpful: 0
+})
 const feedbackText = ref('')
-const selectedType = ref('overall')
 const feedbackSubmitting = ref(false)
 const feedbackSubmitted = ref(false)
 
-// 反馈类型选项
-const feedbackTypes = [
-  { label: '整体体验', value: 'overall' },
-  { label: '界面设计', value: 'design' },
-  { label: '分析内容', value: 'content' },
-  { label: '功能建议', value: 'feature' }
+// 评分维度配置
+const ratingDimensions = [
+  { key: 'overall', label: '整体体验' },
+  { key: 'design', label: '设计美观' },
+  { key: 'content', label: '分析内容' },
+  { key: 'helpful', label: '对我有帮助' }
 ]
 
-// 评分文字
-const ratingText = computed(() => {
-  const rating = hoverRating.value || feedbackRating.value
-  const texts = ['', '需要改进', '一般', '还不错', '很满意', '非常棒！']
-  return texts[rating] || ''
+// 是否至少有一个评分
+const hasAnyRating = computed(() => {
+  return Object.values(dimRatings.value).some(r => r > 0)
 })
 
-// 提交反馈
+// 提交反馈（多维度评分）
 const handleSubmitFeedback = async () => {
-  if (feedbackRating.value === 0) return
+  if (!hasAnyRating.value) return
   
   feedbackSubmitting.value = true
   
   try {
     const result = await submitFeedback({
-      rating: feedbackRating.value,
-      feedback_text: feedbackText.value,
-      experience_type: selectedType.value
+      rating_overall: dimRatings.value.overall || null,
+      rating_design: dimRatings.value.design || null,
+      rating_content: dimRatings.value.content || null,
+      rating_helpful: dimRatings.value.helpful || null,
+      feedback_text: feedbackText.value
     })
     
     if (result.success) {
       feedbackSubmitted.value = true
       // 3秒后重置表单
       setTimeout(() => {
-        feedbackRating.value = 0
+        dimRatings.value = { overall: 0, design: 0, content: 0, helpful: 0 }
         feedbackText.value = ''
-        selectedType.value = 'overall'
         feedbackSubmitted.value = false
       }, 3000)
     } else {
@@ -703,23 +700,46 @@ const handleRegenerateAI = () => {
   margin: 0;
 }
 
-/* 评分区域 */
-.rating-area {
-  text-align: center;
+/* 多维度评分区域 */
+.rating-dimensions {
   margin-bottom: 20px;
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.rating-row:last-child {
+  border-bottom: none;
 }
 
 .rating-label {
   font-size: 14px;
-  color: #718096;
-  margin: 0 0 12px;
+  color: #4A5568;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.rating-value {
+  font-size: 13px;
+  color: #8EC5FC;
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
 }
 
 .star-rating {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 8px;
+}
+
+.star-rating.small {
+  gap: 4px;
 }
 
 .star-btn {
@@ -730,6 +750,12 @@ const handleRegenerateAI = () => {
   cursor: pointer;
   padding: 4px;
   transition: transform 0.2s;
+}
+
+.star-btn.small {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
 }
 
 .star-btn:hover {
@@ -745,14 +771,6 @@ const handleRegenerateAI = () => {
 
 .star-btn.active svg {
   color: #F6E05E;
-}
-
-.rating-text {
-  font-size: 14px;
-  color: #8EC5FC;
-  font-weight: 500;
-  margin: 0;
-  min-height: 20px;
 }
 
 /* 反馈类型选择 */

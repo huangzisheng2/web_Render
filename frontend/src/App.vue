@@ -203,7 +203,7 @@ const handleDownload = async () => {
   }
 }
 
-// 前端生成 PDF（备用方案 - 仅AI报告）
+// 前端生成 PDF（优化版 - 减小文件大小）
 const generatePDF = async () => {
   try {
     const aiReport = result.value?.ai_report
@@ -253,22 +253,25 @@ const generatePDF = async () => {
     
     document.body.appendChild(container)
     
-    // 使用html2canvas渲染为图片
+    // 使用html2canvas渲染为图片（优化参数减小文件大小）
     const html2canvas = await import('html2canvas')
     const canvas = await html2canvas.default(container, {
-      scale: 2,
+      scale: 1.5,  // 降低缩放比例（原来是2）
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      imageTimeout: 0,  // 禁用图片超时
+      removeContainer: true  // 自动移除容器
     })
     
     document.body.removeChild(container)
     
-    // 创建PDF
+    // 创建PDF（使用压缩选项）
     const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF('p', 'mm', 'a4')
     
-    const imgData = canvas.toDataURL('image/png')
+    // 使用 JPEG 格式代替 PNG，并设置质量为 0.85（平衡质量和大小）
+    const imgData = canvas.toDataURL('image/jpeg', 0.85)
     const imgWidth = 210
     const pageHeight = 297
     const imgHeight = (canvas.height * imgWidth) / canvas.width
@@ -276,14 +279,15 @@ const generatePDF = async () => {
     let heightLeft = imgHeight
     let position = 0
     
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    // 使用 FAST 压缩选项添加图片
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST')
     heightLeft -= pageHeight
     
     // 处理多页
     while (heightLeft > 0) {
       position = heightLeft - imgHeight
       pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST')
       heightLeft -= pageHeight
     }
     

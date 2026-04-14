@@ -39,13 +39,15 @@ def init_feedback_table():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 创建反馈表
+        # 创建反馈表（新版：多维度评分）
         create_table_sql = """
         CREATE TABLE IF NOT EXISTS user_feedback (
             id SERIAL PRIMARY KEY,
-            rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            rating_overall INTEGER CHECK (rating_overall >= 1 AND rating_overall <= 5),
+            rating_design INTEGER CHECK (rating_design >= 1 AND rating_design <= 5),
+            rating_content INTEGER CHECK (rating_content >= 1 AND rating_content <= 5),
+            rating_helpful INTEGER CHECK (rating_helpful >= 1 AND rating_helpful <= 5),
             feedback_text TEXT,
-            experience_type VARCHAR(50),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             user_agent TEXT,
             ip_address INET
@@ -55,7 +57,7 @@ def init_feedback_table():
         # 创建索引
         create_index_sql = """
         CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON user_feedback(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_feedback_rating ON user_feedback(rating);
+        CREATE INDEX IF NOT EXISTS idx_feedback_overall ON user_feedback(rating_overall);
         """
         
         cursor.execute(create_table_sql)
@@ -76,30 +78,35 @@ def init_feedback_table():
 
 
 def submit_feedback(
-    rating: int,
+    rating_overall: Optional[int] = None,
+    rating_design: Optional[int] = None,
+    rating_content: Optional[int] = None,
+    rating_helpful: Optional[int] = None,
     feedback_text: Optional[str] = None,
-    experience_type: Optional[str] = None,
     user_agent: Optional[str] = None,
     ip_address: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    提交用户反馈
+    提交用户反馈（多维度评分版）
     
     Args:
-        rating: 评分 (1-5星)
+        rating_overall: 整体体验评分 (1-5)
+        rating_design: 设计美观评分 (1-5)
+        rating_content: 分析内容评分 (1-5)
+        rating_helpful: 是否有帮助评分 (1-5)
         feedback_text: 反馈文字内容
-        experience_type: 体验类型（如：界面设计、分析内容、整体体验等）
         user_agent: 用户浏览器信息
         ip_address: 用户IP地址（仅用于防止滥用，不关联个人身份）
     
     Returns:
         包含提交结果的字典
     """
-    # 验证评分
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
+    # 验证评分（至少有一个评分）
+    ratings = [rating_overall, rating_design, rating_content, rating_helpful]
+    if not any(r is not None and isinstance(r, int) and 1 <= r <= 5 for r in ratings):
         return {
             "success": False,
-            "error": "评分必须是1-5之间的整数"
+            "error": "请至少对一个维度进行评分（1-5分）"
         }
     
     conn = None
@@ -108,15 +115,17 @@ def submit_feedback(
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         insert_sql = """
-        INSERT INTO user_feedback (rating, feedback_text, experience_type, user_agent, ip_address)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO user_feedback (rating_overall, rating_design, rating_content, rating_helpful, feedback_text, user_agent, ip_address)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING id, created_at;
         """
         
         cursor.execute(insert_sql, (
-            rating,
+            rating_overall,
+            rating_design,
+            rating_content,
+            rating_helpful,
             feedback_text if feedback_text else None,
-            experience_type if experience_type else None,
             user_agent if user_agent else None,
             ip_address if ip_address else None
         ))
@@ -153,32 +162,50 @@ def get_feedback_stats() -> Dict[str, Any]:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # 统计各评分数量
-        stats_sql = """
-        SELECT 
-            rating,
-            COUNT(*) as count,
-            AVG(rating) as avg_rating
-        FROM user_feedback
-        GROUP BY rating
-        ORDER BY rating;
-        """
-        
-        cursor.execute(stats_sql)
-        stats = cursor.fetchall()
-        
         # 总反馈数
         cursor.execute("SELECT COUNT(*) as total FROM user_feedback;")
         total_result = cursor.fetchone()
+        total = total_result["total"] if total_result else 0
+        
+        # 各维度平均评分
+        avg_sql = """
+        SELECT 
+            AVG(rating_overall) as avg_overall,
+            AVG(rating_design) as avg_design,
+            AVG(rating_content) as avg_content,
+            AVG(rating_helpful) as avg_helpful
+        FROM user_feedback;
+        """
+        cursor.execute(avg_sql)
+        avg_result = cursor.fetchone()
+        
+        # 各维度评分分布
+        dimensions = ['overall', 'design', 'content', 'helpful']
+        distribution = {}
+        
+        for dim in dimensions:
+            cursor.execute(f"""
+                SELECT rating_{dim} as rating, COUNT(*) as count
+                FROM user_feedback
+                WHERE rating_{dim} IS NOT NULL
+                GROUP BY rating_{dim}
+                ORDER BY rating;
+            """)
+            distribution[dim] = [
+                {"rating": row["rating"], "count": row["count"]} 
+                for row in cursor.fetchall()
+            ]
         
         return {
             "success": True,
-            "total_feedback": total_result["total"] if total_result else 0,
-            "rating_distribution": [
-                {"rating": row["rating"], "count": row["count"]} 
-                for row in stats
-            ],
-            "average_rating": round(float(stats[0]["avg_rating"]), 2) if stats else 0
+            "total_feedback": total,
+            "average_ratings": {
+                "overall": round(float(avg_result["avg_overall"] or 0), 2),
+                "design": round(float(avg_result["avg_design"] or 0), 2),
+                "content": round(float(avg_result["avg_content"] or 0), 2),
+                "helpful": round(float(avg_result["avg_helpful"] or 0), 2)
+            },
+            "rating_distribution": distribution
         }
         
     except Exception as e:

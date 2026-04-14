@@ -72,9 +72,11 @@ class PDFDownloadResponse(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    rating: int = Field(..., ge=1, le=5, description="评分 1-5星")
+    rating_overall: Optional[int] = Field(None, ge=1, le=5, description="整体体验评分 1-5")
+    rating_design: Optional[int] = Field(None, ge=1, le=5, description="设计美观评分 1-5")
+    rating_content: Optional[int] = Field(None, ge=1, le=5, description="分析内容评分 1-5")
+    rating_helpful: Optional[int] = Field(None, ge=1, le=5, description="是否有帮助评分 1-5")
     feedback_text: Optional[str] = Field(None, max_length=500, description="反馈文字内容")
-    experience_type: Optional[str] = Field("overall", description="体验类型: overall/design/content/feature")
 
 
 class FeedbackResponse(BaseModel):
@@ -242,9 +244,9 @@ def download_report(report_id: str):
 @app.post("/api/feedback", response_model=FeedbackResponse)
 def submit_user_feedback(request: FeedbackRequest, http_request: Request):
     """
-    提交用户反馈（完全匿名）
+    提交用户反馈（完全匿名，多维度评分）
     
-    用户可以对使用体验、外观设计、分析内容等进行评分和留言
+    用户可以对整体体验、设计美观、分析内容、是否有帮助等维度进行1-5分评分
     数据存储在 PostgreSQL 数据库中，不收集任何个人隐私信息
     """
     try:
@@ -258,11 +260,13 @@ def submit_user_feedback(request: FeedbackRequest, http_request: Request):
         else:
             client_ip = http_request.client.host if http_request.client else None
         
-        # 提交反馈
+        # 提交反馈（多维度评分）
         result = submit_feedback(
-            rating=request.rating,
+            rating_overall=request.rating_overall,
+            rating_design=request.rating_design,
+            rating_content=request.rating_content,
+            rating_helpful=request.rating_helpful,
             feedback_text=request.feedback_text,
-            experience_type=request.experience_type,
             user_agent=user_agent,
             ip_address=client_ip
         )

@@ -84,8 +84,8 @@ export const downloadReport = (reportId) => {
 }
 
 /**
- * 提交用户反馈
- * @param {Object} data - 反馈数据 {rating, feedback_text, experience_type}
+ * 提交用户反馈（多维度评分）
+ * @param {Object} data - 反馈数据 {rating_overall, rating_design, rating_content, rating_helpful, feedback_text}
  * @returns {Promise}
  */
 export const submitFeedback = (data) => {
