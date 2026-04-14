@@ -39,7 +39,10 @@
             try {
                 const response = await fetch(`${API_URL}/api/analyze`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Debug-Mode': 'true'  // 调试模式：只返回基础数据，不自动执行AI分析
+                    },
                     body: JSON.stringify({
                         name: "测试",
                         year: 1998,

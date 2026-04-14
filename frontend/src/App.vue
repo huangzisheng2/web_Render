@@ -104,7 +104,9 @@ const handleAnalyze = async (formData) => {
   goToLoading()
   
   try {
-    // 1. 执行基础八字分析
+    // 调用 /api/analyze
+    // 用户模式：后端自动执行 Step 4 + Step 5，返回包含 ai_report 的完整结果
+    // 调试模式：后端只执行 Step 4，返回基础数据
     const response = await analyzeBazi(formData)
     
     if (!response.success) {
@@ -115,28 +117,7 @@ const handleAnalyze = async (formData) => {
     
     result.value = response.data
     
-    // 2. 用户模式：自动执行AI分析
-    if (!isDebug && result.value?.report_id) {
-      console.log('[用户模式] 自动执行AI分析...')
-      try {
-        const aiResponse = await analyzeAI({
-          report_id: result.value.report_id,
-          basic_result: result.value
-        })
-        
-        if (aiResponse.success) {
-          result.value.ai_report = aiResponse.ai_report
-          console.log('[用户模式] AI分析完成')
-        } else {
-          console.error('[用户模式] AI分析失败:', aiResponse.error)
-        }
-      } catch (aiError) {
-        console.error('[用户模式] AI分析错误:', aiError)
-        // AI失败不影响展示基础结果
-      }
-    }
-    
-    // 3. 显示结果页
+    // 显示结果页
     currentPage.value = 'result'
     showToast('分析完成')
     

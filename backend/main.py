@@ -111,12 +111,12 @@ def get_cities():
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 def analyze_bazi(request: AnalyzeRequest, http_request: Request):
     """
-    八字分析主接口（仅基础分析，不含AI）
+    八字分析主接口
 
-    接收用户出生信息，返回八字基础分析结果（四柱、六级论级等）
-    AI分析请调用 /api/analyze-ai 接口
+    接收用户出生信息，返回八字分析结果
     
-    调试模式：添加请求头 X-Debug-Mode: true 可返回完整数据
+    调试模式（X-Debug-Mode: true）：仅返回基础分析数据，AI分析需手动调用 /api/analyze-ai
+    用户模式（默认）：自动执行 Step 4（基础分析）+ Step 5（AI分析），合并返回完整结果
     """
     try:
         # 检测调试模式
@@ -136,22 +136,45 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
             "city": request.city,
         }
 
-        # 执行基础分析（不含AI）
+        # 执行基础分析（Step 4）
         result = bazi_service.analyze_basic(birth_data)
         
-        # 非调试模式下，移除原始数据以减小响应体积
-        if not debug_mode:
-            # 保留关键展示字段，移除详细原始数据
+        if debug_mode:
+            # 调试模式：返回完整基础数据（Step 4完成，Step 5需手动触发）
+            print("[DEBUG] 调试模式，返回基础分析数据（Step 4完成，Step 5需手动触发）")
+            return {
+                "success": True,
+                "data": result
+            }
+        else:
+            # 用户模式：自动执行 AI 分析（Step 4 + Step 5 合并）
+            print("[DEBUG] 用户模式，自动执行 AI 分析（Step 4 + Step 5）")
+            
+            # 获取 report_id 用于 AI 分析
+            report_id = result.get("report_id")
+            if not report_id:
+                report_id = f"bazi_{request.name}_{request.year}{request.month:02d}{request.day:02d}"
+            
+            # 自动执行 AI 分析（Step 5）
+            ai_report = bazi_service.analyze_ai(report_id, result)
+            
+            # 清理用户模式不需要的大字段
             if "raw_data" in result:
                 del result["raw_data"]
             if "ai_prompt" in result:
                 del result["ai_prompt"]
-            print("[DEBUG] 非调试模式，已移除 raw_data 和 ai_prompt")
-
-        return {
-            "success": True,
-            "data": result
-        }
+            
+            # 构建用户模式的精简响应（只包含必要字段 + AI报告）
+            user_result = {
+                "report_id": result.get("report_id"),
+                "user_info": result.get("user_info"),
+                "ai_report": ai_report
+            }
+            
+            return {
+                "success": True,
+                "data": user_result
+            }
 
     except Exception as e:
         error_trace = traceback.format_exc()
