@@ -82,7 +82,7 @@
       <div class="chart-section">
         <h4>评分分布图表</h4>
         <div class="chart-container">
-          <canvas ref="chartCanvas"></canvas>
+          <div ref="chartContainer" style="width: 100%; height: 100%;"></div>
         </div>
       </div>
       
@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import Chart from 'chart.js/auto'
+import * as echarts from 'echarts'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://bazi-talent-api.onrender.com'
@@ -137,7 +137,7 @@ const stats = ref(null)
 const loading = ref(false)
 const exporting = ref(false)
 const error = ref(null)
-const chartCanvas = ref(null)
+const chartContainer = ref(null)
 let chartInstance = null
 
 // 加载反馈统计数据
@@ -173,59 +173,58 @@ const loadFeedbackStats = async () => {
 
 // 渲染图表
 const renderChart = () => {
-  if (!chartCanvas.value || !stats.value) return
+  if (!chartContainer.value || !stats.value) return
   
   if (chartInstance) {
-    chartInstance.destroy()
+    chartInstance.dispose()
   }
   
   const dist = stats.value.rating_distribution
   
-  chartInstance = new Chart(chartCanvas.value, {
-    type: 'bar',
-    data: {
-      labels: ['1星', '2星', '3星', '4星', '5星'],
-      datasets: [{
-        label: '反馈数量',
-        data: [
-          dist['1'] || 0,
-          dist['2'] || 0,
-          dist['3'] || 0,
-          dist['4'] || 0,
-          dist['5'] || 0
-        ],
-        backgroundColor: [
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(249, 115, 22, 0.8)',
-          'rgba(234, 179, 8, 0.8)',
-          'rgba(34, 197, 94, 0.8)',
-          'rgba(59, 130, 246, 0.8)'
-        ],
-        borderColor: [
-          'rgba(239, 68, 68, 1)',
-          'rgba(249, 115, 22, 1)',
-          'rgba(234, 179, 8, 1)',
-          'rgba(34, 197, 94, 1)',
-          'rgba(59, 130, 246, 1)'
-        ],
-        borderWidth: 1,
-        borderRadius: 4
-      }]
+  chartInstance = echarts.init(chartContainer.value)
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' }
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { stepSize: 1 }
-        }
-      }
-    }
-  })
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '10%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: ['1星', '2星', '3星', '4星', '5星'],
+      axisLine: { lineStyle: { color: '#E2E8F0' } },
+      axisLabel: { color: '#718096' }
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#718096' },
+      splitLine: { lineStyle: { color: '#F0F0F0' } }
+    },
+    series: [{
+      name: '反馈数量',
+      type: 'bar',
+      data: [
+        { value: dist['1'] || 0, itemStyle: { color: '#EF4444' } },
+        { value: dist['2'] || 0, itemStyle: { color: '#F97316' } },
+        { value: dist['3'] || 0, itemStyle: { color: '#EAB308' } },
+        { value: dist['4'] || 0, itemStyle: { color: '#22C55E' } },
+        { value: dist['5'] || 0, itemStyle: { color: '#3B82F6' } }
+      ],
+      barWidth: '50%',
+      borderRadius: [4, 4, 0, 0]
+    }]
+  }
+  
+  chartInstance.setOption(option)
 }
 
 // 导出CSV
