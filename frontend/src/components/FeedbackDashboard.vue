@@ -48,97 +48,47 @@
       <p>{{ error }}</p>
     </div>
     
-    <!-- 数据展示 -->
-    <div v-else-if="stats" class="dashboard-content">
-      <!-- 统计摘要卡片 -->
-      <div class="stats-cards">
-        <div class="stat-card primary">
-          <div class="stat-value">{{ stats.total }}</div>
-          <div class="stat-label">总反馈数</div>
-        </div>
-        <div class="stat-card secondary">
-          <div class="stat-value">{{ stats.avg_rating }}</div>
-          <div class="stat-label">平均评分</div>
-        </div>
-        <div class="stat-card success">
-          <div class="stat-value">{{ stats.rating_distribution['5'] || 0 }}</div>
-          <div class="stat-label">五星好评</div>
-        </div>
-      </div>
-      
-      <!-- 星级分布 -->
-      <div class="rating-distribution">
-        <h4>星级分布</h4>
-        <div class="rating-grid">
-          <div v-for="star in 5" :key="star" class="rating-item">
-            <div class="stars">{{ '★'.repeat(star) }}</div>
-            <div class="count">{{ stats.rating_distribution[star] || 0 }}</div>
-            <div class="label">{{ star }}星</div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 评分分布图表 -->
-      <div class="chart-section">
-        <h4>评分分布图表</h4>
-        <div class="chart-container">
-          <div ref="chartContainer" style="width: 100%; height: 100%;"></div>
-        </div>
-      </div>
-      
-      <!-- 最新评论列表 -->
-      <div class="comments-section">
-        <h4>最新文字反馈 ({{ stats.recent_comments.length }}条)</h4>
-        <div class="comments-list">
-          <div v-if="stats.recent_comments.length === 0" class="no-comments">
-            暂无文字反馈
-          </div>
-          <div 
-            v-for="comment in stats.recent_comments" 
-            :key="comment.id" 
-            class="comment-item"
-          >
-            <div class="comment-header">
-              <div class="comment-rating">
-                <span v-for="n in (comment.ratings.overall || 0)" :key="n" class="star">★</span>
-                <span v-if="!comment.ratings.overall" class="no-rating">未评分</span>
-              </div>
-              <div class="comment-time">{{ comment.created_at }}</div>
+    <!-- 最新文字反馈列表 -->
+    <div v-else-if="comments.length > 0" class="comments-section">
+      <h4>最新文字反馈 ({{ comments.length }}条)</h4>
+      <div class="comments-list">
+        <div 
+          v-for="comment in comments" 
+          :key="comment.id" 
+          class="comment-item"
+        >
+          <div class="comment-header">
+            <div class="comment-rating">
+              <span v-for="n in (comment.ratings.overall || 0)" :key="n" class="star">★</span>
+              <span v-if="!comment.ratings.overall" class="no-rating">未评分</span>
             </div>
-            <div class="comment-text">
-              {{ comment.comment || '无文字' }}
-            </div>
+            <div class="comment-time">{{ comment.created_at }}</div>
+          </div>
+          <div class="comment-text">
+            {{ comment.comment || '无文字' }}
           </div>
         </div>
       </div>
     </div>
     
     <!-- 空状态 -->
-    <div v-else class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <p>点击"刷新数据"加载反馈统计</p>
+    <div v-else-if="comments.length === 0" class="empty-state">
+      <p>暂无反馈数据</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import { ref, onMounted } from 'vue'
 
 const API_URL = import.meta.env.PROD 
   ? 'https://bazi-talent-api.onrender.com'
   : ''
 
-const stats = ref(null)
+const comments = ref([])
 const loading = ref(false)
 const exporting = ref(false)
 const error = ref(null)
-const chartContainer = ref(null)
-let chartInstance = null
 
 // 加载反馈统计数据
 const loadFeedbackStats = async () => {
@@ -158,9 +108,8 @@ const loadFeedbackStats = async () => {
     const data = await response.json()
     
     if (data.success) {
-      stats.value = data
-      await nextTick()
-      renderChart()
+      // 获取所有评论
+      comments.value = data.recent_comments || []
     } else {
       error.value = data.error || '加载失败'
     }
@@ -169,62 +118,6 @@ const loadFeedbackStats = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// 渲染图表
-const renderChart = () => {
-  if (!chartContainer.value || !stats.value) return
-  
-  if (chartInstance) {
-    chartInstance.dispose()
-  }
-  
-  const dist = stats.value.rating_distribution
-  
-  chartInstance = echarts.init(chartContainer.value)
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: '10%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: ['1星', '2星', '3星', '4星', '5星'],
-      axisLine: { lineStyle: { color: '#E2E8F0' } },
-      axisLabel: { color: '#718096' }
-    },
-    yAxis: {
-      type: 'value',
-      minInterval: 1,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { color: '#718096' },
-      splitLine: { lineStyle: { color: '#F0F0F0' } }
-    },
-    series: [{
-      name: '反馈数量',
-      type: 'bar',
-      data: [
-        { value: dist['1'] || 0, itemStyle: { color: '#EF4444' } },
-        { value: dist['2'] || 0, itemStyle: { color: '#F97316' } },
-        { value: dist['3'] || 0, itemStyle: { color: '#EAB308' } },
-        { value: dist['4'] || 0, itemStyle: { color: '#22C55E' } },
-        { value: dist['5'] || 0, itemStyle: { color: '#3B82F6' } }
-      ],
-      barWidth: '50%',
-      borderRadius: [4, 4, 0, 0]
-    }]
-  }
-  
-  chartInstance.setOption(option)
 }
 
 // 导出CSV
@@ -386,118 +279,34 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.stats-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  padding: 20px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.stat-card.primary {
-  background: linear-gradient(135deg, #8EC5FC 0%, #6BB3F9 100%);
-  color: white;
-}
-
-.stat-card.secondary {
-  background: linear-gradient(135deg, #A8E6CF 0%, #8DD4B0 100%);
-  color: white;
-}
-
-.stat-card.success {
-  background: linear-gradient(135deg, #F6E05E 0%, #ECC94B 100%);
-  color: #744210;
-}
-
-.stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.stat-label {
+.comments-section h4 {
+  margin: 0 0 12px;
   font-size: 14px;
-  opacity: 0.9;
-}
-
-.rating-distribution {
-  margin-bottom: 24px;
-}
-
-.rating-distribution h4 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  color: #4A5568;
-}
-
-.rating-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-}
-
-.rating-item {
-  text-align: center;
-  padding: 16px;
-  background: #F7FAFC;
-  border-radius: 10px;
-}
-
-.rating-item .stars {
-  color: #F6E05E;
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-
-.rating-item .count {
-  font-size: 24px;
-  font-weight: 700;
-  color: #4A5568;
-  margin-bottom: 4px;
-}
-
-.rating-item .label {
-  font-size: 12px;
   color: #718096;
 }
 
-.chart-section {
-  margin-bottom: 24px;
-}
-
-.chart-section h4 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  color: #4A5568;
-}
-
-.chart-container {
-  height: 250px;
-  background: #F7FAFC;
-  border-radius: 10px;
-  padding: 16px;
-}
-
-.comments-section h4 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  color: #4A5568;
-}
-
 .comments-list {
-  max-height: 400px;
+  max-height: 300px;
   overflow-y: auto;
+  padding-right: 8px;
 }
 
-.no-comments {
-  text-align: center;
-  padding: 40px;
-  color: #A0AEC0;
+.comments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+  background: #F0F0F0;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+  background: #CBD5E0;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: #A0AEC0;
 }
 
 .comment-item {
@@ -505,6 +314,10 @@ onMounted(() => {
   background: #F7FAFC;
   border-radius: 10px;
   margin-bottom: 12px;
+}
+
+.comment-item:last-child {
+  margin-bottom: 0;
 }
 
 .comment-header {
@@ -545,33 +358,13 @@ onMounted(() => {
     padding: 16px;
   }
   
-  .stats-cards {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+  .action-bar {
+    flex-direction: column;
   }
   
-  .stat-value {
-    font-size: 24px;
-  }
-  
-  .stat-label {
-    font-size: 12px;
-  }
-  
-  .rating-grid {
-    gap: 8px;
-  }
-  
-  .rating-item {
-    padding: 12px 8px;
-  }
-  
-  .rating-item .stars {
-    font-size: 14px;
-  }
-  
-  .rating-item .count {
-    font-size: 18px;
+  .action-bar button {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>
