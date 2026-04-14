@@ -50,6 +50,7 @@
   </div>
 </template>
 
+<<<<<<< HEAD
 /*
 ================================================================================
 【用户模式 vs 调试模式 设计原则】
@@ -74,16 +75,16 @@
 */
 
 import { ref, reactive, getCurrentInstance } from 'vue'
+=======
+<script setup>
+import { ref, reactive } from 'vue'
+>>>>>>> parent of 9751620 (优化)
 import LandingPage from './components/LandingPage.vue'
 import QuizPage from './components/QuizPage.vue'
 import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
 import ResultDisplay from './components/ResultDisplay.vue'
 import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
-
-// 检测调试模式
-const { appContext } = getCurrentInstance()
-const isDebug = appContext.config.globalProperties.$isDebug || false
 
 // 页面路由状态
 const currentPage = ref('landing') // landing, quiz, form, loading, result
@@ -156,6 +157,7 @@ const handleAnalyze = async (formData) => {
   isServerWakingUp.value = false
   
   try {
+<<<<<<< HEAD
     // 0. 先唤醒服务器（Render 免费版休眠问题）
     console.log('[步骤0] 检查服务器状态...')
     const isServerReady = await checkServerWakeUp()
@@ -173,12 +175,19 @@ const handleAnalyze = async (formData) => {
     console.log('[步骤1] 执行基础分析...')
     isServerWakingUp.value = false
     const response = await requestWithRetry(() => analyzeBazi(formData), 3)
+=======
+    const response = await analyzeBazi(formData)
+>>>>>>> parent of 9751620 (优化)
     
-    if (!response.success) {
+    if (response.success) {
+      result.value = response.data
+      currentPage.value = 'result'
+      showToast('分析完成')
+    } else {
       showToast(response.error || '分析失败', 'error')
       currentPage.value = 'form'
-      return
     }
+<<<<<<< HEAD
     
     result.value = response.data
     
@@ -195,6 +204,8 @@ const handleAnalyze = async (formData) => {
     currentPage.value = 'result'
     showToast('分析完成')
     
+=======
+>>>>>>> parent of 9751620 (优化)
   } catch (error) {
     console.error('分析错误:', error)
     isServerWakingUp.value = false
