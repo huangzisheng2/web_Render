@@ -33,37 +33,120 @@ def get_db_connection():
 
 
 def init_feedback_table():
-    """初始化反馈表 - 如果不存在则创建"""
+    """初始化反馈表 - 如果不存在则创建，存在则自动迁移"""
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 创建反馈表（新版：多维度评分）
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS user_feedback (
-            id SERIAL PRIMARY KEY,
-            rating_overall INTEGER CHECK (rating_overall >= 1 AND rating_overall <= 5),
-            rating_design INTEGER CHECK (rating_design >= 1 AND rating_design <= 5),
-            rating_content INTEGER CHECK (rating_content >= 1 AND rating_content <= 5),
-            rating_helpful INTEGER CHECK (rating_helpful >= 1 AND rating_helpful <= 5),
-            feedback_text TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            user_agent TEXT,
-            ip_address INET
-        );
-        """
+        # 检查表是否存在
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'user_feedback'
+            );
+        """)
+        table_exists = cursor.fetchone()[0]
+        
+        if not table_exists:
+            # 创建新表（多维度评分）
+            create_table_sql = """
+            CREATE TABLE user_feedback (
+                id SERIAL PRIMARY KEY,
+                rating_overall INTEGER CHECK (rating_overall >= 1 AND rating_overall <= 5),
+                rating_design INTEGER CHECK (rating_design >= 1 AND rating_design <= 5),
+                rating_content INTEGER CHECK (rating_content >= 1 AND rating_content <= 5),
+                rating_helpful INTEGER CHECK (rating_helpful >= 1 AND rating_helpful <= 5),
+                feedback_text TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                user_agent TEXT,
+                ip_address INET
+            );
+            """
+            cursor.execute(create_table_sql)
+            logger.info("创建新的 user_feedback 表")
+        else:
+            # 检查是否需要迁移（旧表有 rating 列，新表没有）
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'user_feedback' AND column_name = 'rating'
+                );
+            """)
+            has_old_rating = cursor.fetchone()[0]
+            
+            if has_old_rating:
+                # 需要迁移：重命名旧表，创建新表，迁移数据
+                logger.info("检测到旧表结构，开始迁移...")
+                
+                # 重命名旧表
+                cursor.execute("ALTER TABLE user_feedback RENAME TO user_feedback_old;")
+                
+                # 创建新表
+                create_table_sql = """
+                CREATE TABLE user_feedback (
+                    id SERIAL PRIMARY KEY,
+                    rating_overall INTEGER CHECK (rating_overall >= 1 AND rating_overall <= 5),
+                    rating_design INTEGER CHECK (rating_design >= 1 AND rating_design <= 5),
+                    rating_content INTEGER CHECK (rating_content >= 1 AND rating_content <= 5),
+                    rating_helpful INTEGER CHECK (rating_helpful >= 1 AND rating_helpful <= 5),
+                    feedback_text TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    user_agent TEXT,
+                    ip_address INET
+                );
+                """
+                cursor.execute(create_table_sql)
+                
+                # 迁移数据（旧 rating 映射到 rating_overall）
+                cursor.execute("""
+                    INSERT INTO user_feedback (
+                        id, rating_overall, feedback_text, created_at, user_agent, ip_address
+                    )
+                    SELECT 
+                        id, rating, feedback_text, created_at, user_agent, ip_address
+                    FROM user_feedback_old
+                    ORDER BY id;
+                """)
+                
+                # 删除旧表
+                cursor.execute("DROP TABLE user_feedback_old;")
+                
+                # 重置序列
+                cursor.execute("""
+                    SELECT setval('user_feedback_id_seq', 
+                        (SELECT MAX(id) FROM user_feedback), true);
+                """)
+                
+                logger.info("表迁移完成")
+            else:
+                # 检查新列是否存在，不存在则添加
+                new_columns = ['rating_overall', 'rating_design', 'rating_content', 'rating_helpful']
+                for col in new_columns:
+                    cursor.execute(f"""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.columns 
+                            WHERE table_name = 'user_feedback' AND column_name = '{col}'
+                        );
+                    """)
+                    if not cursor.fetchone()[0]:
+                        cursor.execute(f"""
+                            ALTER TABLE user_feedback 
+                            ADD COLUMN {col} INTEGER CHECK ({col} >= 1 AND {col} <= 5);
+                        """)
+                        logger.info(f"添加列: {col}")
         
         # 创建索引
-        create_index_sql = """
-        CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON user_feedback(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_feedback_overall ON user_feedback(rating_overall);
-        """
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_feedback_created_at 
+            ON user_feedback(created_at DESC);
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_feedback_overall 
+            ON user_feedback(rating_overall);
+        """)
         
-        cursor.execute(create_table_sql)
-        cursor.execute(create_index_sql)
         conn.commit()
-        
         logger.info("反馈表初始化成功")
         return True
         
