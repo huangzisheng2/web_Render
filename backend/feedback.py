@@ -219,5 +219,152 @@ def get_feedback_stats() -> Dict[str, Any]:
             conn.close()
 
 
+def get_admin_feedback_stats() -> Dict[str, Any]:
+    """获取管理员反馈统计数据（包含最近评论）"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 总反馈数
+        cursor.execute("SELECT COUNT(*) as total FROM user_feedback;")
+        total = cursor.fetchone()["total"]
+        
+        # 计算综合平均评分（所有维度的平均值）
+        avg_sql = """
+        SELECT 
+            AVG((COALESCE(rating_overall, 0) + COALESCE(rating_design, 0) + 
+                 COALESCE(rating_content, 0) + COALESCE(rating_helpful, 0))::float / 
+                NULLIF((rating_overall IS NOT NULL)::int + (rating_design IS NOT NULL)::int + 
+                       (rating_content IS NOT NULL)::int + (rating_helpful IS NOT NULL)::int, 0)
+            ) as avg_rating
+        FROM user_feedback;
+        """
+        cursor.execute(avg_sql)
+        avg_result = cursor.fetchone()
+        avg_rating = round(float(avg_result["avg_rating"] or 0), 1)
+        
+        # 各星级评分数量（基于 overall 评分）
+        cursor.execute("""
+            SELECT rating_overall as rating, COUNT(*) as count
+            FROM user_feedback
+            WHERE rating_overall IS NOT NULL
+            GROUP BY rating_overall
+            ORDER BY rating;
+        """)
+        rating_dist = {str(row["rating"]): row["count"] for row in cursor.fetchall()}
+        # 填充缺失的星级
+        for i in range(1, 6):
+            if str(i) not in rating_dist:
+                rating_dist[str(i)] = 0
+        
+        # 最近20条文字评论
+        cursor.execute("""
+            SELECT 
+                id,
+                rating_overall,
+                rating_design,
+                rating_content,
+                rating_helpful,
+                feedback_text,
+                created_at
+            FROM user_feedback
+            WHERE feedback_text IS NOT NULL AND feedback_text != ''
+            ORDER BY created_at DESC
+            LIMIT 20;
+        """)
+        comments = []
+        for row in cursor.fetchall():
+            comments.append({
+                "id": row["id"],
+                "ratings": {
+                    "overall": row["rating_overall"],
+                    "design": row["rating_design"],
+                    "content": row["rating_content"],
+                    "helpful": row["rating_helpful"]
+                },
+                "comment": row["feedback_text"],
+                "created_at": row["created_at"].strftime("%Y-%m-%d %H:%M:%S") if row["created_at"] else None
+            })
+        
+        return {
+            "success": True,
+            "total": total,
+            "avg_rating": avg_rating,
+            "rating_distribution": rating_dist,
+            "recent_comments": comments
+        }
+        
+    except Exception as e:
+        logger.error(f"获取管理员反馈统计失败: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+    finally:
+        if conn:
+            conn.close()
+
+
+def export_feedback_to_csv() -> str:
+    """导出所有反馈数据为CSV格式字符串"""
+    import csv
+    import io
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 获取所有反馈数据
+        cursor.execute("""
+            SELECT 
+                id,
+                rating_overall,
+                rating_design,
+                rating_content,
+                rating_helpful,
+                feedback_text,
+                created_at,
+                user_agent,
+                ip_address
+            FROM user_feedback
+            ORDER BY created_at DESC;
+        """)
+        
+        # 创建CSV字符串
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # 写入表头
+        writer.writerow([
+            'id', 'rating_overall', 'rating_design', 'rating_content', 'rating_helpful',
+            'feedback_text', 'created_at', 'user_agent', 'ip_address'
+        ])
+        
+        # 写入数据
+        for row in cursor.fetchall():
+            writer.writerow([
+                row['id'],
+                row['rating_overall'],
+                row['rating_design'],
+                row['rating_content'],
+                row['rating_helpful'],
+                row['feedback_text'] or '',
+                row['created_at'].strftime("%Y-%m-%d %H:%M:%S") if row['created_at'] else '',
+                row['user_agent'] or '',
+                str(row['ip_address']) if row['ip_address'] else ''
+            ])
+        
+        return output.getvalue()
+        
+    except Exception as e:
+        logger.error(f"导出反馈数据失败: {str(e)}")
+        raise
+    finally:
+        if conn:
+            conn.close()
+
+
 # 初始化表（在模块导入时执行）
 init_feedback_table()

@@ -22,7 +22,10 @@ import traceback
 # 导入业务服务
 from services.bazi_service_web import BaziAnalysisServiceWeb
 from services.pdf_service import PDFService
-from feedback import submit_feedback, get_feedback_stats
+from feedback import submit_feedback, get_feedback_stats, get_admin_feedback_stats, export_feedback_to_csv
+
+from fastapi.responses import StreamingResponse
+import io
 
 app = FastAPI(
     title="天赋性格测评系统 API",
@@ -296,6 +299,66 @@ def get_feedback_statistics():
         return {
             "success": False,
             "error": f"获取统计失败: {str(e)}"
+        }
+
+
+# ==================== 管理员接口（仅调试模式） ====================
+
+@app.get("/admin/feedback/stats")
+def admin_feedback_stats(http_request: Request):
+    """
+    管理员反馈统计数据（调试模式专用）
+    
+    返回总反馈数、平均评分、各星级分布、最近20条评论
+    需要 X-Debug-Mode: true 请求头
+    """
+    # 验证调试模式
+    debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
+    if not debug_mode:
+        raise HTTPException(status_code=403, detail="禁止访问：需要调试模式权限")
+    
+    try:
+        stats = get_admin_feedback_stats()
+        return stats
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"获取统计失败: {str(e)}"
+        }
+
+
+@app.get("/admin/feedback/export")
+def admin_feedback_export(http_request: Request):
+    """
+    导出所有反馈数据为CSV（调试模式专用）
+    
+    需要 X-Debug-Mode: true 请求头
+    """
+    # 验证调试模式
+    debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
+    if not debug_mode:
+        raise HTTPException(status_code=403, detail="禁止访问：需要调试模式权限")
+    
+    try:
+        # 生成CSV数据
+        csv_data = export_feedback_to_csv()
+        
+        # 生成文件名
+        from datetime import datetime
+        filename = f"feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        # 返回流式响应
+        return StreamingResponse(
+            io.StringIO(csv_data),
+            media_type="text/csv; charset=utf-8-sig",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"导出失败: {str(e)}"
         }
 
 

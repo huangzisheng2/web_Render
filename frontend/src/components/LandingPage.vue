@@ -18,8 +18,8 @@
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
           </svg>
         </div>
-        <h1 class="main-title">青少年天赋探索</h1>
-        <p class="subtitle">发现你的独特潜能</p>
+        <h1 class="main-title">先天天赋探索</h1>
+        <p class="subtitle">融合东方智慧分析独特潜能</p>
       </div>
       
       <!-- 介绍卡片 -->

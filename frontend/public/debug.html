@@ -4,14 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>八字分析调试页面</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
-        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; background: #667eea; color: white; border: none; border-radius: 5px; }
-        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; max-height: 500px; overflow-y: auto; }
-        .section { margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 10px; }
-        h2 { color: #667eea; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #f5f7fa;
+        }
+        h1 { color: #333; margin-bottom: 30px; }
+        h2 { color: #667eea; margin-top: 0; }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            background: #667eea; 
+            color: white; 
+            border: none; 
+            border-radius: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        button:hover { background: #5a67d8; }
+        button.secondary { background: #48bb78; }
+        button.secondary:hover { background: #38a169; }
+        button:disabled { background: #cbd5e0; cursor: not-allowed; }
+        pre { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            max-height: 500px; 
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            background: white; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
         .success { color: green; }
         .error { color: red; }
+        
+        /* 反馈看板样式 */
+        .feedback-dashboard { margin-top: 20px; }
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-card h4 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .stat-card.rating { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-card.stars { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            height: 300px;
+        }
+        
+        .comments-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .comments-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .comment-item {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+        }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-rating {
+            display: flex;
+            gap: 2px;
+            color: #f6e05e;
+            font-size: 14px;
+        }
+        .comment-content {
+            flex: 1;
+        }
+        .comment-text {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 5px 0;
+        }
+        .comment-time {
+            color: #a0aec0;
+            font-size: 12px;
+        }
+        .no-comment {
+            color: #a0aec0;
+            font-style: italic;
+        }
+        
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -29,8 +174,35 @@
         <div id="structureResult"></div>
     </div>
 
+    <!-- 用户反馈数据看板 -->
+    <div class="section">
+        <h2>用户反馈数据看板</h2>
+        <div class="action-bar">
+            <button onclick="loadFeedbackStats()" id="refreshBtn">
+                <span id="refreshSpinner" style="display:none" class="spinner"></span>
+                刷新数据
+            </button>
+            <button onclick="exportFeedbackCSV()" class="secondary" id="exportBtn">
+                <span id="exportSpinner" style="display:none" class="spinner"></span>
+                导出CSV
+            </button>
+        </div>
+        <div id="feedbackDashboard" class="feedback-dashboard">
+            <p style="color: #718096; text-align: center; padding: 40px;">
+                点击"刷新数据"按钮加载反馈统计
+            </p>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'https://bazi-talent-api.onrender.com';
+        let feedbackChart = null;
+        
+        // 统一的调试请求头
+        const debugHeaders = {
+            'Content-Type': 'application/json',
+            'X-Debug-Mode': 'true'
+        };
         
         async function testBackend() {
             const resultDiv = document.getElementById('apiResult');
@@ -39,10 +211,7 @@
             try {
                 const response = await fetch(`${API_URL}/api/analyze`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Debug-Mode': 'true'  // 调试模式：只返回基础数据，不自动执行AI分析
-                    },
+                    headers: debugHeaders,
                     body: JSON.stringify({
                         name: "测试",
                         year: 1998,
@@ -59,7 +228,6 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 保存到全局变量供下一个测试使用
                     window.lastApiResponse = data.data;
                     
                     resultDiv.innerHTML = `
@@ -91,7 +259,6 @@
             
             const raw = window.lastApiResponse.raw_data || {};
             
-            // 检查各个论级
             const checks = {
                 '第一论级_月令与格局': raw['第一论级_月令与格局'],
                 '第二论级_地支关系': raw['第二论级_地支关系'],
@@ -116,13 +283,11 @@
             }
             html += '</ul>';
             
-            // 详细显示第一论级
             if (checks['第一论级_月令与格局']) {
                 html += '<h3>第一论级详情：</h3><pre>' + 
                     JSON.stringify(checks['第一论级_月令与格局'], null, 2) + '</pre>';
             }
             
-            // 详细显示第二论级
             if (checks['第二论级_地支关系']) {
                 html += '<h3>第二论级详情：</h3><pre>' + 
                     JSON.stringify(checks['第二论级_地支关系'], null, 2) + '</pre>';
@@ -130,6 +295,224 @@
             
             resultDiv.innerHTML = html;
         }
+        
+        // ==================== 反馈数据看板功能 ====================
+        
+        async function loadFeedbackStats() {
+            const dashboard = document.getElementById('feedbackDashboard');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const spinner = document.getElementById('refreshSpinner');
+            
+            refreshBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            
+            try {
+                const response = await fetch(`${API_URL}/admin/feedback/stats`, {
+                    headers: { 'X-Debug-Mode': 'true' }
+                });
+                
+                if (response.status === 403) {
+                    dashboard.innerHTML = `
+                        <div class="error-message">
+                            ❌ 禁止访问：需要调试模式权限<br>
+                            请确保 URL 包含 ?debug=true 参数
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderFeedbackDashboard(data);
+                } else {
+                    dashboard.innerHTML = `
+                        <div class="error-message">
+                            ❌ 加载失败: ${data.error || '未知错误'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                dashboard.innerHTML = `
+                    <div class="error-message">
+                        ❌ 请求失败: ${error.message}
+                    </div>
+                `;
+            } finally {
+                refreshBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+        
+        function renderFeedbackDashboard(data) {
+            const dashboard = document.getElementById('feedbackDashboard');
+            const dist = data.rating_distribution;
+            
+            // 统计卡片
+            const statsHtml = `
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <h4>总反馈数</h4>
+                        <p class="number">${data.total}</p>
+                    </div>
+                    <div class="stat-card rating">
+                        <h4>平均评分</h4>
+                        <p class="number">${data.avg_rating}</p>
+                    </div>
+                    <div class="stat-card stars">
+                        <h4>五星好评</h4>
+                        <p class="number">${dist['5'] || 0}</p>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px;">
+                    ${[1,2,3,4,5].map(star => `
+                        <div style="text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                            <div style="color: #f6e05e; font-size: 20px;">${'★'.repeat(star)}</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #4a5568; margin-top: 8px;">${dist[star] || 0}</div>
+                            <div style="font-size: 12px; color: #718096;">${star}星</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="ratingChart"></canvas>
+                </div>
+                
+                <div class="comments-section">
+                    <h3>最新文字反馈 (${data.recent_comments.length}条)</h3>
+                    <div class="comments-list">
+                        ${data.recent_comments.length === 0 ? 
+                            '<p style="color: #a0aec0; text-align: center; padding: 20px;">暂无文字反馈</p>' :
+                            data.recent_comments.map(c => `
+                                <div class="comment-item">
+                                    <div class="comment-rating">
+                                        ${c.ratings.overall ? '★'.repeat(c.ratings.overall) : '-'}
+                                    </div>
+                                    <div class="comment-content">
+                                        <div class="comment-text">${c.comment || '<span class="no-comment">无文字</span>'}</div>
+                                        <div class="comment-time">${c.created_at}</div>
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
+            
+            dashboard.innerHTML = statsHtml;
+            
+            // 渲染图表
+            renderRatingChart(dist);
+        }
+        
+        function renderRatingChart(dist) {
+            const ctx = document.getElementById('ratingChart');
+            if (!ctx) return;
+            
+            // 销毁旧图表
+            if (feedbackChart) {
+                feedbackChart.destroy();
+            }
+            
+            feedbackChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1星', '2星', '3星', '4星', '5星'],
+                    datasets: [{
+                        label: '反馈数量',
+                        data: [dist['1']||0, dist['2']||0, dist['3']||0, dist['4']||0, dist['5']||0],
+                        backgroundColor: [
+                            'rgba(245, 87, 108, 0.8)',
+                            'rgba(255, 159, 64, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(102, 126, 234, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(245, 87, 108, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(102, 126, 234, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: '评分分布统计',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+        
+        async function exportFeedbackCSV() {
+            const exportBtn = document.getElementById('exportBtn');
+            const spinner = document.getElementById('exportSpinner');
+            
+            exportBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            
+            try {
+                const response = await fetch(`${API_URL}/admin/feedback/export`, {
+                    headers: { 'X-Debug-Mode': 'true' }
+                });
+                
+                if (response.status === 403) {
+                    alert('❌ 禁止访问：需要调试模式权限');
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error('导出失败');
+                }
+                
+                // 获取文件名
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'feedback_export.csv';
+                if (disposition) {
+                    const match = disposition.match(/filename="(.+)"/);
+                    if (match) filename = match[1];
+                }
+                
+                // 下载文件
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                alert('✅ CSV导出成功！');
+            } catch (error) {
+                alert('❌ 导出失败: ' + error.message);
+            } finally {
+                exportBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+        
+        // 页面加载时自动加载反馈数据
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFeedbackStats();
+        });
     </script>
 </body>
 </html>

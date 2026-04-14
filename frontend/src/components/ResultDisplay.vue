@@ -291,7 +291,7 @@ const ratingDimensions = [
   { key: 'overall', label: '整体体验' },
   { key: 'design', label: '设计美观' },
   { key: 'content', label: '分析内容' },
-  { key: 'helpful', label: '对我有帮助' }
+  { key: 'helpful', label: '是否对你有帮助' }
 ]
 
 // 是否至少有一个评分
