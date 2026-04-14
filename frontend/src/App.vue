@@ -203,7 +203,19 @@ const handleDownload = async () => {
   }
 }
 
-// 前端生成 PDF（优化版 - 减小文件大小）
+// 检测是否为移动设备
+const isMobileDevice = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
+}
+
+// 检测是否为 iOS 设备
+const isIOSDevice = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /iphone|ipad|ipod/i.test(userAgent.toLowerCase())
+}
+
+// 前端生成 PDF（手机端优化版）
 const generatePDF = async () => {
   try {
     const aiReport = result.value?.ai_report
@@ -216,6 +228,8 @@ const generatePDF = async () => {
     
     const userName = result.value.user_info?.name || '匿名'
     const gender = result.value.user_info?.gender || '未知'
+    const isMobile = isMobileDevice()
+    const isIOS = isIOSDevice()
     
     // 创建临时容器用于渲染PDF内容
     const container = document.createElement('div')
@@ -253,10 +267,10 @@ const generatePDF = async () => {
     
     document.body.appendChild(container)
     
-    // 使用html2canvas渲染为图片（平衡清晰度与文件大小）
+    // 根据设备类型调整渲染参数
     const html2canvas = await import('html2canvas')
     const canvas = await html2canvas.default(container, {
-      scale: 2,  // 提高分辨率保证清晰度
+      scale: isMobile ? 1.5 : 2,  // 手机端降低分辨率以减小文件大小
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
@@ -270,8 +284,9 @@ const generatePDF = async () => {
     const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF('p', 'mm', 'a4')
     
-    // 使用 JPEG 格式，质量 0.92（清晰度优先，控制在10MB以下）
-    const imgData = canvas.toDataURL('image/jpeg', 0.92)
+    // 手机端使用稍低的 JPEG 质量以优化文件大小
+    const jpegQuality = isMobile ? 0.88 : 0.92
+    const imgData = canvas.toDataURL('image/jpeg', jpegQuality)
     const imgWidth = 210
     const pageHeight = 297
     const imgHeight = (canvas.height * imgWidth) / canvas.width
@@ -279,7 +294,7 @@ const generatePDF = async () => {
     let heightLeft = imgHeight
     let position = 0
     
-    // 添加图片（使用 MEDIUM 压缩平衡质量与大小）
+    // 添加图片
     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'MEDIUM')
     heightLeft -= pageHeight
     
@@ -291,11 +306,64 @@ const generatePDF = async () => {
       heightLeft -= pageHeight
     }
     
-    pdf.save(`${userName}天赋分析报告.pdf`)
-    showToast('PDF 已生成')
+    // 生成文件名
+    const fileName = `${userName}天赋分析报告.pdf`
+    
+    // 根据设备类型选择下载方式
+    if (isIOS) {
+      // iOS 设备：使用 Blob 和 URL 方案，在新窗口打开
+      const pdfBlob = pdf.output('blob')
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      
+      // 创建隐藏的下载链接
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = fileName
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      
+      // 尝试触发下载
+      const clickEvent = new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true
+      })
+      link.dispatchEvent(clickEvent)
+      
+      // 清理
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(pdfUrl)
+      }, 100)
+      
+      showToast('PDF 已生成，请查看下载')
+    } else if (isMobile) {
+      // Android 和其他移动设备
+      const pdfBlob = pdf.output('blob')
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      
+      // 尝试使用 download 属性
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = fileName
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(pdfUrl)
+      }, 100)
+      
+      showToast('PDF 已生成')
+    } else {
+      // 桌面端：使用标准 save 方法
+      pdf.save(fileName)
+      showToast('PDF 已生成')
+    }
   } catch (error) {
     console.error('PDF生成错误:', error)
-    showToast('PDF生成失败', 'error')
+    showToast('PDF生成失败，请重试', 'error')
   }
 }
 </script>

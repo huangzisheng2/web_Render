@@ -69,13 +69,16 @@
 
     <!-- 操作按钮 -->
     <div class="report-actions" v-if="report">
-      <button class="action-btn primary" @click="$emit('download')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="action-btn primary" @click="handleDownload">
+        <svg v-if="!isDownloading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        下载 PDF 报告
+        <svg v-else class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        {{ isDownloading ? '生成中...' : '下载 PDF 报告' }}
       </button>
       <button class="action-btn secondary" @click="$emit('regenerate')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,11 +88,22 @@
         重新生成
       </button>
     </div>
+    
+    <!-- 移动端下载提示 -->
+    <div v-if="showMobileTip" class="mobile-download-tip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <p>PDF 已生成！如未自动下载，请检查浏览器下载记录或文件管理器</p>
+      <button @click="showMobileTip = false" class="tip-close">知道了</button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   report: {
@@ -102,7 +116,35 @@ const props = defineProps({
   }
 })
 
-defineEmits(['generate', 'download', 'regenerate'])
+const emit = defineEmits(['generate', 'download', 'regenerate'])
+
+// 下载状态
+const isDownloading = ref(false)
+const showMobileTip = ref(false)
+
+// 检测是否为移动设备
+const isMobileDevice = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
+}
+
+// 处理下载
+const handleDownload = async () => {
+  isDownloading.value = true
+  
+  try {
+    await emit('download')
+    
+    // 移动端显示提示
+    if (isMobileDevice()) {
+      setTimeout(() => {
+        showMobileTip.value = true
+      }, 500)
+    }
+  } finally {
+    isDownloading.value = false
+  }
+}
 
 // 格式化报告内容
 const formattedReport = computed(() => {
@@ -416,6 +458,64 @@ const formattedReport = computed(() => {
 
 .action-btn.secondary:hover {
   background: #e2e8f0;
+}
+
+.action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 移动端下载提示 */
+.mobile-download-tip {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.mobile-download-tip svg {
+  width: 32px;
+  height: 32px;
+  color: #0ea5e9;
+}
+
+.mobile-download-tip p {
+  margin: 0;
+  font-size: 14px;
+  color: #0369a1;
+  line-height: 1.5;
+}
+
+.tip-close {
+  padding: 8px 20px;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tip-close:hover {
+  background: #0284c7;
 }
 
 /* 响应式 - 手机端优化 */
