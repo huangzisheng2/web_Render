@@ -118,10 +118,15 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
     调试模式（X-Debug-Mode: true）：仅返回基础分析数据，AI分析需手动调用 /api/analyze-ai
     用户模式（默认）：自动执行 Step 4（基础分析）+ Step 5（AI分析），合并返回完整结果
     """
+    import time
+    total_start = time.time()
+    
     try:
         # 检测调试模式
         debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
-        print(f"[DEBUG] 调试模式: {debug_mode}")
+        print(f"[TIMER] ========== 新的分析请求 ==========")
+        print(f"[TIMER] 调试模式: {debug_mode}")
+        print(f"[TIMER] 请求数据: {request.name}, {request.year}-{request.month}-{request.day}")
         
         # 转换为内部格式
         birth_data = {
@@ -137,18 +142,24 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
         }
 
         # 执行基础分析（Step 4）
+        step4_start = time.time()
+        print(f"[TIMER] Step 4 开始: 基础八字分析")
         result = bazi_service.analyze_basic(birth_data)
+        step4_time = time.time() - step4_start
+        print(f"[TIMER] Step 4 完成: 基础八字分析耗时 {step4_time:.2f}s")
         
         if debug_mode:
             # 调试模式：返回完整基础数据（Step 4完成，Step 5需手动触发）
-            print("[DEBUG] 调试模式，返回基础分析数据（Step 4完成，Step 5需手动触发）")
+            print("[TIMER] 调试模式，返回基础分析数据（Step 4完成，Step 5需手动触发）")
+            total_time = time.time() - total_start
+            print(f"[TIMER] ========== 请求完成(调试模式) 总耗时: {total_time:.2f}s ==========")
             return {
                 "success": True,
                 "data": result
             }
         else:
             # 用户模式：自动执行 AI 分析（Step 4 + Step 5 合并）
-            print("[DEBUG] 用户模式，自动执行 AI 分析（Step 4 + Step 5）")
+            print("[TIMER] Step 5 开始: AI 分析报告生成")
             
             # 获取 report_id 用于 AI 分析
             report_id = result.get("report_id")
@@ -156,7 +167,10 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 report_id = f"bazi_{request.name}_{request.year}{request.month:02d}{request.day:02d}"
             
             # 自动执行 AI 分析（Step 5）
+            step5_start = time.time()
             ai_report = bazi_service.analyze_ai(report_id, result)
+            step5_time = time.time() - step5_start
+            print(f"[TIMER] Step 5 完成: AI 分析耗时 {step5_time:.2f}s")
             
             # 清理用户模式不需要的大字段
             if "raw_data" in result:
@@ -171,6 +185,9 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 "ai_report": ai_report
             }
             
+            total_time = time.time() - total_start
+            print(f"[TIMER] ========== 请求完成 总耗时: {total_time:.2f}s (Step4: {step4_time:.2f}s, Step5: {step5_time:.2f}s) ==========")
+            
             return {
                 "success": True,
                 "data": user_result
@@ -178,7 +195,10 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
 
     except Exception as e:
         error_trace = traceback.format_exc()
-        print(f"分析错误: {str(e)}\n{error_trace}")
+        print(f"[TIMER] [FAIL] 分析失败: {str(e)}")
+        print(f"[TIMER] [FAIL] 错误详情:\n{error_trace}")
+        total_time = time.time() - total_start
+        print(f"[TIMER] ========== 请求失败 总耗时: {total_time:.2f}s ==========")
         return {
             "success": False,
             "error": f"分析失败: {str(e)}"

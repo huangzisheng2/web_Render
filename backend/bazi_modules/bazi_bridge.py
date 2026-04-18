@@ -4,6 +4,7 @@ Bazi Bridge - Python 桥接脚本
 """
 import json
 import traceback
+import time
 
 
 def analyze_bazi_unified(year, month, day, hour, minute, is_male, liunian_year, 
@@ -31,6 +32,8 @@ def analyze_bazi_unified(year, month, day, hour, minute, is_male, liunian_year,
     Returns:
         字典格式的分析结果
     """
+    core_start = time.time()
+    
     from lunar_python import Solar, Lunar
     from bazi_geju_refactored_v5 import GeJuAnalyzerV5
     from true_solar_time import convert_to_true_solar_time_for_bazi, format_true_solar_time_result
@@ -166,6 +169,9 @@ def analyze_bazi_unified(year, month, day, hour, minute, is_male, liunian_year,
             'latitude': true_solar_result['latitude'],
             'formatted_result': format_true_solar_time_result(true_solar_result)
         }
+    
+    core_time = time.time() - core_start
+    print(f"[TIMER] bazi_core 命理分析完成: 总耗时 {core_time:.3f}s")
     
     return output
 
