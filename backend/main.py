@@ -283,7 +283,7 @@ async def analyze_bazi(request: AnalyzeRequest, http_request: Request):
             
             # 如果后处理时间超过5秒，记录警告（可能是网络传输慢）
             if step5_post_time > 5:
-                print(f"[WARN] 后处理时间过长: {step5_post_time:.2f}s，可能网络传输缓慢"
+                print(f"[WARN] 后处理时间过长: {step5_post_time:.2f}s，可能网络传输缓慢")
             
             return {
                 "success": True,
