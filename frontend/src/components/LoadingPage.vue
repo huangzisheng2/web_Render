@@ -74,10 +74,32 @@
       </transition>
       
       <!-- 预计时间 -->
-      <p v-if="!reportReady" class="time-estimate">预计需要 10-20 秒</p>
+      <p v-if="!reportReady" class="time-estimate">预计需要 1-2 分钟</p>
+      
+      <!-- 等待提示 -->
+      <p v-if="!reportReady" class="wait-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        <span>AI分析正在精心生成中，您可以暂时离开页面，报告完成后将自动显示</span>
+      </p>
+      
+      <!-- 超时重试按钮 -->
+      <transition name="fade-up">
+        <div v-if="!reportReady && showRetryButton" class="retry-section">
+          <p class="retry-hint">分析时间较长，可能是网络波动导致</p>
+          <button class="retry-btn" @click="handleRetry">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            <span>重新分析</span>
+          </button>
+        </div>
+      </transition>
       
       <!-- 错误重试提示 -->
-      <div v-if="!reportReady" class="error-hint">
+      <div v-if="!reportReady && !showRetryButton" class="error-hint">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="12" y1="8" x2="12" y2="12"/>
@@ -99,7 +121,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['continue'])
+const emit = defineEmits(['continue', 'retry'])
 
 const steps = ['分析八字', '计算五行', 'AI解读', '生成报告']
 const currentStep = ref(0)
@@ -112,6 +134,11 @@ const tips = [
   '你的独特之处，正是你的价值所在'
 ]
 const currentTip = ref(0)
+
+// 重试按钮显示控制
+const showRetryButton = ref(false)
+const RETRY_TIMEOUT = 3 * 60 * 1000 // 3分钟
+let retryTimer = null
 
 let stepInterval = null
 let tipInterval = null
@@ -130,19 +157,47 @@ onMounted(() => {
       currentTip.value = (currentTip.value + 1) % tips.length
     }
   }, 4000)
+  
+  // 3分钟后显示重试按钮
+  retryTimer = setTimeout(() => {
+    if (!props.reportReady) {
+      showRetryButton.value = true
+    }
+  }, RETRY_TIMEOUT)
 })
 
 onUnmounted(() => {
   clearInterval(stepInterval)
   clearInterval(tipInterval)
+  clearTimeout(retryTimer)
 })
 
 // 当报告准备好时，自动完成所有步骤
 watch(() => props.reportReady, (newVal) => {
   if (newVal) {
     currentStep.value = steps.length - 1
+    showRetryButton.value = false
+    clearTimeout(retryTimer)
   }
 })
+
+// 处理重试
+const handleRetry = () => {
+  showRetryButton.value = false
+  currentStep.value = 0
+  currentTip.value = 0
+  
+  // 重新启动重试计时器
+  clearTimeout(retryTimer)
+  retryTimer = setTimeout(() => {
+    if (!props.reportReady) {
+      showRetryButton.value = true
+    }
+  }, RETRY_TIMEOUT)
+  
+  // 触发重试事件
+  emit('retry')
+}
 </script>
 
 <style scoped>
@@ -492,7 +547,103 @@ watch(() => props.reportReady, (newVal) => {
 .time-estimate {
   font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   color: #A0AEC0;
-  margin: 0 0 3vh;
+  margin: 0 0 2vh;
+}
+
+/* 等待提示 */
+.wait-hint {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2vw;
+  padding: 2vh 4vw;
+  background: linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 100%);
+  border-radius: 12px;
+  border: 1px solid #BAE6FD;
+  max-width: 90%;
+  margin: 0 auto 3vh;
+  text-align: left;
+}
+
+.wait-hint svg {
+  width: 5vw;
+  max-width: 20px;
+  min-width: 18px;
+  height: auto;
+  color: #0EA5E9;
+  flex-shrink: 0;
+  margin-top: 2px;
+  animation: spin 3s linear infinite;
+}
+
+.wait-hint span {
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
+  color: #0369A1;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* 重试区域 */
+.retry-section {
+  margin: 2vh auto 3vh;
+  padding: 3vh 4vw;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border-radius: 16px;
+  border: 1px solid #FCD34D;
+  max-width: 90%;
+  animation: fadeUp 0.5s ease;
+}
+
+.retry-hint {
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
+  color: #92400E;
+  margin: 0 0 2vh;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2vw;
+  width: 100%;
+  padding: 2vh 4vw;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+  transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+}
+
+.retry-btn:active {
+  transform: translateY(0);
+}
+
+.retry-btn svg {
+  width: 5vw;
+  max-width: 20px;
+  min-width: 18px;
+  height: auto;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 错误重试提示 */
@@ -534,6 +685,18 @@ watch(() => props.reportReady, (newVal) => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 渐变上浮动画 */
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: all 0.5s ease;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
 }
 
 /* 响应式 */
@@ -621,6 +784,40 @@ watch(() => props.reportReady, (newVal) => {
   
   .time-estimate {
     font-size: 14px;
+  }
+  
+  .wait-hint {
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    gap: 12px;
+  }
+  
+  .wait-hint svg {
+    width: 20px;
+  }
+  
+  .wait-hint span {
+    font-size: 14px;
+  }
+  
+  .retry-section {
+    padding: 24px 20px;
+    margin-bottom: 24px;
+  }
+  
+  .retry-hint {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .retry-btn {
+    padding: 14px 24px;
+    gap: 8px;
+    font-size: 15px;
+  }
+  
+  .retry-btn svg {
+    width: 20px;
   }
 }
 

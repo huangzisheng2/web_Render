@@ -38,6 +38,7 @@
         key="loading"
         :report-ready="reportGenerationStatus === 'completed'"
         @continue="goToResult"
+        @retry="handleReportRetry"
       />
       
       <!-- 6. 结果展示页 -->
@@ -285,6 +286,41 @@ const handleQuizComplete = (answers) => {
   } else {
     // 报告未生成或出错，跳转到 loading 页等待
     goToLoading()
+  }
+}
+
+// 处理报告重试
+const handleReportRetry = async () => {
+  if (!pendingFormData.value) {
+    showToast('无法获取表单数据，请重新填写', 'error')
+    currentPage.value = 'form'
+    return
+  }
+  
+  showToast('正在重新分析...', 'info')
+  reportGenerationStatus.value = 'generating'
+  
+  try {
+    const response = await analyzeBazi(pendingFormData.value)
+    
+    if (!response.success) {
+      console.error('报告重试失败:', response.error)
+      showToast(response.error || '分析失败，请稍后重试', 'error')
+      reportGenerationStatus.value = 'error'
+      return
+    }
+    
+    result.value = response.data
+    reportGenerationStatus.value = 'completed'
+    showToast('分析完成')
+    
+    // 清除待处理状态
+    localStorage.removeItem('pendingAnalysis')
+    
+  } catch (error) {
+    console.error('报告重试错误:', error)
+    showToast('网络错误，请检查网络后重试', 'error')
+    reportGenerationStatus.value = 'error'
   }
 }
 
