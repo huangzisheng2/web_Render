@@ -690,4 +690,72 @@ const formattedReport = computed(() => {
     font-size: 15px;
   }
 }
+
+/* 电脑端 */
+@media (min-width: 1024px) {
+  .ai-report-container {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 28px;
+  }
+  
+  .section-header {
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+  }
+  
+  .header-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .header-title {
+    font-size: 19px;
+  }
+  
+  .summary-cards {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  
+  .summary-card {
+    padding: 20px 16px;
+  }
+  
+  .card-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  
+  .formatted-report {
+    padding: 24px;
+  }
+  
+  :deep(.report-h2) {
+    font-size: 19px;
+    margin: 24px 0 14px;
+  }
+  
+  :deep(.report-h3) {
+    font-size: 17px;
+    margin: 20px 0 12px;
+  }
+  
+  :deep(.report-p) {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+  
+  .report-actions {
+    gap: 14px;
+    margin-top: 24px;
+  }
+  
+  .action-btn {
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+}
 </style>

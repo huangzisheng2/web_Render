@@ -355,7 +355,63 @@ defineEmits(['start'])
   }
 }
 
-@media (min-width: 768px) {
+/* 电脑端 */
+@media (min-width: 1024px) {
+  .landing-page {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  .content-wrapper {
+    max-width: 400px;
+    padding: 40px 20px;
+  }
+  
+  .logo-icon {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 20px;
+  }
+  
+  .main-title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  .intro-card {
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .feature-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .feature-text h3 {
+    font-size: 15px;
+  }
+  
+  .feature-text p {
+    font-size: 13px;
+  }
+  
+  .disclaimer {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .start-btn {
+    padding: 16px 32px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
   .content-wrapper {
     max-width: 440px;
   }

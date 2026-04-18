@@ -759,21 +759,23 @@ const submit = () => {
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
   
+  .form-header {
+    padding: 16px 20px;
+  }
+  
   .form-content {
-    max-width: 440px;
+    max-width: 400px;
+    padding: 24px 20px;
   }
   
   .form-card {
     padding: 20px 24px;
-  }
-  
-  .gender-icon {
-    width: 28px;
-    height: 28px;
+    margin-bottom: 16px;
   }
   
   .card-label {
     font-size: 14px;
+    margin-bottom: 12px;
   }
   
   .card-label svg {
@@ -782,13 +784,53 @@ const submit = () => {
     min-width: 16px;
   }
   
-  .gender-btn {
-    padding: 16px;
-    gap: 8px;
+  .name-input {
+    padding: 14px 16px;
+    font-size: 15px;
   }
   
   .gender-options {
     gap: 12px;
+  }
+  
+  .gender-btn {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+  
+  .gender-icon {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .datetime-trigger,
+  .location-trigger {
+    padding: 14px 16px;
+  }
+  
+  .datetime-display,
+  .location-display {
+    font-size: 15px;
+  }
+  
+  .location-hint {
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  
+  .form-footer {
+    padding: 20px;
+  }
+  
+  .accuracy-hint {
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  
+  .submit-btn {
+    padding: 14px 24px;
+    font-size: 16px;
   }
 }
 

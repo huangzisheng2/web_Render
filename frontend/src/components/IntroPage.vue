@@ -449,7 +449,71 @@ defineEmits(['next'])
   }
 }
 
-@media (min-width: 768px) {
+/* 电脑端 */
+@media (min-width: 1024px) {
+  .intro-page {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  .content-wrapper {
+    max-width: 400px;
+    padding: 40px 20px;
+  }
+  
+  .header-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+  }
+  
+  .main-title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  .header-section {
+    margin-bottom: 24px;
+  }
+  
+  .intro-cards {
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .intro-card {
+    padding: 16px 20px;
+  }
+  
+  .card-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .card-content h3 {
+    font-size: 15px;
+  }
+  
+  .card-content p {
+    font-size: 13px;
+  }
+  
+  .process-section {
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+  
+  .next-btn {
+    padding: 16px 32px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
   .content-wrapper {
     max-width: 520px;
   }

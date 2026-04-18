@@ -1180,4 +1180,66 @@ const handleRegenerateAI = () => {
     font-size: 15px;
   }
 }
+
+/* 电脑端 */
+@media (min-width: 1024px) {
+  .result-container {
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  .report-header {
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  
+  .user-name {
+    font-size: 22px;
+  }
+  
+  .user-meta {
+    font-size: 14px;
+  }
+  
+  .section-block {
+    margin-bottom: 24px;
+  }
+  
+  .ai-trigger-card {
+    padding: 40px;
+  }
+  
+  .ai-trigger-icon {
+    width: 64px;
+    height: 64px;
+  }
+  
+  .ai-trigger-title {
+    font-size: 20px;
+  }
+  
+  .feedback-card {
+    padding: 28px;
+  }
+  
+  .rating-row {
+    padding: 12px 0;
+  }
+  
+  .feedback-textarea {
+    padding: 14px 16px;
+  }
+  
+  .action-bar {
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 24px;
+  }
+  
+  .action-btn {
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+}
 </style>

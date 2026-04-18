@@ -556,6 +556,74 @@ watch(() => props.reportReady, (newVal) => {
   }
 }
 
+/* 电脑端 */
+@media (min-width: 1024px) {
+  .loading-page {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+    padding: 40px 20px;
+  }
+  
+  .content {
+    max-width: 400px;
+  }
+  
+  .loading-animation {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 32px;
+  }
+  
+  .complete-animation {
+    margin-bottom: 32px;
+  }
+  
+  .complete-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .loading-title {
+    font-size: 22px;
+    margin-bottom: 32px;
+  }
+  
+  .loading-subtitle {
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+  
+  .progress-steps {
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  
+  .step-dot {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .step-text {
+    font-size: 13px;
+  }
+  
+  .continue-btn {
+    width: 280px;
+    padding: 16px 32px;
+    margin-bottom: 32px;
+  }
+  
+  .fun-tip {
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+  
+  .time-estimate {
+    font-size: 14px;
+  }
+}
+
 @media (max-height: 600px) and (orientation: landscape) {
   .loading-page {
     padding-top: 2vh;

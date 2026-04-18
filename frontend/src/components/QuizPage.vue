@@ -501,4 +501,75 @@ const submitQuiz = () => {
     margin-top: 2vh;
   }
 }
+
+/* 电脑端 */
+@media (min-width: 1024px) {
+  .quiz-page {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+    padding: 40px 20px;
+  }
+  
+  .quiz-container {
+    max-width: 400px;
+  }
+  
+  .progress-bar {
+    margin-bottom: 24px;
+  }
+  
+  .question-number {
+    margin-bottom: 20px;
+  }
+  
+  .current {
+    font-size: 28px;
+  }
+  
+  .total {
+    font-size: 16px;
+  }
+  
+  .question-card {
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  
+  .question-text {
+    font-size: 17px;
+    margin-bottom: 24px;
+  }
+  
+  .options-list {
+    gap: 12px;
+  }
+  
+  .option-btn {
+    padding: 16px 20px;
+  }
+  
+  .option-letter {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .option-text {
+    font-size: 15px;
+  }
+  
+  .nav-buttons {
+    gap: 12px;
+  }
+  
+  .nav-btn {
+    padding: 16px 24px;
+    font-size: 15px;
+  }
+  
+  .quiz-tip {
+    margin-top: 24px;
+    font-size: 13px;
+  }
+}
 </style>
