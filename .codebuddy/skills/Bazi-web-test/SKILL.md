@@ -139,7 +139,9 @@ Rule 3: 新增组件时
 
 ### 阶段6：Git提交（自动执行）
 
-代码生成完成后：
+代码生成完成后，**必须自动执行Git提交**：
+
+#### 6.1 自动提交流程
 
 ```bash
 # 1. 检查变更
@@ -148,21 +150,78 @@ git status
 # 2. 添加到暂存区
 git add <修改的文件>
 
-# 3. 提交（使用GitHub Desktop风格的消息）
-git commit -m "<type>: <description>
+# 3. 使用 GitHub Desktop 提交（自动填写Summary）
+# 通过 Git 命令模拟 GitHub Desktop 提交行为
+git commit -m "<type>: <description>"
 
-- 修改详情1
-- 修改详情2
-
-Closes #<issue号>"
-
-# type选项:
-# feat: 新功能
-# fix: 修复
-# ui: UI调整
-# refactor: 重构
-# perf: 性能优化
+# 4. 推送到远程（可选，根据用户配置）
+git push origin <current-branch>
 ```
+
+#### 6.2 自动生成 GitHub Desktop 风格的 Summary
+
+AI 必须根据代码变更**自动推断并填写**以下信息：
+
+| 字段 | 规则 | 示例 |
+|------|------|------|
+| **Summary (必填)** | `<type>: <一句话描述>` | `ui: 修复电脑端StepForm布局混乱问题` |
+| **Description (可选)** | 列出具体修改点，每行以 `-` 开头 | `- 添加@media查询限定电脑端样式`<br>`- 修复性别图标颜色错误` |
+
+**Type 分类规则**：
+```
+feat:     新增功能、页面、组件
+fix:      修复bug、兼容性问题
+ui:       纯UI调整（颜色、间距、布局）
+refactor: 代码重构（无功能变化）
+perf:     性能优化
+style:    代码格式调整（空格、分号等）
+docs:     文档、注释更新
+chore:    构建、配置、依赖更新
+```
+
+**Summary 生成模板**：
+```
+{type}: {动作} {目标} {效果/位置}
+
+示例：
+- ui: 优化手机端日期选择器位置
+- fix: 修复iOS微信浏览器安全区适配问题
+- feat: 新增结果页PDF导出功能
+- refactor: 抽离StepForm表单验证逻辑
+```
+
+#### 6.3 自动提交流程示例
+
+```
+✅ 代码修改完成
+   ↓
+📝 自动生成提交信息
+   Summary: "ui: 修复电脑端StepForm布局混乱问题"
+   Description: 
+   - 添加 @media (min-width: 1024px) 查询限定电脑端样式
+   - 修复性别图标颜色和符号错误
+   - 移除快速输入文字标签保持界面紧凑
+   ↓
+💾 执行 git add + git commit
+   ↓
+🚀 推送至远程 (可选)
+   ↓
+✅ 提交完成，返回提交哈希和链接
+```
+
+#### 6.4 提交信息规范检查清单
+
+提交前必须验证：
+- [ ] Summary 以 type 开头（feat/fix/ui/refactor/perf/style/docs/chore）
+- [ ] Summary 长度 ≤ 72 字符
+- [ ] Summary 使用中文或英文（与用户沟通语言一致）
+- [ ] Description 每项以 `- ` 开头，描述具体变更
+- [ ] 涉及多个文件时，Description 中列出关键文件变更
+
+**禁止行为**：
+- 不得提交无意义的 message（如 "update"、"fix"、"修改"）
+- 不得将不同阶段修改混在一次提交中（应拆分多个 commit）
+- 不得在 Summary 中包含 issue 号（issue 号放 Description）
 
 ## 核心设计标准
 
