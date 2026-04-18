@@ -505,14 +505,14 @@ const submitQuiz = () => {
 /* 电脑端 */
 @media (min-width: 1024px) {
   .quiz-page {
-    max-width: 480px;
+    max-width: 560px;
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
-    padding: 40px 20px;
+    padding: 48px 32px;
   }
   
   .quiz-container {
-    max-width: 400px;
+    max-width: 480px;
   }
   
   .progress-bar {

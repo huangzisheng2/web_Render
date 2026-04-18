@@ -120,8 +120,68 @@ def get_cities():
         return {"success": False, "error": str(e)}
 
 
+# 带重试机制的AI分析函数
+async def analyze_ai_with_retry(bazi_service, report_id, result, max_retries=2, timeout=60):
+    """
+    带重试机制的AI分析
+    
+    Args:
+        bazi_service: 分析服务实例
+        report_id: 报告ID
+        result: 基础分析结果
+        max_retries: 最大重试次数（默认2次）
+        timeout: 单次超时时间（秒，默认60秒）
+    
+    Returns:
+        AI分析报告文本
+    
+    Raises:
+        Exception: 所有重试都失败时抛出异常
+    """
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    
+    executor = ThreadPoolExecutor()
+    
+    for attempt in range(max_retries + 1):
+        try:
+            print(f"[RETRY] AI分析尝试 {attempt + 1}/{max_retries + 1}")
+            
+            # 在线程池中执行AI分析，支持超时
+            loop = asyncio.get_event_loop()
+            future = executor.submit(bazi_service.analyze_ai, report_id, result)
+            ai_report = await asyncio.wait_for(
+                loop.run_in_executor(None, future.result),
+                timeout=timeout
+            )
+            
+            print(f"[RETRY] AI分析成功（尝试 {attempt + 1}）")
+            executor.shutdown(wait=False)
+            return ai_report
+            
+        except asyncio.TimeoutError:
+            print(f"[RETRY] AI分析超时（尝试 {attempt + 1}/{max_retries + 1}）")
+            if attempt < max_retries:
+                wait_time = 2 ** attempt  # 指数退避：1s, 2s
+                print(f"[RETRY] 等待 {wait_time}s 后重试...")
+                await asyncio.sleep(wait_time)
+            else:
+                executor.shutdown(wait=False)
+                raise Exception(f"AI分析超时，已重试{max_retries}次仍未成功")
+                
+        except Exception as e:
+            print(f"[RETRY] AI分析失败（尝试 {attempt + 1}/{max_retries + 1}）: {str(e)}")
+            if attempt < max_retries:
+                wait_time = 2 ** attempt
+                print(f"[RETRY] 等待 {wait_time}s 后重试...")
+                await asyncio.sleep(wait_time)
+            else:
+                executor.shutdown(wait=False)
+                raise
+
+
 @app.post("/api/analyze", response_model=AnalyzeResponse)
-def analyze_bazi(request: AnalyzeRequest, http_request: Request):
+async def analyze_bazi(request: AnalyzeRequest, http_request: Request):
     """
     八字分析主接口
 
@@ -131,6 +191,7 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
     用户模式（默认）：自动执行 Step 4（基础分析）+ Step 5（AI分析），合并返回完整结果
     """
     import time
+    import asyncio
     total_start = time.time()
     
     try:
@@ -171,18 +232,36 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
             }
         else:
             # 用户模式：自动执行 AI 分析（Step 4 + Step 5 合并）
-            print("[TIMER] Step 5 开始: AI 分析报告生成")
+            print("[TIMER] Step 5 开始: AI 分析报告生成（带重试机制）")
             
             # 获取 report_id 用于 AI 分析
             report_id = result.get("report_id")
             if not report_id:
                 report_id = f"bazi_{request.name}_{request.year}{request.month:02d}{request.day:02d}"
             
-            # 自动执行 AI 分析（Step 5）
+            # 自动执行 AI 分析（Step 5）- 带重试机制，单次60秒超时，最多重试2次
             step5_start = time.time()
-            ai_report = bazi_service.analyze_ai(report_id, result)
-            step5_time = time.time() - step5_start
-            print(f"[TIMER] Step 5 完成: AI 分析耗时 {step5_time:.2f}s")
+            try:
+                ai_report = await analyze_ai_with_retry(
+                    bazi_service, 
+                    report_id, 
+                    result, 
+                    max_retries=2, 
+                    timeout=60
+                )
+                step5_api_time = time.time() - step5_start
+                print(f"[TIMER] Step 5 API完成: DeepSeek调用耗时 {step5_api_time:.2f}s")
+            except Exception as e:
+                step5_time = time.time() - step5_start
+                print(f"[TIMER] [FAIL] Step 5 失败: AI 分析耗时 {step5_time:.2f}s, 错误: {str(e)}")
+                # 返回部分结果，前端可以基于此继续
+                return {
+                    "success": False,
+                    "error": f"AI分析超时，请稍后重试。{str(e)}"
+                }
+            
+            # 记录DeepSeek返回后的处理时间
+            step5_post_start = time.time()
             
             # 清理用户模式不需要的大字段
             if "raw_data" in result:
@@ -197,8 +276,14 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 "ai_report": ai_report
             }
             
+            step5_post_time = time.time() - step5_post_start
             total_time = time.time() - total_start
-            print(f"[TIMER] ========== 请求完成 总耗时: {total_time:.2f}s (Step4: {step4_time:.2f}s, Step5: {step5_time:.2f}s) ==========")
+            print(f"[TIMER] Step 5 后处理: 数据清理组装耗时 {step5_post_time:.3f}s")
+            print(f"[TIMER] ========== 请求完成 总耗时: {total_time:.2f}s (Step4: {step4_time:.2f}s, Step5-API: {step5_api_time:.2f}s, Step5-Post: {step5_post_time:.3f}s) ==========")
+            
+            # 如果后处理时间超过5秒，记录警告（可能是网络传输慢）
+            if step5_post_time > 5:
+                print(f"[WARN] 后处理时间过长: {step5_post_time:.2f}s，可能网络传输缓慢"
             
             return {
                 "success": True,
@@ -217,10 +302,103 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
         }
 
 
+async def generate_sse_stream(bazi_service, birth_data):
+    """
+    生成SSE流式响应
+    
+    事件类型：
+    - stage: 阶段更新 (data: {stage: 'data'|'ai-parse'|'generating'|'complete'})
+    - content: AI报告内容片段 (data: {chunk: '文本片段'})
+    - done: 完成 (data: {success: true, report_id: 'xxx'})
+    - error: 错误 (data: {error: '错误信息'})
+    """
+    import time
+    import json
+    
+    try:
+        # Step 4: 基础分析
+        yield f"event: stage\ndata: {json.dumps({'stage': 'data', 'message': '正在分析出生信息...'})}\n\n"
+        
+        step4_start = time.time()
+        result = bazi_service.analyze_basic(birth_data)
+        step4_time = time.time() - step4_start
+        print(f"[SSE] Step 4 完成: 耗时 {step4_time:.2f}s")
+        
+        # 发送基础信息
+        yield f"event: stage\ndata: {json.dumps({'stage': 'ai-parse', 'message': '正在解析数据...', 'user_info': result.get('user_info')})}\n\n"
+        
+        # Step 5: AI分析
+        yield f"event: stage\ndata: {json.dumps({'stage': 'generating', 'message': 'AI正在生成报告...'})}\n\n"
+        
+        report_id = result.get("report_id", f"report_{int(time.time())}")
+        
+        step5_start = time.time()
+        
+        # 调用AI分析（这会等待完整结果，但我们可以优化成真正的流式）
+        # 目前先模拟流式，实际内容一次性返回
+        ai_report = bazi_service.analyze_ai(report_id, result)
+        
+        step5_time = time.time() - step5_start
+        print(f"[SSE] Step 5 完成: DeepSeek调用耗时 {step5_time:.2f}s")
+        
+        # 模拟流式输出AI报告内容（每100字符分一块）
+        chunk_size = 100
+        for i in range(0, len(ai_report), chunk_size):
+            chunk = ai_report[i:i+chunk_size]
+            yield f"event: content\ndata: {json.dumps({'chunk': chunk})}\n\n"
+            # 小延迟模拟打字效果
+            await asyncio.sleep(0.01)
+        
+        # 发送完成事件
+        yield f"event: done\ndata: {json.dumps({'success': True, 'report_id': report_id, 'user_info': result.get('user_info')})}\n\n"
+        
+        total_time = time.time() - step4_start
+        print(f"[SSE] 流式响应完成: 总耗时 {total_time:.2f}s")
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[SSE] 错误: {error_msg}")
+        yield f"event: error\ndata: {json.dumps({'error': error_msg})}\n\n"
+
+
+@app.post("/api/analyze-stream")
+async def analyze_bazi_stream(request: AnalyzeRequest):
+    """
+    流式分析接口 - 使用SSE(Server-Sent Events)
+    
+    前端使用EventSource连接此接口，逐步接收：
+    1. stage事件：阶段更新（data/ai-parse/generating/complete）
+    2. content事件：AI报告内容片段
+    3. done事件：完成
+    4. error事件：错误
+    """
+    birth_data = {
+        "name": request.name,
+        "year": request.year,
+        "month": request.month,
+        "day": request.day,
+        "hour": request.hour,
+        "minute": request.minute,
+        "gender": request.gender,
+        "province": request.province,
+        "city": request.city,
+    }
+    
+    return StreamingResponse(
+        generate_sse_stream(bazi_service, birth_data),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # 禁用Nginx缓冲
+        }
+    )
+
+
 @app.post("/api/analyze-ai")
 def analyze_ai_endpoint(request: dict):
     """
-    AI 天赋分析接口
+    AI 天赋分析接口（传统非流式）
     
     接收基础分析结果，返回 AI 分析报告
     """

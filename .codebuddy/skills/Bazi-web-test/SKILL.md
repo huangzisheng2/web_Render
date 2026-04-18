@@ -137,7 +137,44 @@ Rule 3: 新增组件时
 - [ ] 是否区分 `.modal-overlay` 和 `.picker-modal-overlay` 位置
 - [ ] 性别图标是否正确（男♂蓝/女♀粉）
 
-### 阶段6：Git提交（自动执行）
+### 阶段5.5：自动生成GitHub Desktop Summary（必须执行）
+
+**每次前端代码修改完成后，AI必须立即生成并输出GitHub Desktop风格的Summary**，格式如下：
+
+```
+📝 **自动生成的Git提交信息**
+
+Summary: <type>: <一句话描述修改内容>
+
+Description:
+- <修改点1>
+- <修改点2>
+- <修改点3>
+
+💡 **操作指引**：
+请复制以上Summary和Description到GitHub Desktop中完成提交
+```
+
+**生成规则**：
+1. 根据修改的文件自动推断type：
+   - 修改 `.vue` 文件 → `ui:`
+   - 修改 `.js/.ts` 逻辑 → `feat:` 或 `fix:`
+   - 修改样式 → `ui:`
+   - 重构代码 → `refactor:`
+
+2. Summary格式：`<type>: <动作> <目标> <效果>`
+   - 示例：`ui: 优化LoadingPage步骤显示与等待提示`
+   - 示例：`fix: 修复电脑端UI宽度偏窄问题`
+   - 示例：`feat: 新增分析超时自动重试机制`
+
+3. Description必须列出：
+   - 修改的具体文件
+   - 修改的功能点
+   - 影响的页面/组件
+
+### 阶段6：Git提交（用户手动执行）
+
+**AI生成Summary后，由用户手动完成提交**：
 
 代码生成完成后，**必须自动执行Git提交**：
 

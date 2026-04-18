@@ -84,6 +84,20 @@
         <span>AI分析正在精心生成中，您可以暂时离开页面，报告完成后将自动显示</span>
       </p>
       
+      <!-- 流式AI报告预览（可选显示） -->
+      <transition name="fade-up">
+        <div v-if="showStreamContent && streamContent" class="stream-preview">
+          <div class="stream-header">
+            <span class="stream-badge">实时生成中</span>
+            <span class="stream-progress">{{ streamContent.length }} 字</span>
+          </div>
+          <div class="stream-content">
+            {{ streamContent }}
+            <span class="typing-cursor">|</span>
+          </div>
+        </div>
+      </transition>
+      
       <!-- 超时重试按钮 -->
       <transition name="fade-up">
         <div v-if="!reportReady && showRetryButton" class="retry-section">
@@ -105,7 +119,7 @@
           <line x1="12" y1="8" x2="12" y2="12"/>
           <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        <p>若分析遇到问题，可返回重试或检查网络连接</p>
+        <p>分析慢？可能是免费服务器在神游~</p>
       </div>
     </div>
   </div>
@@ -119,11 +133,21 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 新增：当前分析阶段
+  // 当前分析阶段
   analysisStage: {
     type: String,
     default: 'data', // data, ai-parse, generating, returning
     validator: (value) => ['data', 'ai-parse', 'generating', 'returning', 'completed'].includes(value)
+  },
+  // 流式AI报告内容
+  streamContent: {
+    type: String,
+    default: ''
+  },
+  // 是否显示流式内容
+  showStreamContent: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -719,6 +743,66 @@ const handleRetry = () => {
   transform: translateY(20px);
 }
 
+/* 流式预览区域 */
+.stream-preview {
+  margin: 2vh auto 3vh;
+  padding: 3vh 4vw;
+  background: linear-gradient(135deg, #F0F9FF 0%, #FDFCF8 100%);
+  border-radius: 16px;
+  border: 1px solid #BAE6FD;
+  max-width: 90%;
+  max-height: 30vh;
+  overflow-y: auto;
+  animation: fadeUp 0.5s ease;
+}
+
+.stream-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2vh;
+  padding-bottom: 1.5vh;
+  border-bottom: 1px solid #E0F2FE;
+}
+
+.stream-badge {
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
+  color: #0369A1;
+  background: #E0F2FE;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.stream-progress {
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
+  color: #64748B;
+}
+
+.stream-content {
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
+  color: #334155;
+  line-height: 1.7;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: #0EA5E9;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
 /* 响应式 */
 @media (max-width: 480px) {
   .loading-animation {
@@ -742,14 +826,14 @@ const handleRetry = () => {
 /* 电脑端 */
 @media (min-width: 1024px) {
   .loading-page {
-    max-width: 480px;
+    max-width: 560px;
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
-    padding: 40px 20px;
+    padding: 48px 32px;
   }
   
   .content {
-    max-width: 400px;
+    max-width: 480px;
   }
   
   .loading-animation {

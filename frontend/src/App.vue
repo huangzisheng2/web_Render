@@ -38,6 +38,8 @@
         key="loading"
         :report-ready="reportGenerationStatus === 'completed'"
         :analysis-stage="analysisStage"
+        :stream-content="streamContent"
+        :show-stream-content="showStreamContent"
         @continue="goToResult"
         @retry="handleReportRetry"
       />
@@ -70,7 +72,7 @@
         </svg>
         <div class="error-text">
           <p>上次分析未完成</p>
-          <span>已保留您的信息，点击继续</span>
+          <span>点击继续分析</span>
         </div>
       </div>
       <button class="continue-btn" @click="handleContinueAnalysis">
@@ -88,7 +90,7 @@ import QuizPage from './components/QuizPage.vue'
 import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
 import ResultDisplay from './components/ResultDisplay.vue'
-import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
+import { analyzeBazi, analyzeBaziStream, analyzeAI, downloadReport } from './api/bazi'
 
 // 检测调试模式
 const { appContext } = getCurrentInstance()
@@ -113,6 +115,10 @@ const reportGenerationStatus = ref('idle') // idle, generating, completed, error
 
 // 分析阶段状态（用于LoadingPage进度显示）
 const analysisStage = ref('data') // data, ai-parse, generating, returning, completed
+
+// 流式AI报告内容
+const streamContent = ref('')
+const showStreamContent = ref(false)
 
 // 保存的表单数据（用于失败恢复）
 const savedFormData = ref(null)
@@ -183,65 +189,62 @@ const handleFormSubmit = async (formData) => {
   goToQuiz()
 }
 
-// 启动报告生成（后台）
+// 启动报告生成（后台）- 使用流式API
 const startReportGeneration = async (formData) => {
-  // 阶段1：数据分析（立即开始）
-  analysisStage.value = 'data'
-  
-  // 模拟阶段进度（因为后端是同步返回，前端模拟进度提升用户体验）
-  const stageTimers = []
-  
-  // 阶段2：AI解析（5秒后）
-  stageTimers.push(setTimeout(() => {
-    if (reportGenerationStatus.value === 'generating') {
-      analysisStage.value = 'ai-parse'
-    }
-  }, 5000))
-  
-  // 阶段3：生成报告（15秒后）
-  stageTimers.push(setTimeout(() => {
-    if (reportGenerationStatus.value === 'generating') {
-      analysisStage.value = 'generating'
-    }
-  }, 15000))
-  
-  // 阶段4：返回结果（30秒后，如果还在等待）
-  stageTimers.push(setTimeout(() => {
-    if (reportGenerationStatus.value === 'generating') {
-      analysisStage.value = 'returning'
-    }
-  }, 30000))
+  // 重置流式内容
+  streamContent.value = ''
+  showStreamContent.value = false
   
   try {
-    const response = await analyzeBazi(formData)
+    // 使用流式分析
+    const closeStream = analyzeBaziStream(formData, {
+      // 阶段更新
+      onStage: (data) => {
+        analysisStage.value = data.stage
+        console.log('[Stream] Stage:', data.stage, data.message)
+      },
+      // AI内容片段
+      onContent: (chunk) => {
+        streamContent.value += chunk
+        showStreamContent.value = true
+        // 滚动到底部
+        const previewEl = document.querySelector('.stream-content')
+        if (previewEl) {
+          previewEl.scrollTop = previewEl.scrollHeight
+        }
+      },
+      // 完成
+      onDone: (data) => {
+        console.log('[Stream] Done:', data)
+        result.value = {
+          report_id: data.report_id,
+          user_info: data.user_info,
+          ai_report: streamContent.value
+        }
+        reportGenerationStatus.value = 'completed'
+        analysisStage.value = 'completed'
+        showStreamContent.value = false
+        // 清除待处理状态
+        localStorage.removeItem('pendingAnalysis')
+      },
+      // 错误
+      onError: (error) => {
+        console.error('[Stream] Error:', error)
+        reportGenerationStatus.value = 'error'
+        analysisStage.value = 'data'
+        showStreamContent.value = false
+        savePendingState(formData, 'error')
+      }
+    })
     
-    // 清除所有阶段定时器
-    stageTimers.forEach(timer => clearTimeout(timer))
-    
-    if (!response.success) {
-      console.error('报告生成失败:', response.error)
-      reportGenerationStatus.value = 'error'
-      analysisStage.value = 'data'
-      // 保存错误状态到本地存储，用于恢复
-      savePendingState(formData, 'error')
-      return
-    }
-    
-    result.value = response.data
-    reportGenerationStatus.value = 'completed'
-    analysisStage.value = 'completed'
-    
-    // 清除待处理状态
-    localStorage.removeItem('pendingAnalysis')
+    // 保存关闭函数（如果需要取消）
+    window._closeAnalysisStream = closeStream
     
   } catch (error) {
-    // 清除所有阶段定时器
-    stageTimers.forEach(timer => clearTimeout(timer))
-    
     console.error('报告生成错误:', error)
     reportGenerationStatus.value = 'error'
     analysisStage.value = 'data'
-    // 保存错误状态到本地存储，用于恢复
+    showStreamContent.value = false
     savePendingState(formData, 'error')
   }
 }
@@ -290,28 +293,40 @@ const handleContinueAnalysis = async () => {
     goToLoading()
     reportGenerationStatus.value = 'generating'
     
-    try {
-      const response = await analyzeBazi(pendingFormData.value)
-      
-      if (!response.success) {
-        showToast(response.error || '分析失败', 'error')
+    // 重置流式内容
+    streamContent.value = ''
+    showStreamContent.value = false
+    
+    // 使用流式API
+    const closeStream = analyzeBaziStream(pendingFormData.value, {
+      onStage: (data) => {
+        analysisStage.value = data.stage
+      },
+      onContent: (chunk) => {
+        streamContent.value += chunk
+        showStreamContent.value = true
+      },
+      onDone: (data) => {
+        result.value = {
+          report_id: data.report_id,
+          user_info: data.user_info,
+          ai_report: streamContent.value
+        }
+        reportGenerationStatus.value = 'completed'
+        analysisStage.value = 'completed'
+        showStreamContent.value = false
+        currentPage.value = 'result'
+        localStorage.removeItem('pendingAnalysis')
+        showToast('分析完成')
+      },
+      onError: (error) => {
+        console.error('分析错误:', error)
+        showToast(error || '分析失败', 'error')
         currentPage.value = 'form'
-        return
       }
-      
-      result.value = response.data
-      reportGenerationStatus.value = 'completed'
-      currentPage.value = 'result'
-      showToast('分析完成')
-      
-      // 清除待处理状态
-      localStorage.removeItem('pendingAnalysis')
-      
-    } catch (error) {
-      console.error('分析错误:', error)
-      showToast('网络错误，请稍后重试', 'error')
-      currentPage.value = 'form'
-    }
+    })
+    
+    window._closeAnalysisStream = closeStream
   }
 }
 
@@ -340,22 +355,46 @@ const handleReportRetry = async () => {
   showToast('正在重新分析...', 'info')
   reportGenerationStatus.value = 'generating'
   
-  try {
-    const response = await analyzeBazi(pendingFormData.value)
-    
-    if (!response.success) {
-      console.error('报告重试失败:', response.error)
-      showToast(response.error || '分析失败，请稍后重试', 'error')
+  // 重置流式内容
+  streamContent.value = ''
+  showStreamContent.value = false
+  
+  // 关闭旧的流
+  if (window._closeAnalysisStream) {
+    window._closeAnalysisStream()
+  }
+  
+  // 使用流式API重新分析
+  const closeStream = analyzeBaziStream(pendingFormData.value, {
+    onStage: (data) => {
+      analysisStage.value = data.stage
+    },
+    onContent: (chunk) => {
+      streamContent.value += chunk
+      showStreamContent.value = true
+    },
+    onDone: (data) => {
+      result.value = {
+        report_id: data.report_id,
+        user_info: data.user_info,
+        ai_report: streamContent.value
+      }
+      reportGenerationStatus.value = 'completed'
+      analysisStage.value = 'completed'
+      showStreamContent.value = false
+      localStorage.removeItem('pendingAnalysis')
+      showToast('分析完成')
+    },
+    onError: (error) => {
+      console.error('报告重试失败:', error)
+      showToast(error || '分析失败，请稍后重试', 'error')
       reportGenerationStatus.value = 'error'
-      return
+      analysisStage.value = 'data'
+      showStreamContent.value = false
     }
-    
-    result.value = response.data
-    reportGenerationStatus.value = 'completed'
-    showToast('分析完成')
-    
-    // 清除待处理状态
-    localStorage.removeItem('pendingAnalysis')
+  })
+  
+  window._closeAnalysisStream = closeStream
     
   } catch (error) {
     console.error('报告重试错误:', error)
@@ -377,10 +416,19 @@ watch(() => reportGenerationStatus.value, (newStatus) => {
 
 // 重置表单
 const handleReset = () => {
+  // 关闭流式连接
+  if (window._closeAnalysisStream) {
+    window._closeAnalysisStream()
+    window._closeAnalysisStream = null
+  }
+  
   result.value = null
   aiAnalyzing.value = false
   quizAnswers.value = []
   reportGenerationStatus.value = 'idle'
+  analysisStage.value = 'data'
+  streamContent.value = ''
+  showStreamContent.value = false
   savedFormData.value = null
   pendingFormData.value = null
   localStorage.removeItem('pendingAnalysis')
@@ -798,9 +846,9 @@ body {
 /* 错误恢复提示 */
 .error-recovery-toast {
   position: fixed;
-  bottom: max(20px, env(safe-area-inset-bottom));
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   background: white;
   border-radius: 16px;
   padding: 16px 20px;

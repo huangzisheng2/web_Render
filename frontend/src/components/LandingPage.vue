@@ -358,14 +358,14 @@ defineEmits(['start'])
 /* 电脑端 */
 @media (min-width: 1024px) {
   .landing-page {
-    max-width: 480px;
+    max-width: 560px;
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
   
   .content-wrapper {
-    max-width: 400px;
-    padding: 40px 20px;
+    max-width: 480px;
+    padding: 48px 32px;
   }
   
   .logo-icon {
