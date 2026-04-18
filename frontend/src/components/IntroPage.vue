@@ -452,14 +452,14 @@ defineEmits(['next'])
 /* 电脑端 */
 @media (min-width: 1024px) {
   .intro-page {
-    max-width: 680px;
+    max-width: 600px;
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
   
   .content-wrapper {
-    max-width: 600px;
-    padding: 56px 40px;
+    max-width: 520px;
+    padding: 48px 32px;
   }
   
   .header-icon {

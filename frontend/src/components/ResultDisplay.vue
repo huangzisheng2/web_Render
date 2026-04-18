@@ -1184,7 +1184,7 @@ const handleRegenerateAI = () => {
 /* 电脑端 */
 @media (min-width: 1024px) {
   .result-container {
-    max-width: 720px;
+    max-width: 640px;
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
