@@ -694,9 +694,9 @@ const formattedReport = computed(() => {
 /* 电脑端 */
 @media (min-width: 1024px) {
   .ai-report-container {
-    max-width: 560px;
+    max-width: 680px;
     margin: 0 auto;
-    padding: 28px;
+    padding: 32px;
   }
   
   .section-header {

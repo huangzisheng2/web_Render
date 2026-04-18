@@ -754,18 +754,18 @@ const submit = () => {
 /* 设备检测样式 - 电脑端 */
 @media (min-width: 1024px) {
   .step-form-page {
-    max-width: 560px;
+    max-width: 680px;
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
   
   .form-header {
-    padding: 20px 32px;
+    padding: 24px 40px;
   }
   
   .form-content {
-    max-width: 480px;
-    padding: 32px 24px;
+    max-width: 600px;
+    padding: 40px 32px;
   }
   
   .form-card {
