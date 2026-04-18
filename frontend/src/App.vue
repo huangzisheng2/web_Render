@@ -73,9 +73,14 @@
           <span>点击继续分析</span>
         </div>
       </div>
-      <button class="continue-btn" @click="handleContinueAnalysis">
-        继续分析
-      </button>
+      <div class="error-actions">
+        <button class="cancel-btn" @click="handleCancelRecovery">
+          取消
+        </button>
+        <button class="continue-btn" @click="handleContinueAnalysis">
+          继续分析
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -313,6 +318,16 @@ const handleContinueAnalysis = async () => {
       currentPage.value = 'form'
     }
   }
+}
+
+// 处理取消恢复
+const handleCancelRecovery = () => {
+  showErrorRecovery.value = false
+  // 清除待处理状态
+  localStorage.removeItem('pendingAnalysis')
+  savedFormData.value = null
+  pendingFormData.value = null
+  showToast('已取消上次分析')
 }
 
 // 处理答题完成
@@ -844,6 +859,29 @@ body {
   color: #718096;
 }
 
+.error-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancel-btn {
+  padding: 10px 20px;
+  background: #F1F5F9;
+  color: #64748B;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #E2E8F0;
+  color: #475569;
+}
+
 .continue-btn {
   padding: 10px 20px;
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
@@ -915,6 +953,12 @@ body {
     padding: 16px;
   }
   
+  .error-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .cancel-btn,
   .continue-btn {
     width: 100%;
   }
