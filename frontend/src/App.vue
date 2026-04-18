@@ -395,12 +395,6 @@ const handleReportRetry = async () => {
   })
   
   window._closeAnalysisStream = closeStream
-    
-  } catch (error) {
-    console.error('报告重试错误:', error)
-    showToast('网络错误，请检查网络后重试', 'error')
-    reportGenerationStatus.value = 'error'
-  }
 }
 
 // 监听报告生成状态，如果在 loading 页面且报告完成，自动跳转
