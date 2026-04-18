@@ -95,6 +95,17 @@ const isDebug = appContext.config.globalProperties.$isDebug || false
 // 页面路由状态
 const currentPage = ref('landing') // landing, intro, form, quiz, loading, result
 
+// 监听页面变化，滚动到顶部
+watch(currentPage, () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+  // 同时重置文档的滚动位置
+  document.documentElement.scrollTop = 0
+  document.body.scrollTop = 0
+})
+
 // 报告生成状态
 const reportGenerationStatus = ref('idle') // idle, generating, completed, error
 

@@ -32,7 +32,7 @@
       </div>
 
       <!-- 性别 -->
-      <div class="form-card">
+      <div class="form-card compact">
         <label class="card-label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
@@ -46,10 +46,10 @@
             :class="{ active: form.gender === 'male' }"
             @click="form.gender = 'male'"
           >
-            <span class="gender-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="8" r="5"/>
-                <path d="M12 13v8M9 18h6"/>
+            <span class="gender-icon male">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="10" cy="14" r="5"/>
+                <path d="M19 5l-6 6M19 5v4M19 5h-4"/>
               </svg>
             </span>
             <span>男生</span>
@@ -59,10 +59,10 @@
             :class="{ active: form.gender === 'female' }"
             @click="form.gender = 'female'"
           >
-            <span class="gender-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="8" r="5"/>
-                <path d="M12 13v8M9 16h6"/>
+            <span class="gender-icon female">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="9" r="5"/>
+                <path d="M12 14v7M9 18h6"/>
               </svg>
             </span>
             <span>女生</span>
@@ -114,7 +114,7 @@
         </label>
         
         <!-- 地点选择触发区 -->
-        <div class="location-trigger" @click="showLocationPicker = true">
+        <div class="location-trigger" @click="openLocationPicker">
           <div class="location-display">
             <template v-if="form.province && form.city">
               {{ form.province }} {{ form.city }}
@@ -164,11 +164,11 @@
 
     <!-- 地点选择弹窗 -->
     <Transition name="modal">
-      <div v-if="showLocationPicker" class="modal-overlay" @click.self="showLocationPicker = false">
+      <div v-if="showLocationPicker" class="modal-overlay picker-modal-overlay" @click.self="closeLocationPicker">
         <div class="modal-content">
           <div class="modal-header">
             <h3>选择出生地点</h3>
-            <button class="modal-close" @click="showLocationPicker = false">
+            <button class="modal-close" @click="closeLocationPicker">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>
@@ -185,6 +185,7 @@
                 class="location-search-input"
                 placeholder="输入城市名快速搜索"
                 @input="onCityInput"
+                @keydown.enter="handleLocationEnter"
               />
               <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/>
@@ -256,9 +257,9 @@
 
     <!-- 日期时间选择弹窗 - iOS适配优化版 -->
     <Transition name="modal">
-      <div v-if="showDatePicker" class="modal-overlay date-picker-overlay" @click.self="closeDatePicker">
-        <div class="modal-content date-picker-content">
-          <div class="modal-header date-picker-header">
+      <div v-if="showDatePicker" class="modal-overlay picker-modal-overlay" @click.self="closeDatePicker">
+        <div class="modal-content">
+          <div class="modal-header">
             <h3>选择出生日期时间</h3>
             <button class="modal-close" @click="closeDatePicker">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -290,9 +291,8 @@
             </div>
           </div>
           
-          <!-- 快速输入区域（非iOS设备显示） -->
-          <div v-else class="quick-input-section">
-            <label class="quick-input-label">快速输入</label>
+          <!-- 快速输入区域（非iOS设备显示） - 无文字标签 -->
+          <div v-else class="quick-input-section compact">
             <input
               v-model="quickDateInput"
               type="text"
@@ -300,6 +300,7 @@
               class="quick-input"
               placeholder="输入数字串，如：200008151230"
               @input="handleQuickDateInput"
+              @keydown.enter="confirmDateTime"
             />
           </div>
 
@@ -415,6 +416,12 @@ const emit = defineEmits(['submit', 'back'])
 const isIOS = computed(() => {
   const userAgent = navigator.userAgent || navigator.vendor || window.opera
   return /iphone|ipad|ipod/i.test(userAgent.toLowerCase())
+})
+
+// 检测是否为 Android 设备
+const isAndroid = computed(() => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /android/i.test(userAgent.toLowerCase())
 })
 
 // 表单数据
@@ -570,6 +577,30 @@ const closeDatePicker = () => {
   quickDateInput.value = ''
 }
 
+// 打开地点选择器
+const openLocationPicker = () => {
+  // 同步当前表单值到临时数据
+  if (form.value.province && form.value.city) {
+    tempLocation.province = form.value.province
+    tempLocation.city = form.value.city
+  }
+  showLocationPicker.value = true
+}
+
+// 关闭地点选择器
+const closeLocationPicker = () => {
+  showLocationPicker.value = false
+  cityInput.value = ''
+}
+
+// 处理地点输入回车
+const handleLocationEnter = () => {
+  if (filteredCities.value.length > 0) {
+    // 选择第一个结果
+    selectLocationFromPicker(filteredCities.value[0])
+  }
+}
+
 const selectProvince = (province) => {
   tempLocation.province = province
   tempLocation.city = ''
@@ -720,6 +751,47 @@ const submit = () => {
 </script>
 
 <style scoped>
+/* 设备检测样式 - 电脑端 */
+@media (min-width: 1024px) {
+  .step-form-page {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  .form-content {
+    max-width: 440px;
+  }
+  
+  .form-card {
+    padding: 20px 24px;
+  }
+  
+  .gender-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .card-label {
+    font-size: 14px;
+  }
+  
+  .card-label svg {
+    width: 16px;
+    max-width: 16px;
+    min-width: 16px;
+  }
+  
+  .gender-btn {
+    padding: 16px;
+    gap: 8px;
+  }
+  
+  .gender-options {
+    gap: 12px;
+  }
+}
+
 .step-form-page {
   min-height: 100vh;
   min-height: 100dvh;
@@ -804,6 +876,10 @@ const submit = () => {
   border: 1px solid rgba(142, 197, 252, 0.15);
 }
 
+.form-card.compact {
+  padding: 2.5vh 4vw;
+}
+
 .card-label {
   display: flex;
   align-items: center;
@@ -857,7 +933,7 @@ const submit = () => {
 
 .gender-btn {
   flex: 1;
-  padding: 2.5vh 3vw;
+  padding: 2vh 3vw;
   background: #F7FAFC;
   border: 2px solid transparent;
   border-radius: 12px;
@@ -865,7 +941,7 @@ const submit = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5vh;
+  gap: 1.2vh;
   transition: all 0.2s;
   font-size: clamp(0.875rem, 3.5vw, 0.9375rem);
   color: #718096;
@@ -882,16 +958,33 @@ const submit = () => {
 }
 
 .gender-icon {
-  width: 8vw;
-  height: 8vw;
-  max-width: 32px;
-  max-height: 32px;
+  width: 6vw;
+  height: 6vw;
+  max-width: 26px;
+  max-height: 26px;
+  min-width: 22px;
+  min-height: 22px;
 }
 
 .gender-icon svg {
   width: 100%;
   height: 100%;
+}
+
+.gender-icon.male svg {
   color: #8EC5FC;
+}
+
+.gender-icon.female svg {
+  color: #F472B6;
+}
+
+.gender-btn.active .gender-icon.male svg {
+  color: #3B82F6;
+}
+
+.gender-btn.active .gender-icon.female svg {
+  color: #EC4899;
 }
 
 /* 日期时间显示 */
@@ -1053,7 +1146,7 @@ const submit = () => {
   color: #A0AEC0;
 }
 
-/* 弹窗样式 */
+/* 弹窗样式 - 统一位置在顶部 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1062,16 +1155,16 @@ const submit = () => {
   bottom: 0;
   background: rgba(74, 85, 104, 0.5);
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: 2vh 3vw;
+  padding: 8vh 3vw 2vh;
   padding-bottom: max(2vh, env(safe-area-inset-bottom));
 }
 
-.modal-overlay.date-picker-overlay {
-  align-items: center;
-  padding: 2vh 4vw;
+.modal-overlay.picker-modal-overlay {
+  align-items: flex-start;
+  padding-top: 10vh;
 }
 
 .modal-content {
@@ -1079,21 +1172,17 @@ const submit = () => {
   border-radius: 20px;
   width: 100%;
   max-width: 400px;
-  max-height: 70vh;
+  max-height: 75vh;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.3s ease;
+  animation: slideDown 0.3s ease;
   box-shadow: 0 -4px 24px rgba(142, 197, 252, 0.2);
 }
 
-.modal-content.date-picker-content {
-  max-height: 80vh;
-}
-
-@keyframes slideUp {
+@keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
@@ -1186,11 +1275,15 @@ const submit = () => {
   box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
 }
 
-/* 快速输入区域 - 紧凑版 */
+/* 快速输入区域 - 更紧凑 */
 .quick-input-section {
-  padding: 2vh 5vw;
+  padding: 1.5vh 5vw;
   border-bottom: 1px solid #F0F0F0;
   background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+}
+
+.quick-input-section.compact {
+  padding: 1.2vh 5vw;
 }
 
 .quick-input-label {
@@ -1203,8 +1296,8 @@ const submit = () => {
 
 .quick-input {
   width: 100%;
-  padding: 2vh 4vw;
-  font-size: clamp(1.125rem, 5vw, 1.25rem);
+  padding: 1.8vh 4vw;
+  font-size: clamp(1rem, 4.5vw, 1.125rem);
   border: 2px solid #E2E8F0;
   border-radius: 12px;
   transition: all 0.2s;
@@ -1223,33 +1316,33 @@ const submit = () => {
 .quick-input::placeholder {
   color: #A0AEC0;
   letter-spacing: 0;
-  font-size: clamp(0.875rem, 4vw, 0.9375rem);
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   font-family: inherit;
 }
 
 /* 滚轮选择区域 - 紧凑版 */
 .picker-body {
-  padding: 2vh 4vw;
+  padding: 1.5vh 4vw;
   flex: 1;
   overflow: hidden;
 }
 
 .picker-body.compact {
-  padding: 1.5vh 3vw;
+  padding: 1vh 3vw;
 }
 
 .picker-columns {
   display: flex;
   gap: 2vw;
-  height: 35vh;
-  max-height: 280px;
-  min-height: 200px;
+  height: 32vh;
+  max-height: 260px;
+  min-height: 180px;
 }
 
 .picker-body.compact .picker-columns {
-  height: 30vh;
-  max-height: 240px;
-  min-height: 180px;
+  height: 28vh;
+  max-height: 220px;
+  min-height: 160px;
 }
 
 .picker-column {
@@ -1264,18 +1357,18 @@ const submit = () => {
 .column-label {
   font-size: clamp(0.75rem, 3vw, 0.8125rem);
   color: #A0AEC0;
-  margin-bottom: 1.5vh;
+  margin-bottom: 1vh;
   font-weight: 500;
 }
 
 .column-options {
-  height: calc(100% - 3vh);
+  height: calc(100% - 2.5vh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .column-option {
-  padding: 1.5vh 1vw;
+  padding: 1.2vh 1vw;
   font-size: clamp(0.875rem, 3.8vw, 0.9375rem);
   color: #4A5568;
   cursor: pointer;
@@ -1381,7 +1474,7 @@ const submit = () => {
 
 .location-search-results {
   margin-top: 1.5vh;
-  max-height: 20vh;
+  max-height: 18vh;
   overflow-y: auto;
   background: white;
   border-radius: 8px;
@@ -1432,7 +1525,8 @@ const submit = () => {
 .location-picker-columns {
   display: flex;
   gap: 3vw;
-  height: 30vh;
+  height: 28vh;
+  max-height: 240px;
 }
 
 .location-picker-column {
@@ -1443,12 +1537,12 @@ const submit = () => {
 .location-column-label {
   font-size: clamp(0.75rem, 3vw, 0.8125rem);
   color: #A0AEC0;
-  margin-bottom: 1.5vh;
+  margin-bottom: 1vh;
   font-weight: 500;
 }
 
 .location-column-options {
-  height: calc(100% - 3vh);
+  height: calc(100% - 2.5vh);
   overflow-y: auto;
   background: #F7FAFC;
   border-radius: 12px;
@@ -1457,7 +1551,7 @@ const submit = () => {
 }
 
 .location-column-option {
-  padding: 1.8vh 2vw;
+  padding: 1.5vh 2vw;
   font-size: clamp(0.875rem, 3.8vw, 0.9375rem);
   color: #4A5568;
   cursor: pointer;
@@ -1503,16 +1597,30 @@ const submit = () => {
     border-radius: 14px;
   }
   
+  .form-card.compact {
+    padding: 2vh 4vw;
+  }
+  
   .picker-columns {
     gap: 1.5vw;
   }
   
   .column-option {
-    padding: 1.2vh 0.5vw;
+    padding: 1vh 0.5vw;
   }
   
   .modal-footer {
     gap: 2.5vw;
+  }
+  
+  .gender-icon {
+    width: 5.5vw;
+    height: 5.5vw;
+  }
+  
+  .gender-btn {
+    padding: 1.8vh 3vw;
+    gap: 1vh;
   }
 }
 
@@ -1526,8 +1634,12 @@ const submit = () => {
   }
   
   .picker-columns {
-    height: 25vh;
-    max-height: 200px;
+    height: 22vh;
+    max-height: 180px;
+  }
+  
+  .modal-overlay.picker-modal-overlay {
+    padding-top: 5vh;
   }
 }
 

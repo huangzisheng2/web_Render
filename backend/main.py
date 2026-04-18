@@ -33,16 +33,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS 配置 - 允许 GitHub Pages 访问
+# CORS 配置 - 允许所有域名访问（解决WiFi/跨域问题）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://huangzisheng2.github.io",
-        "https://*.github.io",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,  # 使用通配符*时不能同时为True
     allow_methods=["*"],
     allow_headers=["*"],
 )
