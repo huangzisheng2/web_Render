@@ -50,7 +50,7 @@
     <div v-else-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
       <p class="loading-text">AI 正在分析您的命盘...</p>
-      <p class="loading-subtext">这可能需要 10-30 秒</p>
+      <p class="loading-subtext">这可能需要 30-60 秒</p>
     </div>
 
     <!-- 空状态 -->
