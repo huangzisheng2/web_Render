@@ -760,82 +760,148 @@ const submit = () => {
   }
   
   .form-header {
-    padding: 20px 32px;
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(142, 197, 252, 0.25);
+  }
+  
+  .form-title {
+    font-size: 18px;
+    font-weight: 600;
   }
   
   .form-content {
     max-width: 100%;
-    padding: 32px 40px;
+    padding: 28px 32px;
+    gap: 20px;
   }
   
   .form-card {
     width: 100%;
     max-width: 100%;
+    padding: 24px;
+    margin-bottom: 0;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(142, 197, 252, 0.1);
   }
   
-  .form-card {
+  .form-card.compact {
     padding: 20px 24px;
-    margin-bottom: 16px;
   }
   
   .card-label {
     font-size: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: #4A5568;
   }
   
   .card-label svg {
-    width: 16px;
-    max-width: 16px;
-    min-width: 16px;
+    width: 18px;
+    height: 18px;
+    max-width: 18px;
+    min-width: 18px;
   }
   
+  /* 姓名输入 */
   .name-input {
-    padding: 14px 16px;
-    font-size: 15px;
+    padding: 16px 18px;
+    font-size: 16px;
+    border-radius: 12px;
+    border-width: 2px;
   }
   
+  /* 性别选择 - 横向排列更美观 */
   .gender-options {
-    gap: 12px;
+    gap: 16px;
   }
   
   .gender-btn {
-    padding: 14px 16px;
-    gap: 8px;
+    flex: 1;
+    padding: 18px 20px;
+    gap: 10px;
+    border-radius: 12px;
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .gender-btn span:last-child {
+    font-size: 15px;
+    font-weight: 500;
   }
   
   .gender-icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
   
+  /* 日期时间显示 */
   .datetime-trigger,
   .location-trigger {
-    padding: 14px 16px;
+    padding: 16px 18px;
+    border-radius: 12px;
   }
   
   .datetime-display,
   .location-display {
     font-size: 15px;
+    font-weight: 500;
   }
   
-  .location-hint {
+  .unknown-tag {
+    padding: 4px 12px;
     font-size: 12px;
-    margin-top: 10px;
+    margin-left: 8px;
   }
   
+  .edit-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* 地点提示 */
+  .location-hint {
+    font-size: 13px;
+    margin-top: 12px;
+    padding-top: 4px;
+  }
+  
+  .location-hint svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* 底部区域 */
   .form-footer {
-    padding: 20px;
+    padding: 24px 32px;
+    border-top: 1px solid rgba(142, 197, 252, 0.2);
   }
   
   .accuracy-hint {
-    padding: 12px 16px;
-    margin-bottom: 16px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
     font-size: 13px;
+    border-radius: 10px;
+  }
+  
+  .accuracy-hint svg {
+    width: 16px;
+    height: 16px;
   }
   
   .submit-btn {
-    padding: 14px 24px;
+    padding: 16px 28px;
     font-size: 16px;
+    border-radius: 14px;
+  }
+  
+  .submit-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .disclaimer {
+    margin-top: 16px;
+    font-size: 12px;
   }
 }
 
