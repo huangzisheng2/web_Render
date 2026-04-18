@@ -34,7 +34,7 @@
             </div>
             <div class="feature-text">
               <h3>了解你的天赋优势</h3>
-              <p>通过传统命理智慧，发现你与生俱来的潜能</p>
+              <p>通过传统智慧分析，发现你与生俱来的潜能</p>
             </div>
           </div>
           <div class="feature-item">

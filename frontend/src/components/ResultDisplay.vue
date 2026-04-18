@@ -3,7 +3,7 @@
     <!-- 报告头部 -->
     <div class="report-header">
       <div class="user-info">
-        <h1 class="user-name">{{ userName }} 的命理报告</h1>
+        <h1 class="user-name">{{ userName }} 的天赋报告</h1>
         <p class="user-meta">
           <span class="meta-item">{{ genderText }}</span>
           <span class="meta-separator">·</span>

@@ -37,6 +37,7 @@
         v-else-if="currentPage === 'loading'" 
         key="loading"
         :report-ready="reportGenerationStatus === 'completed'"
+        :analysis-stage="analysisStage"
         @continue="goToResult"
         @retry="handleReportRetry"
       />
@@ -110,6 +111,9 @@ watch(currentPage, () => {
 // 报告生成状态
 const reportGenerationStatus = ref('idle') // idle, generating, completed, error
 
+// 分析阶段状态（用于LoadingPage进度显示）
+const analysisStage = ref('data') // data, ai-parse, generating, returning, completed
+
 // 保存的表单数据（用于失败恢复）
 const savedFormData = ref(null)
 const pendingFormData = ref(null)
@@ -181,12 +185,43 @@ const handleFormSubmit = async (formData) => {
 
 // 启动报告生成（后台）
 const startReportGeneration = async (formData) => {
+  // 阶段1：数据分析（立即开始）
+  analysisStage.value = 'data'
+  
+  // 模拟阶段进度（因为后端是同步返回，前端模拟进度提升用户体验）
+  const stageTimers = []
+  
+  // 阶段2：AI解析（5秒后）
+  stageTimers.push(setTimeout(() => {
+    if (reportGenerationStatus.value === 'generating') {
+      analysisStage.value = 'ai-parse'
+    }
+  }, 5000))
+  
+  // 阶段3：生成报告（15秒后）
+  stageTimers.push(setTimeout(() => {
+    if (reportGenerationStatus.value === 'generating') {
+      analysisStage.value = 'generating'
+    }
+  }, 15000))
+  
+  // 阶段4：返回结果（30秒后，如果还在等待）
+  stageTimers.push(setTimeout(() => {
+    if (reportGenerationStatus.value === 'generating') {
+      analysisStage.value = 'returning'
+    }
+  }, 30000))
+  
   try {
     const response = await analyzeBazi(formData)
+    
+    // 清除所有阶段定时器
+    stageTimers.forEach(timer => clearTimeout(timer))
     
     if (!response.success) {
       console.error('报告生成失败:', response.error)
       reportGenerationStatus.value = 'error'
+      analysisStage.value = 'data'
       // 保存错误状态到本地存储，用于恢复
       savePendingState(formData, 'error')
       return
@@ -194,13 +229,18 @@ const startReportGeneration = async (formData) => {
     
     result.value = response.data
     reportGenerationStatus.value = 'completed'
+    analysisStage.value = 'completed'
     
     // 清除待处理状态
     localStorage.removeItem('pendingAnalysis')
     
   } catch (error) {
+    // 清除所有阶段定时器
+    stageTimers.forEach(timer => clearTimeout(timer))
+    
     console.error('报告生成错误:', error)
     reportGenerationStatus.value = 'error'
+    analysisStage.value = 'data'
     // 保存错误状态到本地存储，用于恢复
     savePendingState(formData, 'error')
   }
@@ -389,6 +429,33 @@ const isIOSDevice = () => {
   return /iphone|ipad|ipod/i.test(userAgent.toLowerCase())
 }
 
+// 检测是否为鸿蒙系统
+const isHarmonyOS = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  // 鸿蒙3.0以下版本仍显示Android，需要额外检测
+  const isHarmony = /harmony|harmonyos|openharmony/i.test(userAgent.toLowerCase())
+  const isMaybeHarmony = /android.*hmscore|android.*harmony/i.test(userAgent.toLowerCase())
+  return isHarmony || isMaybeHarmony
+}
+
+// 检测是否为微信环境
+const isWechat = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /micromessenger/i.test(userAgent.toLowerCase())
+}
+
+// 检测是否为QQ环境
+const isQQ = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /qq|qzone/i.test(userAgent.toLowerCase())
+}
+
+// 检测是否为QQ浏览器
+const isQQBrowser = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /mqqbrowser|qqbrowser/i.test(userAgent.toLowerCase())
+}
+
 // 下载报告
 const handleDownload = async () => {
   if (!result.value?.report_id) {
@@ -405,7 +472,7 @@ const handleDownload = async () => {
       if (response.download_url.startsWith('data:')) {
         const link = document.createElement('a')
         link.href = response.download_url
-        link.download = `八字分析报告_${result.value.user_info?.name || '匿名'}.pdf`
+        link.download = `天赋分析报告_${result.value.user_info?.name || '匿名'}.pdf`
         link.click()
         showToast('下载开始')
       } else if (response.download_url.startsWith('html://')) {
@@ -507,50 +574,158 @@ const generatePDF = async () => {
     }
     
     const fileName = `${userName}天赋分析报告.pdf`
+    const pdfBlob = pdf.output('blob')
+    const pdfUrl = URL.createObjectURL(pdfBlob)
     
-    if (isIOS) {
-      const pdfBlob = pdf.output('blob')
-      const pdfUrl = URL.createObjectURL(pdfBlob)
+    // 平台检测
+    const wechat = isWechat()
+    const qq = isQQ()
+    const qqBrowser = isQQBrowser()
+    const harmony = isHarmonyOS()
+    
+    try {
+      // 微信/QQ内置浏览器：使用新窗口打开预览
+      if (wechat || qq) {
+        // 尝试使用微信/QQ的分享预览功能
+        const previewWindow = window.open('', '_blank')
+        if (previewWindow) {
+          previewWindow.document.write(`
+            <html>
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>报告预览</title>
+                <style>
+                  body { 
+                    margin: 0; 
+                    padding: 20px; 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: #f5f5f5;
+                  }
+                  .container { 
+                    max-width: 800px; 
+                    margin: 0 auto; 
+                    background: white;
+                    padding: 40px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  }
+                  .header { text-align: center; margin-bottom: 30px; }
+                  .header h1 { color: #333; margin: 0 0 10px; }
+                  .header p { color: #666; margin: 0; }
+                  .content { line-height: 1.8; color: #333; }
+                  .download-tip { 
+                    margin-top: 30px; 
+                    padding: 15px; 
+                    background: #e3f2fd; 
+                    border-radius: 8px;
+                    text-align: center;
+                    color: #1976d2;
+                  }
+                  @media print {
+                    body { background: white; }
+                    .download-tip { display: none; }
+                  }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>${userName}天赋分析报告</h1>
+                    <p>性别：${gender}</p>
+                  </div>
+                  <div class="content">${container.innerHTML}</div>
+                  <div class="download-tip">
+                    <p>👆 点击右上角菜单，选择「在浏览器打开」后可下载PDF</p>
+                  </div>
+                </div>
+              </body>
+            </html>
+          `)
+          previewWindow.document.close()
+          showToast('报告预览已打开')
+        } else {
+          showToast('请在浏览器中打开以下载报告', 'info')
+        }
+        return
+      }
       
-      const link = document.createElement('a')
-      link.href = pdfUrl
-      link.download = fileName
-      link.style.display = 'none'
-      document.body.appendChild(link)
+      // iOS设备（Safari/Chrome）
+      if (isIOS) {
+        // iOS Safari需要使用特殊的下载方式
+        const reader = new FileReader()
+        reader.onload = function(e) {
+          const link = document.createElement('a')
+          link.href = e.target.result
+          link.download = fileName
+          link.style.display = 'none'
+          document.body.appendChild(link)
+          link.click()
+          setTimeout(() => {
+            document.body.removeChild(link)
+          }, 100)
+        }
+        reader.readAsDataURL(pdfBlob)
+        showToast('PDF 已生成，请查看下载')
+        return
+      }
       
-      const clickEvent = new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: true
-      })
-      link.dispatchEvent(clickEvent)
+      // 鸿蒙系统
+      if (harmony) {
+        // 鸿蒙系统使用标准下载方式
+        const link = document.createElement('a')
+        link.href = pdfUrl
+        link.download = fileName
+        link.target = '_blank'
+        document.body.appendChild(link)
+        link.click()
+        setTimeout(() => {
+          document.body.removeChild(link)
+          URL.revokeObjectURL(pdfUrl)
+        }, 100)
+        showToast('PDF 已生成')
+        return
+      }
       
-      setTimeout(() => {
-        document.body.removeChild(link)
-        URL.revokeObjectURL(pdfUrl)
-      }, 100)
+      // Android/其他移动设备
+      if (isMobile) {
+        // QQ浏览器使用特殊处理
+        if (qqBrowser) {
+          const link = document.createElement('a')
+          link.href = pdfUrl
+          link.download = fileName
+          link.target = '_blank'
+          document.body.appendChild(link)
+          link.click()
+          setTimeout(() => {
+            document.body.removeChild(link)
+            URL.revokeObjectURL(pdfUrl)
+          }, 100)
+        } else {
+          // 其他浏览器标准下载
+          const link = document.createElement('a')
+          link.href = pdfUrl
+          link.download = fileName
+          document.body.appendChild(link)
+          link.click()
+          setTimeout(() => {
+            document.body.removeChild(link)
+            URL.revokeObjectURL(pdfUrl)
+          }, 100)
+        }
+        showToast('PDF 已生成')
+        return
+      }
       
-      showToast('PDF 已生成，请查看下载')
-    } else if (isMobile) {
-      const pdfBlob = pdf.output('blob')
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-      
-      const link = document.createElement('a')
-      link.href = pdfUrl
-      link.download = fileName
-      link.target = '_blank'
-      document.body.appendChild(link)
-      link.click()
-      
-      setTimeout(() => {
-        document.body.removeChild(link)
-        URL.revokeObjectURL(pdfUrl)
-      }, 100)
-      
-      showToast('PDF 已生成')
-    } else {
+      // 桌面浏览器
       pdf.save(fileName)
       showToast('PDF 已生成')
+      
+    } catch (downloadError) {
+      console.error('PDF下载错误:', downloadError)
+      // 降级方案：直接在新窗口打开
+      window.open(pdfUrl, '_blank')
+      showToast('请在新窗口中保存报告', 'info')
     }
   } catch (error) {
     console.error('PDF生成错误:', error)

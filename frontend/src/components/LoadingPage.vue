@@ -74,7 +74,7 @@
       </transition>
       
       <!-- 预计时间 -->
-      <p v-if="!reportReady" class="time-estimate">预计需要 1-2 分钟</p>
+      <p v-if="!reportReady" class="time-estimate">预计需要 1~3 分钟不等</p>
       
       <!-- 等待提示 -->
       <p v-if="!reportReady" class="wait-hint">
@@ -118,12 +118,19 @@ const props = defineProps({
   reportReady: {
     type: Boolean,
     default: false
+  },
+  // 新增：当前分析阶段
+  analysisStage: {
+    type: String,
+    default: 'data', // data, ai-parse, generating, returning
+    validator: (value) => ['data', 'ai-parse', 'generating', 'returning', 'completed'].includes(value)
   }
 })
 
 const emit = defineEmits(['continue', 'retry'])
 
-const steps = ['分析八字', '计算五行', 'AI解读', '生成报告']
+// 新的四步骤：数据分析、AI解析、生成报告、返回结果
+const steps = ['数据分析', 'AI解析', '生成报告', '返回结果']
 const currentStep = ref(0)
 
 const tips = [
@@ -140,16 +147,20 @@ const showRetryButton = ref(false)
 const RETRY_TIMEOUT = 3 * 60 * 1000 // 3分钟
 let retryTimer = null
 
-let stepInterval = null
 let tipInterval = null
 
+// 根据 analysisStage 映射到步骤索引
+const stageToStepIndex = {
+  'data': 0,        // 数据分析
+  'ai-parse': 1,    // AI解析
+  'generating': 2,  // 生成报告
+  'returning': 3,   // 返回结果
+  'completed': 3    // 已完成
+}
+
 onMounted(() => {
-  // 步骤进度动画
-  stepInterval = setInterval(() => {
-    if (currentStep.value < steps.length - 1 && !props.reportReady) {
-      currentStep.value++
-    }
-  }, 3000)
+  // 初始化当前步骤
+  currentStep.value = stageToStepIndex[props.analysisStage] || 0
   
   // 趣味提示轮换
   tipInterval = setInterval(() => {
@@ -167,9 +178,18 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  clearInterval(stepInterval)
   clearInterval(tipInterval)
   clearTimeout(retryTimer)
+})
+
+// 监听 analysisStage 变化，更新当前步骤
+watch(() => props.analysisStage, (newStage) => {
+  if (!props.reportReady && newStage) {
+    const targetStep = stageToStepIndex[newStage]
+    if (targetStep !== undefined && targetStep > currentStep.value) {
+      currentStep.value = targetStep
+    }
+  }
 })
 
 // 当报告准备好时，自动完成所有步骤

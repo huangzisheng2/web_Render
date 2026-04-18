@@ -38,8 +38,20 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,  # 使用通配符*时不能同时为True
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+    allow_headers=[
+        "*",
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Accept-Language",
+        "Accept-Encoding",
+        "Origin",
+        "X-Requested-With",
+        "X-Debug-Mode",
+    ],
+    expose_headers=["*"],
+    max_age=86400,  # 预检请求缓存24小时
 )
 
 
