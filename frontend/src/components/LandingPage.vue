@@ -97,13 +97,14 @@ defineEmits(['start'])
 <style scoped>
 .landing-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: env(safe-area-inset-top) 5vw env(safe-area-inset-bottom);
 }
 
 /* 背景装饰 */
@@ -123,46 +124,58 @@ defineEmits(['start'])
 }
 
 .circle-1 {
-  width: 300px;
-  height: 300px;
+  width: 60vw;
+  height: 60vw;
+  max-width: 300px;
+  max-height: 300px;
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
-  top: -100px;
-  right: -100px;
+  top: -10%;
+  right: -15%;
 }
 
 .circle-2 {
-  width: 200px;
-  height: 200px;
+  width: 40vw;
+  height: 40vw;
+  max-width: 200px;
+  max-height: 200px;
   background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC1 100%);
   bottom: 10%;
-  left: -50px;
+  left: -10%;
 }
 
 .circle-3 {
-  width: 150px;
-  height: 150px;
+  width: 30vw;
+  height: 30vw;
+  max-width: 150px;
+  max-height: 150px;
   background: linear-gradient(135deg, #DDBEA9 0%, #E8D5C4 100%);
   bottom: 20%;
-  right: 10%;
+  right: 5%;
 }
 
 /* 内容区 */
 .content-wrapper {
-  max-width: 400px;
+  max-width: 90vw;
   width: 100%;
+  max-width: 400px;
   text-align: center;
   z-index: 1;
+  padding: 4vh 0;
 }
 
 /* Logo区域 */
 .logo-section {
-  margin-bottom: 32px;
+  margin-bottom: 4vh;
 }
 
 .logo-icon {
-  width: 88px;
-  height: 88px;
-  margin: 0 auto 24px;
+  width: 20vw;
+  height: 20vw;
+  max-width: 88px;
+  max-height: 88px;
+  min-width: 72px;
+  min-height: 72px;
+  margin: 0 auto 3vh;
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   border-radius: 24px;
   display: flex;
@@ -178,21 +191,21 @@ defineEmits(['start'])
 }
 
 .logo-icon svg {
-  width: 44px;
-  height: 44px;
+  width: 50%;
+  height: 50%;
   color: white;
 }
 
 .main-title {
-  font-size: 28px;
+  font-size: clamp(1.5rem, 6.5vw, 1.75rem);
   font-weight: 700;
   color: #4A5568;
-  margin: 0 0 8px;
+  margin: 0 0 1vh;
   letter-spacing: -0.5px;
 }
 
 .subtitle {
-  font-size: 16px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   color: #718096;
   margin: 0;
 }
@@ -201,8 +214,8 @@ defineEmits(['start'])
 .intro-card {
   background: white;
   border-radius: 20px;
-  padding: 28px;
-  margin-bottom: 24px;
+  padding: 4vh 5vw;
+  margin-bottom: 3vh;
   box-shadow: 0 4px 16px rgba(142, 197, 252, 0.1);
   border: 1px solid rgba(142, 197, 252, 0.2);
 }
@@ -210,19 +223,23 @@ defineEmits(['start'])
 .feature-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 3vh;
 }
 
 .feature-item {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 4vw;
   text-align: left;
 }
 
 .feature-icon {
-  width: 48px;
-  height: 48px;
+  width: 12vw;
+  height: 12vw;
+  max-width: 48px;
+  max-height: 48px;
+  min-width: 40px;
+  min-height: 40px;
   background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
   border-radius: 14px;
   display: flex;
@@ -233,20 +250,20 @@ defineEmits(['start'])
 }
 
 .feature-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 50%;
+  height: 50%;
   color: #8EC5FC;
 }
 
 .feature-text h3 {
-  font-size: 15px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   font-weight: 600;
   color: #4A5568;
-  margin: 0 0 4px;
+  margin: 0 0 1vh;
 }
 
 .feature-text p {
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   color: #718096;
   margin: 0;
   line-height: 1.5;
@@ -254,44 +271,55 @@ defineEmits(['start'])
 
 /* 免责声明 */
 .disclaimer {
-  margin-bottom: 28px;
-  padding: 16px;
+  margin-bottom: 4vh;
+  padding: 2vh 4vw;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 12px;
   border: 1px solid rgba(142, 197, 252, 0.2);
 }
 
 .disclaimer p {
-  font-size: 12px;
+  font-size: clamp(0.6875rem, 3vw, 0.75rem);
   color: #718096;
-  margin: 6px 0;
+  margin: 1vh 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 1.5vw;
+}
+
+.disclaimer p:first-child {
+  margin-top: 0;
+}
+
+.disclaimer p:last-child {
+  margin-bottom: 0;
 }
 
 .disclaimer p svg {
-  width: 14px;
-  height: 14px;
+  width: 3.5vw;
+  max-width: 14px;
+  min-width: 12px;
+  height: auto;
   color: #A8E6CF;
+  flex-shrink: 0;
 }
 
 /* 开始按钮 */
 .start-btn {
   width: 100%;
-  padding: 18px 32px;
+  padding: 2.8vh 8vw;
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
   border: none;
   border-radius: 16px;
-  font-size: 18px;
+  font-size: clamp(1.0625rem, 4.5vw, 1.125rem);
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 2.5vw;
   box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
   transition: all 0.3s ease;
 }
@@ -306,32 +334,63 @@ defineEmits(['start'])
 }
 
 .start-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 5vw;
+  max-width: 20px;
+  min-width: 18px;
+  height: auto;
 }
 
 /* 响应式 */
 @media (max-width: 480px) {
-  .main-title {
-    font-size: 24px;
+  .intro-card {
+    padding: 3vh 4vw;
+  }
+  
+  .feature-list {
+    gap: 2.5vh;
+  }
+  
+  .disclaimer {
+    padding: 1.8vh 3vw;
+  }
+}
+
+@media (min-width: 768px) {
+  .content-wrapper {
+    max-width: 440px;
+  }
+}
+
+/* 横屏适配 */
+@media (max-height: 600px) and (orientation: landscape) {
+  .landing-page {
+    padding-top: 2vh;
+    padding-bottom: 2vh;
+  }
+  
+  .content-wrapper {
+    padding: 2vh 0;
+  }
+  
+  .logo-section {
+    margin-bottom: 2.5vh;
+  }
+  
+  .logo-icon {
+    margin-bottom: 2vh;
   }
   
   .intro-card {
-    padding: 20px;
+    padding: 2.5vh 4vw;
+    margin-bottom: 2.5vh;
   }
   
-  .feature-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
+  .feature-list {
+    gap: 2vh;
   }
   
-  .feature-text h3 {
-    font-size: 14px;
-  }
-  
-  .feature-text p {
-    font-size: 12px;
+  .disclaimer {
+    margin-bottom: 2.5vh;
   }
 }
 </style>

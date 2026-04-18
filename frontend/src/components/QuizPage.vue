@@ -146,7 +146,6 @@ const prevQuestion = () => {
 }
 
 const submitQuiz = () => {
-  // 这里可以处理答题结果，然后进入信息填写页
   emit('complete', answers.value)
 }
 </script>
@@ -154,8 +153,9 @@ const submitQuiz = () => {
 <style scoped>
 .quiz-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
-  padding: 20px;
+  padding: env(safe-area-inset-top) 5vw env(safe-area-inset-bottom);
   display: flex;
   flex-direction: column;
 }
@@ -166,8 +166,9 @@ const submitQuiz = () => {
   height: 4px;
   background: rgba(142, 197, 252, 0.2);
   border-radius: 2px;
-  margin-bottom: 32px;
+  margin-bottom: 4vh;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .progress-fill {
@@ -180,8 +181,9 @@ const submitQuiz = () => {
 /* 主容器 */
 .quiz-container {
   flex: 1;
-  max-width: 400px;
+  max-width: 100%;
   width: 100%;
+  max-width: 520px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -190,17 +192,17 @@ const submitQuiz = () => {
 /* 题号 */
 .question-number {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 3vh;
 }
 
 .current {
-  font-size: 32px;
+  font-size: clamp(1.75rem, 7vw, 2rem);
   font-weight: 700;
   color: #8EC5FC;
 }
 
 .total {
-  font-size: 16px;
+  font-size: clamp(1rem, 4vw, 1.125rem);
   color: #A0AEC0;
 }
 
@@ -208,18 +210,20 @@ const submitQuiz = () => {
 .question-card {
   background: white;
   border-radius: 20px;
-  padding: 28px;
-  margin-bottom: 24px;
+  padding: 4vh 5vw;
+  margin-bottom: 3vh;
   box-shadow: 0 4px 16px rgba(142, 197, 252, 0.1);
   border: 1px solid rgba(142, 197, 252, 0.2);
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .question-text {
-  font-size: 17px;
+  font-size: clamp(1rem, 4.2vw, 1.125rem);
   font-weight: 600;
   color: #4A5568;
-  margin: 0 0 24px;
+  margin: 0 0 3vh;
   line-height: 1.7;
 }
 
@@ -227,7 +231,7 @@ const submitQuiz = () => {
 .question-text::before {
   content: '"';
   color: #8EC5FC;
-  font-size: 24px;
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
   font-weight: 700;
   margin-right: 4px;
   line-height: 1;
@@ -236,7 +240,7 @@ const submitQuiz = () => {
 .question-text::after {
   content: '"';
   color: #8EC5FC;
-  font-size: 24px;
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
   font-weight: 700;
   margin-left: 4px;
   line-height: 1;
@@ -246,14 +250,15 @@ const submitQuiz = () => {
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 2vh;
+  flex: 1;
 }
 
 .option-btn {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: 3vw;
+  padding: 2.5vh 4vw;
   background: #F7FAFC;
   border: 2px solid transparent;
   border-radius: 12px;
@@ -276,8 +281,12 @@ const submitQuiz = () => {
 }
 
 .option-letter {
-  width: 28px;
-  height: 28px;
+  width: 7vw;
+  height: 7vw;
+  max-width: 28px;
+  max-height: 28px;
+  min-width: 24px;
+  min-height: 24px;
   background: white;
   border-radius: 50%;
   display: flex;
@@ -285,7 +294,7 @@ const submitQuiz = () => {
   justify-content: center;
   font-weight: 700;
   color: #8EC5FC;
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   flex-shrink: 0;
   border: 2px solid rgba(142, 197, 252, 0.4);
   margin-top: 2px;
@@ -298,7 +307,7 @@ const submitQuiz = () => {
 }
 
 .option-text {
-  font-size: 15px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   color: #4A5568;
   line-height: 1.6;
   flex: 1;
@@ -307,34 +316,37 @@ const submitQuiz = () => {
 /* 选项描述文字样式 */
 .option-text .desc {
   color: #718096;
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
 }
 
 /* 导航按钮 */
 .nav-buttons {
   display: flex;
-  gap: 12px;
+  gap: 3vw;
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .nav-btn {
   flex: 1;
-  padding: 16px 24px;
+  padding: 2.5vh 5vw;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 2vw;
   transition: all 0.3s ease;
   border: none;
 }
 
 .nav-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 5vw;
+  max-width: 18px;
+  min-width: 16px;
+  height: auto;
 }
 
 .nav-btn.prev {
@@ -370,18 +382,21 @@ const submitQuiz = () => {
 /* 提示文字 */
 .quiz-tip {
   text-align: center;
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   color: #A0AEC0;
-  margin-top: 20px;
+  margin-top: 3vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 1.5vw;
+  flex-shrink: 0;
 }
 
 .quiz-tip svg {
-  width: 16px;
-  height: 16px;
+  width: 4vw;
+  max-width: 16px;
+  min-width: 14px;
+  height: auto;
   color: #8EC5FC;
 }
 
@@ -404,92 +419,86 @@ const submitQuiz = () => {
 /* 响应式 - 手机端优化 */
 @media (max-width: 640px) {
   .quiz-page {
-    padding: 16px;
+    padding: env(safe-area-inset-top) 4vw env(safe-area-inset-bottom);
   }
   
   .progress-bar {
-    margin-bottom: 24px;
+    margin-bottom: 3vh;
   }
   
   .question-number {
-    margin-bottom: 16px;
-  }
-  
-  .current {
-    font-size: 28px;
+    margin-bottom: 2.5vh;
   }
   
   .question-card {
-    padding: 20px;
+    padding: 3vh 4vw;
     border-radius: 16px;
-    margin-bottom: 16px;
-  }
-  
-  .question-text {
-    font-size: 16px;
-    line-height: 1.7;
-    margin: 0 0 20px;
-  }
-  
-  .question-text::before,
-  .question-text::after {
-    font-size: 20px;
+    margin-bottom: 2.5vh;
   }
   
   .options-list {
-    gap: 10px;
+    gap: 1.8vh;
   }
   
   .option-btn {
-    padding: 14px;
-    border-radius: 10px;
-  }
-  
-  .option-letter {
-    width: 26px;
-    height: 26px;
-    font-size: 12px;
-  }
-  
-  .option-text {
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  
-  .nav-buttons {
-    gap: 10px;
-  }
-  
-  .nav-btn {
-    padding: 14px 20px;
-    font-size: 15px;
-  }
-  
-  .quiz-tip {
-    font-size: 12px;
-    margin-top: 16px;
+    padding: 2.2vh 3.5vw;
   }
 }
 
 @media (max-width: 480px) {
   .question-card {
-    padding: 16px;
+    padding: 2.5vh 4vw;
+    border-radius: 14px;
   }
   
   .question-text {
-    font-size: 15px;
+    margin-bottom: 2.5vh;
   }
   
   .option-btn {
-    padding: 12px;
+    padding: 2vh 3vw;
+    gap: 2.5vw;
   }
   
-  .option-text {
-    font-size: 14px;
+  .nav-buttons {
+    gap: 2.5vw;
   }
   
   .nav-btn {
-    padding: 12px 16px;
+    padding: 2.2vh 4vw;
+  }
+}
+
+/* 横屏适配 */
+@media (max-height: 600px) and (orientation: landscape) {
+  .quiz-page {
+    padding-top: 2vh;
+    padding-bottom: 2vh;
+  }
+  
+  .progress-bar {
+    margin-bottom: 2vh;
+  }
+  
+  .question-number {
+    margin-bottom: 2vh;
+  }
+  
+  .question-card {
+    padding: 2.5vh 4vw;
+    margin-bottom: 2vh;
+  }
+  
+  .options-list {
+    gap: 1.5vh;
+  }
+  
+  .option-btn {
+    padding: 2vh 3vw;
+  }
+  
+  .quiz-tip {
+    margin-top: 2vh;
   }
 }
 </style>

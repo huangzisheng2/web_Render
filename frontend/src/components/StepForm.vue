@@ -83,7 +83,7 @@
         </label>
         
         <!-- 日期时间选择器触发区 -->
-        <div class="datetime-trigger" @click="showDatePicker = true">
+        <div class="datetime-trigger" @click="openDatePicker">
           <div class="datetime-display">
             <template v-if="form.hour === null">
               {{ form.year }}年{{ form.month }}月{{ form.day }}日
@@ -100,7 +100,6 @@
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </div>
-
       </div>
 
       <!-- 出生地点 -->
@@ -255,13 +254,13 @@
       </div>
     </Transition>
 
-    <!-- 日期时间选择弹窗 -->
+    <!-- 日期时间选择弹窗 - iOS适配优化版 -->
     <Transition name="modal">
-      <div v-if="showDatePicker" class="modal-overlay" @click.self="showDatePicker = false">
-        <div class="modal-content">
-          <div class="modal-header">
+      <div v-if="showDatePicker" class="modal-overlay date-picker-overlay" @click.self="closeDatePicker">
+        <div class="modal-content date-picker-content">
+          <div class="modal-header date-picker-header">
             <h3>选择出生日期时间</h3>
-            <button class="modal-close" @click="showDatePicker = false">
+            <button class="modal-close" @click="closeDatePicker">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>
@@ -269,24 +268,43 @@
             </button>
           </div>
           
-          <!-- 快速输入区域 -->
-          <div class="quick-input-section">
+          <!-- iOS原生日期输入（iOS设备优先使用） -->
+          <div v-if="isIOS" class="ios-date-inputs">
+            <div class="ios-input-group">
+              <label>出生日期</label>
+              <input 
+                type="date" 
+                v-model="iosDateString"
+                class="ios-date-picker"
+                :max="maxDate"
+                :min="minDate"
+              />
+            </div>
+            <div class="ios-input-group">
+              <label>出生时间</label>
+              <input 
+                type="time" 
+                v-model="iosTimeString"
+                class="ios-time-picker"
+              />
+            </div>
+          </div>
+          
+          <!-- 快速输入区域（非iOS设备显示） -->
+          <div v-else class="quick-input-section">
             <label class="quick-input-label">快速输入</label>
             <input
               v-model="quickDateInput"
               type="text"
+              inputmode="numeric"
               class="quick-input"
               placeholder="输入数字串，如：200008151230"
               @input="handleQuickDateInput"
             />
           </div>
 
-          <div class="input-divider">
-            <span>或滚轮选择</span>
-          </div>
-
-          <!-- 滚轮选择区域 -->
-          <div class="picker-body">
+          <!-- 滚轮选择区域 - 紧凑版 -->
+          <div class="picker-body compact">
             <div class="picker-columns">
               <!-- 年 -->
               <div class="picker-column">
@@ -381,10 +399,23 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { cityData } from '../data/cities'
 
+const props = defineProps({
+  initialData: {
+    type: Object,
+    default: null
+  }
+})
+
 const emit = defineEmits(['submit', 'back'])
+
+// 检测是否为 iOS 设备
+const isIOS = computed(() => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /iphone|ipad|ipod/i.test(userAgent.toLowerCase())
+})
 
 // 表单数据
 const form = ref({
@@ -397,6 +428,33 @@ const form = ref({
   minute: 0,
   province: '',
   city: ''
+})
+
+// 如果有初始数据，恢复表单
+if (props.initialData) {
+  form.value = { ...form.value, ...props.initialData }
+}
+
+// iOS 日期时间字符串
+const iosDateString = ref('2000-01-01')
+const iosTimeString = ref('12:00')
+
+// 同步 iOS 日期时间到临时数据
+watch(iosDateString, (newVal) => {
+  if (newVal) {
+    const [year, month, day] = newVal.split('-').map(Number)
+    tempDate.year = year
+    tempDate.month = month
+    tempDate.day = day
+  }
+})
+
+watch(iosTimeString, (newVal) => {
+  if (newVal) {
+    const [hour, minute] = newVal.split(':').map(Number)
+    tempDate.hour = hour
+    tempDate.minute = minute
+  }
 })
 
 // 城市输入
@@ -427,6 +485,10 @@ const quickDateInput = ref('')
 
 // 年份选项
 const yearOptions = Array.from({ length: 125 }, (_, i) => 2025 - i)
+
+// 日期范围限制
+const maxDate = '2025-12-31'
+const minDate = '1900-01-01'
 
 // 计算属性
 const daysInMonth = computed(() => {
@@ -486,6 +548,28 @@ const filteredCities = computed(() => {
   return results
 })
 
+// 打开日期选择器
+const openDatePicker = () => {
+  // 同步当前表单值到临时数据
+  tempDate.year = form.value.year
+  tempDate.month = form.value.month
+  tempDate.day = form.value.day
+  tempDate.hour = form.value.hour !== null ? form.value.hour : 12
+  tempDate.minute = form.value.minute
+  
+  // 同步到 iOS 输入
+  iosDateString.value = `${tempDate.year}-${String(tempDate.month).padStart(2, '0')}-${String(tempDate.day).padStart(2, '0')}`
+  iosTimeString.value = `${String(tempDate.hour).padStart(2, '0')}:${String(tempDate.minute).padStart(2, '0')}`
+  
+  showDatePicker.value = true
+}
+
+// 关闭日期选择器
+const closeDatePicker = () => {
+  showDatePicker.value = false
+  quickDateInput.value = ''
+}
+
 const selectProvince = (province) => {
   tempLocation.province = province
   tempLocation.city = ''
@@ -538,12 +622,6 @@ const getShichenName = (hour) => {
   return '子时'
 }
 
-// 方法
-const setUnknownTime = () => {
-  form.value.hour = null
-  form.value.minute = 0
-}
-
 const onCityInput = () => {
   showCitySuggestions.value = true
 }
@@ -564,7 +642,7 @@ const clearLocation = () => {
 const selectUnknownTimeInModal = () => {
   form.value.hour = null
   form.value.minute = 0
-  showDatePicker.value = false
+  closeDatePicker()
 }
 
 const confirmDateTime = () => {
@@ -573,15 +651,14 @@ const confirmDateTime = () => {
   form.value.day = tempDate.day
   form.value.hour = tempDate.hour
   form.value.minute = tempDate.minute
-  showDatePicker.value = false
+  closeDatePicker()
 }
 
 // 处理快速日期输入
 const handleQuickDateInput = () => {
-  const input = quickDateInput.value.trim().replace(/\D/g, '') // 只保留数字
+  const input = quickDateInput.value.trim().replace(/\D/g, '')
   
   if (input.length === 8) {
-    // 8位: YYYYMMDD
     const year = parseInt(input.substring(0, 4))
     const month = parseInt(input.substring(4, 6))
     const day = parseInt(input.substring(6, 8))
@@ -594,7 +671,6 @@ const handleQuickDateInput = () => {
       tempDate.minute = 0
     }
   } else if (input.length === 10) {
-    // 10位: YYYYMMDDHH
     const year = parseInt(input.substring(0, 4))
     const month = parseInt(input.substring(4, 6))
     const day = parseInt(input.substring(6, 8))
@@ -608,7 +684,6 @@ const handleQuickDateInput = () => {
       tempDate.minute = 0
     }
   } else if (input.length === 12) {
-    // 12位: YYYYMMDDHHmm
     const year = parseInt(input.substring(0, 4))
     const month = parseInt(input.substring(4, 6))
     const day = parseInt(input.substring(6, 8))
@@ -647,9 +722,12 @@ const submit = () => {
 <style scoped>
 .step-form-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   display: flex;
   flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* 头部 */
@@ -657,14 +735,19 @@ const submit = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 2vh 5vw;
   background: white;
   border-bottom: 1px solid rgba(142, 197, 252, 0.2);
+  flex-shrink: 0;
 }
 
 .back-btn {
-  width: 40px;
-  height: 40px;
+  width: 10vw;
+  height: 10vw;
+  max-width: 40px;
+  max-height: 40px;
+  min-width: 36px;
+  min-height: 36px;
   border: none;
   background: #F7FAFC;
   border-radius: 12px;
@@ -680,39 +763,43 @@ const submit = () => {
 }
 
 .back-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 50%;
+  height: 50%;
   color: #718096;
 }
 
 .form-title {
-  font-size: 17px;
+  font-size: clamp(1rem, 4vw, 1.0625rem);
   font-weight: 600;
   color: #4A5568;
   margin: 0;
 }
 
 .placeholder {
-  width: 40px;
+  width: 10vw;
+  max-width: 40px;
+  min-width: 36px;
 }
 
 /* 表单内容 */
 .form-content {
   flex: 1;
-  padding: 20px;
+  padding: 3vh 5vw;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 480px;
+  gap: 2.5vh;
+  max-width: 100%;
   margin: 0 auto;
   width: 100%;
+  max-width: 520px;
+  overflow-y: auto;
 }
 
 /* 卡片样式 */
 .form-card {
   background: white;
   border-radius: 16px;
-  padding: 20px;
+  padding: 3vh 4vw;
   box-shadow: 0 2px 12px rgba(142, 197, 252, 0.08);
   border: 1px solid rgba(142, 197, 252, 0.15);
 }
@@ -720,21 +807,23 @@ const submit = () => {
 .card-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 2vw;
+  font-size: clamp(0.875rem, 3.5vw, 0.9375rem);
   font-weight: 600;
   color: #4A5568;
-  margin-bottom: 16px;
+  margin-bottom: 2vh;
 }
 
 .card-label svg {
-  width: 18px;
-  height: 18px;
+  width: 5vw;
+  max-width: 18px;
+  min-width: 16px;
+  height: auto;
   color: #8EC5FC;
 }
 
 .optional {
-  font-size: 12px;
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
   color: #A0AEC0;
   font-weight: normal;
 }
@@ -742,8 +831,8 @@ const submit = () => {
 /* 姓名输入 */
 .name-input {
   width: 100%;
-  padding: 14px 16px;
-  font-size: 16px;
+  padding: 2vh 4vw;
+  font-size: clamp(1rem, 4vw, 1.0625rem);
   border: 2px solid #E2E8F0;
   border-radius: 12px;
   transition: all 0.2s;
@@ -763,12 +852,12 @@ const submit = () => {
 /* 性别选择 */
 .gender-options {
   display: flex;
-  gap: 12px;
+  gap: 3vw;
 }
 
 .gender-btn {
   flex: 1;
-  padding: 16px;
+  padding: 2.5vh 3vw;
   background: #F7FAFC;
   border: 2px solid transparent;
   border-radius: 12px;
@@ -776,9 +865,9 @@ const submit = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 1.5vh;
   transition: all 0.2s;
-  font-size: 14px;
+  font-size: clamp(0.875rem, 3.5vw, 0.9375rem);
   color: #718096;
 }
 
@@ -793,8 +882,10 @@ const submit = () => {
 }
 
 .gender-icon {
-  width: 32px;
-  height: 32px;
+  width: 8vw;
+  height: 8vw;
+  max-width: 32px;
+  max-height: 32px;
 }
 
 .gender-icon svg {
@@ -808,7 +899,7 @@ const submit = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 2vh 4vw;
   background: #F7FAFC;
   border: 2px solid #E2E8F0;
   border-radius: 12px;
@@ -821,26 +912,29 @@ const submit = () => {
 }
 
 .datetime-display {
-  font-size: 15px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   color: #4A5568;
   line-height: 1.6;
 }
 
 .unknown-tag {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 0.8vh 2.5vw;
   background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
   color: #8EC5FC;
-  font-size: 12px;
+  font-size: clamp(0.6875rem, 3vw, 0.75rem);
   border-radius: 20px;
-  margin-left: 8px;
+  margin-left: 2vw;
   font-weight: 500;
 }
 
 .edit-icon {
-  width: 20px;
-  height: 20px;
+  width: 5vw;
+  max-width: 20px;
+  min-width: 18px;
+  height: auto;
   color: #A0AEC0;
+  flex-shrink: 0;
 }
 
 /* 地点选择触发 */
@@ -848,7 +942,7 @@ const submit = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 2vh 4vw;
   background: #F7FAFC;
   border: 2px solid #E2E8F0;
   border-radius: 12px;
@@ -861,7 +955,7 @@ const submit = () => {
 }
 
 .location-display {
-  font-size: 15px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   color: #4A5568;
 }
 
@@ -869,294 +963,248 @@ const submit = () => {
   color: #A0AEC0;
 }
 
-/* 城市输入 */
-.city-input-wrapper {
-  position: relative;
-}
-
-.city-input {
-  width: 100%;
-  padding: 14px 40px 14px 16px;
-  font-size: 15px;
-  border: 2px solid #E2E8F0;
-  border-radius: 12px;
-  transition: all 0.2s;
-  color: #4A5568;
-}
-
-.city-input:focus {
-  outline: none;
-  border-color: #8EC5FC;
-  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
-}
-
-.city-input::placeholder {
+/* 地点提示 */
+.location-hint {
+  margin: 1.5vh 0 0;
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
   color: #A0AEC0;
-}
-
-.search-icon {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #A0AEC0;
-}
-
-/* 城市建议列表 */
-.city-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(142, 197, 252, 0.15);
-  z-index: 100;
-  overflow: hidden;
-  border: 1px solid rgba(142, 197, 252, 0.2);
-}
-
-.suggestion-item {
-  padding: 14px 16px;
-  cursor: pointer;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F0F0F0;
+  gap: 1.5vw;
 }
 
-.suggestion-item:last-child {
-  border-bottom: none;
+.location-hint svg {
+  width: 4vw;
+  max-width: 14px;
+  min-width: 12px;
+  height: auto;
+  flex-shrink: 0;
 }
 
-.suggestion-item:hover {
-  background: #F0F9FF;
-}
-
-.city-name {
-  font-size: 15px;
-  color: #4A5568;
-}
-
-.province-name {
-  font-size: 13px;
-  color: #A0AEC0;
-}
-
-/* 地点选择弹窗样式 */
-.location-search-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid #F0F0F0;
-  background: #F7FAFC;
-}
-
-.location-search-input-wrapper {
-  position: relative;
-}
-
-.location-search-input {
-  width: 100%;
-  padding: 12px 40px 12px 16px;
-  font-size: 15px;
-  border: 2px solid #E2E8F0;
-  border-radius: 12px;
-  transition: all 0.2s;
-  color: #4A5568;
-}
-
-.location-search-input:focus {
-  outline: none;
-  border-color: #8EC5FC;
-  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
-}
-
-.location-search-results {
-  margin-top: 8px;
-  max-height: 150px;
-  overflow-y: auto;
+/* 底部 */
+.form-footer {
+  padding: 3vh 5vw;
   background: white;
-  border-radius: 8px;
-  border: 1px solid #E2E8F0;
+  border-top: 1px solid rgba(142, 197, 252, 0.2);
+  flex-shrink: 0;
 }
 
-.location-result-item {
-  padding: 12px 16px;
-  cursor: pointer;
+.accuracy-hint {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F0F0F0;
-}
-
-.location-result-item:last-child {
-  border-bottom: none;
-}
-
-.location-result-item:hover {
-  background: #F0F9FF;
-}
-
-.result-city {
-  font-size: 15px;
+  justify-content: center;
+  gap: 2vw;
+  padding: 2vh 3vw;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  border-radius: 10px;
+  margin-bottom: 2.5vh;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   color: #4A5568;
-  font-weight: 500;
 }
 
-.result-province {
-  font-size: 13px;
-  color: #A0AEC0;
+.accuracy-hint svg {
+  width: 4.5vw;
+  max-width: 16px;
+  min-width: 14px;
+  height: auto;
+  color: #8EC5FC;
+  flex-shrink: 0;
 }
 
-.no-results {
-  text-align: center;
-  padding: 20px;
-  color: #A0AEC0;
-  font-size: 14px;
-}
-
-.location-picker-body {
-  padding: 16px;
-}
-
-.location-picker-columns {
-  display: flex;
-  gap: 12px;
-  height: 240px;
-}
-
-.location-picker-column {
-  flex: 1;
-  text-align: center;
-}
-
-.location-column-label {
-  font-size: 13px;
-  color: #A0AEC0;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.location-column-options {
-  height: 210px;
-  overflow-y: auto;
-  background: #F7FAFC;
-  border-radius: 12px;
-  padding: 8px;
-}
-
-.location-column-option {
-  padding: 12px 8px;
-  font-size: 14px;
-  color: #4A5568;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-  margin-bottom: 4px;
-}
-
-.location-column-option:last-child {
-  margin-bottom: 0;
-}
-
-.location-column-option:hover {
-  background: #F0F9FF;
-}
-
-.location-column-option.active {
+.submit-btn {
+  width: 100%;
+  padding: 2.5vh 6vw;
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   color: white;
-  font-weight: 600;
-}
-
-.btn-skip {
-  flex: 1;
-  padding: 14px;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
   border: none;
-  transition: all 0.2s;
-  background: #F7FAFC;
-  color: #718096;
-}
-
-.btn-skip:hover {
-  background: #F0F9FF;
-}
-
-/* 已选地点 */
-.selected-location {
-  margin-top: 12px;
-}
-
-.location-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
-  color: #4A5568;
-  font-size: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(142, 197, 252, 0.3);
-}
-
-.clear-btn {
-  width: 18px;
-  height: 18px;
-  border: none;
-  background: rgba(142, 197, 252, 0.3);
-  border-radius: 50%;
+  border-radius: 14px;
+  font-size: clamp(1.0625rem, 4.5vw, 1.125rem);
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  color: #718096;
-  transition: all 0.2s;
+  gap: 2vw;
+  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
+  transition: all 0.3s;
 }
 
-.clear-btn:hover {
-  background: rgba(142, 197, 252, 0.5);
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
 }
 
-.location-hint {
-  margin: 12px 0 0;
-  font-size: 12px;
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn svg {
+  width: 5.5vw;
+  max-width: 20px;
+  min-width: 18px;
+  height: auto;
+}
+
+.disclaimer {
+  text-align: center;
+  margin: 2vh 0 0;
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
   color: #A0AEC0;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(74, 85, 104, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2vh 3vw;
+  padding-bottom: max(2vh, env(safe-area-inset-bottom));
+}
+
+.modal-overlay.date-picker-overlay {
+  align-items: center;
+  padding: 2vh 4vw;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 -4px 24px rgba(142, 197, 252, 0.2);
+}
+
+.modal-content.date-picker-content {
+  max-height: 80vh;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  padding: 2.5vh 5vw;
+  border-bottom: 1px solid #F0F0F0;
+  flex-shrink: 0;
 }
 
-.location-hint svg {
-  width: 14px;
-  height: 14px;
+.modal-header h3 {
+  margin: 0;
+  font-size: clamp(1rem, 4vw, 1.0625rem);
+  font-weight: 600;
+  color: #4A5568;
 }
 
-/* 快速输入区域 */
+.modal-close {
+  width: 9vw;
+  height: 9vw;
+  max-width: 32px;
+  max-height: 32px;
+  min-width: 28px;
+  min-height: 28px;
+  border: none;
+  background: #F7FAFC;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: #F0F9FF;
+}
+
+.modal-close svg {
+  width: 60%;
+  height: 60%;
+  color: #718096;
+}
+
+/* iOS 日期输入样式 */
+.ios-date-inputs {
+  padding: 2vh 5vw;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.ios-input-group {
+  margin-bottom: 2vh;
+}
+
+.ios-input-group:last-child {
+  margin-bottom: 0;
+}
+
+.ios-input-group label {
+  display: block;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
+  font-weight: 600;
+  color: #4A5568;
+  margin-bottom: 1vh;
+}
+
+.ios-date-picker,
+.ios-time-picker {
+  width: 100%;
+  padding: 2vh 4vw;
+  font-size: clamp(1rem, 4vw, 1.0625rem);
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  background: white;
+  color: #4A5568;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ios-date-picker:focus,
+.ios-time-picker:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+/* 快速输入区域 - 紧凑版 */
 .quick-input-section {
-  padding: 16px 20px;
+  padding: 2vh 5vw;
   border-bottom: 1px solid #F0F0F0;
   background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
 }
 
 .quick-input-label {
   display: block;
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   font-weight: 600;
   color: #4A5568;
-  margin-bottom: 10px;
+  margin-bottom: 1.5vh;
 }
 
 .quick-input {
   width: 100%;
-  padding: 14px 16px;
-  font-size: 18px;
+  padding: 2vh 4vw;
+  font-size: clamp(1.125rem, 5vw, 1.25rem);
   border: 2px solid #E2E8F0;
   border-radius: 12px;
   transition: all 0.2s;
@@ -1175,178 +1223,33 @@ const submit = () => {
 .quick-input::placeholder {
   color: #A0AEC0;
   letter-spacing: 0;
-  font-size: 14px;
+  font-size: clamp(0.875rem, 4vw, 0.9375rem);
   font-family: inherit;
 }
 
-.input-divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  padding: 12px 20px;
-}
-
-.input-divider::before,
-.input-divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.input-divider span {
-  padding: 0 12px;
-  font-size: 12px;
-  color: #A0AEC0;
-}
-
-/* 底部 */
-.form-footer {
-  padding: 20px;
-  background: white;
-  border-top: 1px solid rgba(142, 197, 252, 0.2);
-}
-
-.accuracy-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
-  border-radius: 10px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #4A5568;
-}
-
-.accuracy-hint svg {
-  width: 16px;
-  height: 16px;
-  color: #8EC5FC;
-  flex-shrink: 0;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
-  color: white;
-  border: none;
-  border-radius: 14px;
-  font-size: 17px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(142, 197, 252, 0.3);
-  transition: all 0.3s;
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
-}
-
-.submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.submit-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-.disclaimer {
-  text-align: center;
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: #A0AEC0;
-}
-
-/* 弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(74, 85, 104, 0.5);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.3s ease;
-  box-shadow: 0 -4px 24px rgba(142, 197, 252, 0.2);
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #F0F0F0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: #4A5568;
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: #F7FAFC;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.modal-close:hover {
-  background: #F0F9FF;
-}
-
-.modal-close svg {
-  width: 18px;
-  height: 18px;
-  color: #718096;
-}
-
+/* 滚轮选择区域 - 紧凑版 */
 .picker-body {
-  padding: 16px;
+  padding: 2vh 4vw;
+  flex: 1;
+  overflow: hidden;
+}
+
+.picker-body.compact {
+  padding: 1.5vh 3vw;
 }
 
 .picker-columns {
   display: flex;
-  gap: 8px;
-  height: 220px;
+  gap: 2vw;
+  height: 35vh;
+  max-height: 280px;
+  min-height: 200px;
+}
+
+.picker-body.compact .picker-columns {
+  height: 30vh;
+  max-height: 240px;
+  min-height: 180px;
 }
 
 .picker-column {
@@ -1359,20 +1262,21 @@ const submit = () => {
 }
 
 .column-label {
-  font-size: 13px;
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
   color: #A0AEC0;
-  margin-bottom: 8px;
+  margin-bottom: 1.5vh;
   font-weight: 500;
 }
 
 .column-options {
-  height: 190px;
+  height: calc(100% - 3vh);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .column-option {
-  padding: 10px 4px;
-  font-size: 15px;
+  padding: 1.5vh 1vw;
+  font-size: clamp(0.875rem, 3.8vw, 0.9375rem);
   color: #4A5568;
   cursor: pointer;
   border-radius: 8px;
@@ -1389,31 +1293,36 @@ const submit = () => {
   font-weight: 600;
 }
 
+/* 弹窗底部 */
 .modal-footer {
   display: flex;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 3vw;
+  padding: 2vh 5vw;
   border-top: 1px solid #F0F0F0;
+  flex-shrink: 0;
 }
 
 .btn-unknown,
-.btn-confirm {
+.btn-confirm,
+.btn-skip {
   flex: 1;
-  padding: 14px;
+  padding: 2vh 4vw;
   border-radius: 12px;
-  font-size: 15px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   font-weight: 600;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
 }
 
-.btn-unknown {
+.btn-unknown,
+.btn-skip {
   background: #F7FAFC;
   color: #718096;
 }
 
-.btn-unknown:hover {
+.btn-unknown:hover,
+.btn-skip:hover {
   background: #F0F9FF;
 }
 
@@ -1422,8 +1331,153 @@ const submit = () => {
   color: white;
 }
 
-.btn-confirm:hover {
+.btn-confirm:hover:not(:disabled) {
   box-shadow: 0 4px 12px rgba(142, 197, 252, 0.3);
+}
+
+.btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 地点选择弹窗样式 */
+.location-search-section {
+  padding: 2vh 5vw;
+  border-bottom: 1px solid #F0F0F0;
+  background: #F7FAFC;
+}
+
+.location-search-input-wrapper {
+  position: relative;
+}
+
+.location-search-input {
+  width: 100%;
+  padding: 1.8vh 10vw 1.8vh 4vw;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: #4A5568;
+}
+
+.location-search-input:focus {
+  outline: none;
+  border-color: #8EC5FC;
+  box-shadow: 0 0 0 4px rgba(142, 197, 252, 0.15);
+}
+
+.search-icon {
+  position: absolute;
+  right: 3vw;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5vw;
+  max-width: 18px;
+  min-width: 16px;
+  height: auto;
+  color: #A0AEC0;
+}
+
+.location-search-results {
+  margin-top: 1.5vh;
+  max-height: 20vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.location-result-item {
+  padding: 1.8vh 4vw;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.location-result-item:last-child {
+  border-bottom: none;
+}
+
+.location-result-item:hover {
+  background: #F0F9FF;
+}
+
+.result-city {
+  font-size: clamp(0.9375rem, 4vw, 1rem);
+  color: #4A5568;
+  font-weight: 500;
+}
+
+.result-province {
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
+  color: #A0AEC0;
+}
+
+.no-results {
+  text-align: center;
+  padding: 3vh 4vw;
+  color: #A0AEC0;
+  font-size: clamp(0.875rem, 4vw, 0.9375rem);
+}
+
+.location-picker-body {
+  padding: 2vh 4vw;
+  flex: 1;
+  overflow: hidden;
+}
+
+.location-picker-columns {
+  display: flex;
+  gap: 3vw;
+  height: 30vh;
+}
+
+.location-picker-column {
+  flex: 1;
+  text-align: center;
+}
+
+.location-column-label {
+  font-size: clamp(0.75rem, 3vw, 0.8125rem);
+  color: #A0AEC0;
+  margin-bottom: 1.5vh;
+  font-weight: 500;
+}
+
+.location-column-options {
+  height: calc(100% - 3vh);
+  overflow-y: auto;
+  background: #F7FAFC;
+  border-radius: 12px;
+  padding: 1.5vh 2vw;
+  -webkit-overflow-scrolling: touch;
+}
+
+.location-column-option {
+  padding: 1.8vh 2vw;
+  font-size: clamp(0.875rem, 3.8vw, 0.9375rem);
+  color: #4A5568;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  margin-bottom: 0.5vh;
+}
+
+.location-column-option:last-child {
+  margin-bottom: 0;
+}
+
+.location-column-option:hover {
+  background: #F0F9FF;
+}
+
+.location-column-option.active {
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  color: white;
+  font-weight: 600;
 }
 
 /* 过渡动画 */
@@ -1435,5 +1489,52 @@ const submit = () => {
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .form-content {
+    padding: 2.5vh 4vw;
+    gap: 2vh;
+  }
+  
+  .form-card {
+    padding: 2.5vh 4vw;
+    border-radius: 14px;
+  }
+  
+  .picker-columns {
+    gap: 1.5vw;
+  }
+  
+  .column-option {
+    padding: 1.2vh 0.5vw;
+  }
+  
+  .modal-footer {
+    gap: 2.5vw;
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .form-content {
+    padding: 2vh 4vw;
+  }
+  
+  .form-card {
+    padding: 2vh 3vw;
+  }
+  
+  .picker-columns {
+    height: 25vh;
+    max-height: 200px;
+  }
+}
+
+/* 适配 iOS 安全区 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .modal-overlay {
+    padding-bottom: max(2vh, env(safe-area-inset-bottom));
+  }
 }
 </style>

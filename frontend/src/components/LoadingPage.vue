@@ -10,7 +10,7 @@
     <!-- 主内容 -->
     <div class="content">
       <!-- 加载动画 -->
-      <div class="loading-animation">
+      <div v-if="!reportReady" class="loading-animation">
         <div class="spinner">
           <div class="spinner-ring"></div>
           <div class="spinner-ring"></div>
@@ -23,11 +23,27 @@
         </div>
       </div>
       
+      <!-- 完成动画 -->
+      <div v-else class="complete-animation">
+        <div class="complete-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+      </div>
+      
       <!-- 标题 -->
-      <h1 class="loading-title">正在生成你的天赋报告</h1>
+      <h1 class="loading-title">
+        {{ reportReady ? '报告已生成' : '正在生成你的天赋报告' }}
+      </h1>
+      
+      <!-- 副标题 -->
+      <p class="loading-subtitle" v-if="reportReady">
+        点击下方按钮查看你的专属报告
+      </p>
       
       <!-- 进度提示 -->
-      <div class="progress-steps">
+      <div v-if="!reportReady" class="progress-steps">
         <div 
           v-for="(step, idx) in steps" 
           :key="idx"
@@ -44,16 +60,24 @@
         </div>
       </div>
       
+      <!-- 继续按钮 -->
+      <button v-if="reportReady" class="continue-btn" @click="$emit('continue')">
+        <span>查看报告</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+      
       <!-- 趣味提示 -->
-      <transition name="fade" mode="out-in">
+      <transition v-if="!reportReady" name="fade" mode="out-in">
         <p class="fun-tip" :key="currentTip">{{ tips[currentTip] }}</p>
       </transition>
       
       <!-- 预计时间 -->
-      <p class="time-estimate">预计需要 10-20 秒</p>
+      <p v-if="!reportReady" class="time-estimate">预计需要 10-20 秒</p>
       
       <!-- 错误重试提示 -->
-      <div class="error-hint">
+      <div v-if="!reportReady" class="error-hint">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="12" y1="8" x2="12" y2="12"/>
@@ -66,7 +90,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+
+const props = defineProps({
+  reportReady: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['continue'])
 
 const steps = ['分析八字', '计算五行', 'AI解读', '生成报告']
 const currentStep = ref(0)
@@ -86,14 +119,16 @@ let tipInterval = null
 onMounted(() => {
   // 步骤进度动画
   stepInterval = setInterval(() => {
-    if (currentStep.value < steps.length - 1) {
+    if (currentStep.value < steps.length - 1 && !props.reportReady) {
       currentStep.value++
     }
   }, 3000)
   
   // 趣味提示轮换
   tipInterval = setInterval(() => {
-    currentTip.value = (currentTip.value + 1) % tips.length
+    if (!props.reportReady) {
+      currentTip.value = (currentTip.value + 1) % tips.length
+    }
   }, 4000)
 })
 
@@ -101,18 +136,26 @@ onUnmounted(() => {
   clearInterval(stepInterval)
   clearInterval(tipInterval)
 })
+
+// 当报告准备好时，自动完成所有步骤
+watch(() => props.reportReady, (newVal) => {
+  if (newVal) {
+    currentStep.value = steps.length - 1
+  }
+})
 </script>
 
 <style scoped>
 .loading-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #F0F9FF 0%, #FDFCF8 50%, #F0FFF4 100%);
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: env(safe-area-inset-top) 5vw env(safe-area-inset-bottom);
 }
 
 /* 背景动画 */
@@ -133,26 +176,32 @@ onUnmounted(() => {
 }
 
 .shape-1 {
-  width: 200px;
-  height: 200px;
+  width: 50vw;
+  height: 50vw;
+  max-width: 200px;
+  max-height: 200px;
   background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
   top: 10%;
-  left: -50px;
+  left: -10%;
   animation-delay: 0s;
 }
 
 .shape-2 {
-  width: 150px;
-  height: 150px;
+  width: 40vw;
+  height: 40vw;
+  max-width: 150px;
+  max-height: 150px;
   background: linear-gradient(135deg, #A8E6CF 0%, #DCEDC1 100%);
   top: 50%;
-  right: -30px;
+  right: -5%;
   animation-delay: 2s;
 }
 
 .shape-3 {
-  width: 100px;
-  height: 100px;
+  width: 30vw;
+  height: 30vw;
+  max-width: 100px;
+  max-height: 100px;
   background: linear-gradient(135deg, #DDBEA9 0%, #E8D5C4 100%);
   bottom: 20%;
   left: 20%;
@@ -172,15 +221,22 @@ onUnmounted(() => {
 .content {
   text-align: center;
   z-index: 1;
+  max-width: 90vw;
+  width: 100%;
   max-width: 360px;
+  padding: 4vh 0;
 }
 
 /* 加载动画 */
 .loading-animation {
   position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 32px;
+  width: 30vw;
+  height: 30vw;
+  max-width: 120px;
+  max-height: 120px;
+  min-width: 80px;
+  min-height: 80px;
+  margin: 0 auto 4vh;
 }
 
 .spinner {
@@ -207,20 +263,20 @@ onUnmounted(() => {
 }
 
 .spinner-ring:nth-child(2) {
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
+  top: 10%;
+  left: 10%;
+  right: 10%;
+  bottom: 10%;
   border-top-color: #A8E6CF;
   animation-duration: 1.2s;
   animation-direction: reverse;
 }
 
 .spinner-ring:nth-child(3) {
-  top: 20px;
-  left: 20px;
-  right: 20px;
-  bottom: 20px;
+  top: 20%;
+  left: 20%;
+  right: 20%;
+  bottom: 20%;
   border-top-color: #DDBEA9;
   animation-duration: 0.9s;
 }
@@ -236,8 +292,8 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 36px;
-  height: 36px;
+  width: 30%;
+  height: 30%;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -256,20 +312,68 @@ onUnmounted(() => {
   }
 }
 
+/* 完成动画 */
+.complete-animation {
+  margin: 0 auto 4vh;
+}
+
+.complete-circle {
+  width: 25vw;
+  height: 25vw;
+  max-width: 100px;
+  max-height: 100px;
+  min-width: 72px;
+  min-height: 72px;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  animation: scaleIn 0.5s ease;
+  box-shadow: 0 8px 24px rgba(142, 197, 252, 0.4);
+}
+
+.complete-circle svg {
+  width: 50%;
+  height: 50%;
+  color: white;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* 标题 */
 .loading-title {
-  font-size: 22px;
+  font-size: clamp(1.375rem, 5.5vw, 1.5rem);
   font-weight: 700;
   color: #4A5568;
-  margin: 0 0 32px;
+  margin: 0 0 2vh;
+}
+
+.loading-subtitle {
+  font-size: clamp(0.9375rem, 4vw, 1rem);
+  color: #718096;
+  margin: 0 0 4vh;
 }
 
 /* 进度步骤 */
 .progress-steps {
   display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 40px;
+  gap: 4vw;
+  margin-bottom: 5vh;
   flex-wrap: wrap;
 }
 
@@ -277,26 +381,30 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 1vh;
 }
 
 .step-dot {
-  width: 36px;
-  height: 36px;
+  width: 9vw;
+  height: 9vw;
+  max-width: 36px;
+  max-height: 36px;
+  min-width: 28px;
+  min-height: 28px;
   border-radius: 50%;
   background: #E2E8F0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: clamp(0.75rem, 3vw, 0.875rem);
   font-weight: 600;
   color: #A0AEC0;
   transition: all 0.3s ease;
 }
 
 .step-dot svg {
-  width: 18px;
-  height: 18px;
+  width: 50%;
+  height: 50%;
 }
 
 .step.active .step-dot {
@@ -311,7 +419,7 @@ onUnmounted(() => {
 }
 
 .step-text {
-  font-size: 12px;
+  font-size: clamp(0.6875rem, 2.8vw, 0.75rem);
   color: #A0AEC0;
   transition: all 0.3s ease;
 }
@@ -322,19 +430,69 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
+/* 继续按钮 */
+.continue-btn {
+  width: 70vw;
+  max-width: 280px;
+  padding: 2.5vh 6vw;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: clamp(1rem, 4vw, 1.125rem);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2vw;
+  margin: 0 auto 4vh;
+  box-shadow: 0 6px 20px rgba(142, 197, 252, 0.4);
+  transition: all 0.3s ease;
+  animation: slideUp 0.5s ease 0.3s both;
+}
+
+.continue-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(142, 197, 252, 0.5);
+}
+
+.continue-btn:active {
+  transform: translateY(0);
+}
+
+.continue-btn svg {
+  width: 5vw;
+  max-width: 20px;
+  min-width: 18px;
+  height: auto;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 趣味提示 */
 .fun-tip {
-  font-size: 15px;
+  font-size: clamp(0.9375rem, 4vw, 1rem);
   color: #718096;
-  margin: 0 0 16px;
-  min-height: 24px;
+  margin: 0 0 2vh;
+  min-height: 1.5em;
+  padding: 0 4vw;
 }
 
 /* 预计时间 */
 .time-estimate {
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   color: #A0AEC0;
-  margin: 0 0 24px;
+  margin: 0 0 3vh;
 }
 
 /* 错误重试提示 */
@@ -342,24 +500,26 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 2vw;
+  padding: 2vh 4vw;
   background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
   border-radius: 10px;
   border: 1px solid #FCD34D;
-  max-width: 280px;
+  max-width: 90%;
   margin: 0 auto;
 }
 
 .error-hint svg {
-  width: 18px;
-  height: 18px;
+  width: 5vw;
+  max-width: 18px;
+  min-width: 16px;
+  height: auto;
   color: #D97706;
   flex-shrink: 0;
 }
 
 .error-hint p {
-  font-size: 13px;
+  font-size: clamp(0.8125rem, 3.5vw, 0.875rem);
   color: #92400E;
   margin: 0;
   line-height: 1.5;
@@ -378,29 +538,41 @@ onUnmounted(() => {
 
 /* 响应式 */
 @media (max-width: 480px) {
-  .loading-title {
-    font-size: 20px;
+  .loading-animation {
+    margin-bottom: 3vh;
+  }
+  
+  .complete-animation {
+    margin-bottom: 3vh;
   }
   
   .progress-steps {
-    gap: 12px;
-  }
-  
-  .step-text {
-    font-size: 11px;
-  }
-  
-  .fun-tip {
-    font-size: 14px;
+    gap: 3vw;
+    margin-bottom: 4vh;
   }
   
   .error-hint {
-    padding: 10px 14px;
-    max-width: 260px;
+    padding: 1.5vh 3vw;
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .loading-page {
+    padding-top: 2vh;
+    padding-bottom: 2vh;
   }
   
-  .error-hint p {
-    font-size: 12px;
+  .content {
+    padding: 2vh 0;
+  }
+  
+  .loading-animation,
+  .complete-animation {
+    margin-bottom: 2vh;
+  }
+  
+  .progress-steps {
+    margin-bottom: 3vh;
   }
 }
 </style>

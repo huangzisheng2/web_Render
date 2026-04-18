@@ -6,30 +6,41 @@
       <LandingPage 
         v-if="currentPage === 'landing'" 
         key="landing"
-        @start="goToQuiz"
+        @start="goToIntro"
       />
       
-      <!-- 2. 趣味答题页 -->
-      <QuizPage 
-        v-else-if="currentPage === 'quiz'" 
-        key="quiz"
-        @complete="goToForm"
+      <!-- 2. 介绍页（新增） -->
+      <IntroPage
+        v-else-if="currentPage === 'intro'"
+        key="intro"
+        @next="goToForm"
       />
       
       <!-- 3. 信息填写页 -->
       <StepForm 
         v-else-if="currentPage === 'form'" 
         key="form"
-        @submit="handleAnalyze"
+        :initial-data="savedFormData"
+        @submit="handleFormSubmit"
+        @back="goToIntro"
       />
       
-      <!-- 4. AI生成等待页 -->
+      <!-- 4. 趣味答题页（与报告生成并行） -->
+      <QuizPage 
+        v-else-if="currentPage === 'quiz'" 
+        key="quiz"
+        @complete="handleQuizComplete"
+      />
+      
+      <!-- 5. AI生成等待页 -->
       <LoadingPage 
         v-else-if="currentPage === 'loading'" 
         key="loading"
+        :report-ready="reportGenerationStatus === 'completed'"
+        @continue="goToResult"
       />
       
-      <!-- 5. 结果展示页 -->
+      <!-- 6. 结果展示页 -->
       <ResultDisplay
         v-else-if="currentPage === 'result'"
         key="result"
@@ -46,12 +57,31 @@
     <div v-if="toast.show" class="toast" :class="toast.type">
       {{ toast.message }}
     </div>
+    
+    <!-- 网络错误恢复提示 -->
+    <div v-if="showErrorRecovery" class="error-recovery-toast">
+      <div class="error-content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div class="error-text">
+          <p>上次分析未完成</p>
+          <span>已保留您的信息，点击继续</span>
+        </div>
+      </div>
+      <button class="continue-btn" @click="handleContinueAnalysis">
+        继续分析
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, getCurrentInstance } from 'vue'
+import { ref, reactive, getCurrentInstance, onMounted } from 'vue'
 import LandingPage from './components/LandingPage.vue'
+import IntroPage from './components/IntroPage.vue'
 import QuizPage from './components/QuizPage.vue'
 import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
@@ -63,7 +93,17 @@ const { appContext } = getCurrentInstance()
 const isDebug = appContext.config.globalProperties.$isDebug || false
 
 // 页面路由状态
-const currentPage = ref('landing') // landing, quiz, form, loading, result
+const currentPage = ref('landing') // landing, intro, form, quiz, loading, result
+
+// 报告生成状态
+const reportGenerationStatus = ref('idle') // idle, generating, completed, error
+
+// 保存的表单数据（用于失败恢复）
+const savedFormData = ref(null)
+const pendingFormData = ref(null)
+
+// 显示错误恢复提示
+const showErrorRecovery = ref(false)
 
 const downloading = ref(false)
 const aiAnalyzing = ref(false)
@@ -71,17 +111,26 @@ const result = ref(null)
 const quizAnswers = ref([])
 
 // 页面导航
+const goToIntro = () => {
+  currentPage.value = 'intro'
+}
+
+const goToForm = () => {
+  currentPage.value = 'form'
+}
+
 const goToQuiz = () => {
   currentPage.value = 'quiz'
 }
 
-const goToForm = (answers) => {
-  quizAnswers.value = answers
-  currentPage.value = 'form'
-}
-
 const goToLoading = () => {
   currentPage.value = 'loading'
+}
+
+const goToResult = () => {
+  if (result.value) {
+    currentPage.value = 'result'
+  }
 }
 
 const toast = reactive({
@@ -99,40 +148,156 @@ const showToast = (message, type = 'success') => {
   }, 3000)
 }
 
-// 执行分析
-const handleAnalyze = async (formData) => {
-  goToLoading()
+// 处理表单提交 - 新流程：提交后同时开始生成报告和答题
+const handleFormSubmit = async (formData) => {
+  // 保存表单数据
+  savedFormData.value = { ...formData }
+  pendingFormData.value = { ...formData }
   
+  // 清除之前的错误恢复状态
+  localStorage.removeItem('pendingAnalysis')
+  
+  // 开始并行处理：后台生成报告 + 用户答题
+  reportGenerationStatus.value = 'generating'
+  
+  // 启动报告生成（不等待）
+  startReportGeneration(formData)
+  
+  // 跳转到答题页面
+  goToQuiz()
+}
+
+// 启动报告生成（后台）
+const startReportGeneration = async (formData) => {
   try {
-    // 调用 /api/analyze
-    // 用户模式：后端自动执行 Step 4 + Step 5，返回包含 ai_report 的完整结果
-    // 调试模式：后端只执行 Step 4，返回基础数据
     const response = await analyzeBazi(formData)
     
     if (!response.success) {
-      showToast(response.error || '分析失败', 'error')
-      currentPage.value = 'form'
+      console.error('报告生成失败:', response.error)
+      reportGenerationStatus.value = 'error'
+      // 保存错误状态到本地存储，用于恢复
+      savePendingState(formData, 'error')
       return
     }
     
     result.value = response.data
+    reportGenerationStatus.value = 'completed'
     
-    // 显示结果页
-    currentPage.value = 'result'
-    showToast('分析完成')
+    // 清除待处理状态
+    localStorage.removeItem('pendingAnalysis')
     
   } catch (error) {
-    console.error('分析错误:', error)
-    showToast('网络错误，请稍后重试', 'error')
-    currentPage.value = 'form'
+    console.error('报告生成错误:', error)
+    reportGenerationStatus.value = 'error'
+    // 保存错误状态到本地存储，用于恢复
+    savePendingState(formData, 'error')
   }
 }
+
+// 保存待处理状态到本地存储
+const savePendingState = (formData, status) => {
+  try {
+    localStorage.setItem('pendingAnalysis', JSON.stringify({
+      formData,
+      status,
+      timestamp: Date.now()
+    }))
+  } catch (e) {
+    console.error('保存状态失败:', e)
+  }
+}
+
+// 检查是否有待处理的分析
+const checkPendingAnalysis = () => {
+  try {
+    const pending = localStorage.getItem('pendingAnalysis')
+    if (pending) {
+      const data = JSON.parse(pending)
+      // 检查是否超过24小时
+      if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+        savedFormData.value = data.formData
+        pendingFormData.value = data.formData
+        showErrorRecovery.value = true
+        return true
+      } else {
+        localStorage.removeItem('pendingAnalysis')
+      }
+    }
+  } catch (e) {
+    console.error('检查待处理状态失败:', e)
+  }
+  return false
+}
+
+// 处理继续分析
+const handleContinueAnalysis = async () => {
+  showErrorRecovery.value = false
+  
+  if (pendingFormData.value) {
+    // 跳转到 loading 页面并重新生成报告
+    goToLoading()
+    reportGenerationStatus.value = 'generating'
+    
+    try {
+      const response = await analyzeBazi(pendingFormData.value)
+      
+      if (!response.success) {
+        showToast(response.error || '分析失败', 'error')
+        currentPage.value = 'form'
+        return
+      }
+      
+      result.value = response.data
+      reportGenerationStatus.value = 'completed'
+      currentPage.value = 'result'
+      showToast('分析完成')
+      
+      // 清除待处理状态
+      localStorage.removeItem('pendingAnalysis')
+      
+    } catch (error) {
+      console.error('分析错误:', error)
+      showToast('网络错误，请稍后重试', 'error')
+      currentPage.value = 'form'
+    }
+  }
+}
+
+// 处理答题完成
+const handleQuizComplete = (answers) => {
+  quizAnswers.value = answers
+  
+  // 根据报告生成状态决定跳转到哪里
+  if (reportGenerationStatus.value === 'completed' && result.value) {
+    // 报告已生成，直接跳转结果页
+    currentPage.value = 'result'
+  } else {
+    // 报告未生成或出错，跳转到 loading 页等待
+    goToLoading()
+  }
+}
+
+// 监听报告生成状态，如果在 loading 页面且报告完成，自动跳转
+import { watch } from 'vue'
+watch(() => reportGenerationStatus.value, (newStatus) => {
+  if (newStatus === 'completed' && currentPage.value === 'loading' && result.value) {
+    // 延迟一点点让用户看到完成状态
+    setTimeout(() => {
+      currentPage.value = 'result'
+    }, 500)
+  }
+})
 
 // 重置表单
 const handleReset = () => {
   result.value = null
   aiAnalyzing.value = false
   quizAnswers.value = []
+  reportGenerationStatus.value = 'idle'
+  savedFormData.value = null
+  pendingFormData.value = null
+  localStorage.removeItem('pendingAnalysis')
+  showErrorRecovery.value = false
   currentPage.value = 'landing'
 }
 
@@ -165,44 +330,6 @@ const handleAIAnalyze = async () => {
   }
 }
 
-// 下载报告
-const handleDownload = async () => {
-  if (!result.value?.report_id) {
-    showToast('报告ID不存在', 'error')
-    return
-  }
-  
-  downloading.value = true
-  
-  try {
-    // 方式1：后端生成 PDF
-    const response = await downloadReport(result.value.report_id)
-    
-    if (response.success && response.download_url) {
-      // 如果是 base64 PDF
-      if (response.download_url.startsWith('data:')) {
-        const link = document.createElement('a')
-        link.href = response.download_url
-        link.download = `八字分析报告_${result.value.user_info?.name || '匿名'}.pdf`
-        link.click()
-        showToast('下载开始')
-      } else if (response.download_url.startsWith('html://')) {
-        // 方式2：前端生成 PDF
-        await generatePDF()
-      }
-    } else {
-      // 备用：前端生成
-      await generatePDF()
-    }
-  } catch (error) {
-    console.error('下载错误:', error)
-    // 备用方案
-    await generatePDF()
-  } finally {
-    downloading.value = false
-  }
-}
-
 // 检测是否为移动设备
 const isMobileDevice = () => {
   const userAgent = navigator.userAgent || navigator.vendor || window.opera
@@ -215,7 +342,40 @@ const isIOSDevice = () => {
   return /iphone|ipad|ipod/i.test(userAgent.toLowerCase())
 }
 
-// 前端生成 PDF（手机端优化版）
+// 下载报告
+const handleDownload = async () => {
+  if (!result.value?.report_id) {
+    showToast('报告ID不存在', 'error')
+    return
+  }
+  
+  downloading.value = true
+  
+  try {
+    const response = await downloadReport(result.value.report_id)
+    
+    if (response.success && response.download_url) {
+      if (response.download_url.startsWith('data:')) {
+        const link = document.createElement('a')
+        link.href = response.download_url
+        link.download = `八字分析报告_${result.value.user_info?.name || '匿名'}.pdf`
+        link.click()
+        showToast('下载开始')
+      } else if (response.download_url.startsWith('html://')) {
+        await generatePDF()
+      }
+    } else {
+      await generatePDF()
+    }
+  } catch (error) {
+    console.error('下载错误:', error)
+    await generatePDF()
+  } finally {
+    downloading.value = false
+  }
+}
+
+// 前端生成 PDF
 const generatePDF = async () => {
   try {
     const aiReport = result.value?.ai_report
@@ -231,7 +391,6 @@ const generatePDF = async () => {
     const isMobile = isMobileDevice()
     const isIOS = isIOSDevice()
     
-    // 创建临时容器用于渲染PDF内容
     const container = document.createElement('div')
     container.style.cssText = `
       position: fixed;
@@ -243,7 +402,6 @@ const generatePDF = async () => {
       font-family: "Microsoft YaHei", "SimHei", sans-serif;
     `
     
-    // 转换Markdown为HTML
     const htmlContent = aiReport
       .replace(/### (.*)/g, '<h3 style="color:#4A5568;font-size:16px;margin:20px 0 10px;padding-bottom:8px;border-bottom:2px solid #8EC5FC;">$1</h3>')
       .replace(/## (.*)/g, '<h2 style="color:#4A5568;font-size:18px;margin:24px 0 12px;padding-bottom:10px;border-bottom:3px solid #8EC5FC;">$1</h2>')
@@ -267,10 +425,9 @@ const generatePDF = async () => {
     
     document.body.appendChild(container)
     
-    // 根据设备类型调整渲染参数
     const html2canvas = await import('html2canvas')
     const canvas = await html2canvas.default(container, {
-      scale: isMobile ? 1.5 : 2,  // 手机端降低分辨率以减小文件大小
+      scale: isMobile ? 1.5 : 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
@@ -280,11 +437,9 @@ const generatePDF = async () => {
     
     document.body.removeChild(container)
     
-    // 创建PDF
     const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF('p', 'mm', 'a4')
     
-    // 手机端使用稍低的 JPEG 质量以优化文件大小
     const jpegQuality = isMobile ? 0.88 : 0.92
     const imgData = canvas.toDataURL('image/jpeg', jpegQuality)
     const imgWidth = 210
@@ -294,11 +449,9 @@ const generatePDF = async () => {
     let heightLeft = imgHeight
     let position = 0
     
-    // 添加图片
     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'MEDIUM')
     heightLeft -= pageHeight
     
-    // 处理多页
     while (heightLeft > 0) {
       position = heightLeft - imgHeight
       pdf.addPage()
@@ -306,23 +459,18 @@ const generatePDF = async () => {
       heightLeft -= pageHeight
     }
     
-    // 生成文件名
     const fileName = `${userName}天赋分析报告.pdf`
     
-    // 根据设备类型选择下载方式
     if (isIOS) {
-      // iOS 设备：使用 Blob 和 URL 方案，在新窗口打开
       const pdfBlob = pdf.output('blob')
       const pdfUrl = URL.createObjectURL(pdfBlob)
       
-      // 创建隐藏的下载链接
       const link = document.createElement('a')
       link.href = pdfUrl
       link.download = fileName
       link.style.display = 'none'
       document.body.appendChild(link)
       
-      // 尝试触发下载
       const clickEvent = new MouseEvent('click', {
         view: window,
         bubbles: true,
@@ -330,7 +478,6 @@ const generatePDF = async () => {
       })
       link.dispatchEvent(clickEvent)
       
-      // 清理
       setTimeout(() => {
         document.body.removeChild(link)
         URL.revokeObjectURL(pdfUrl)
@@ -338,11 +485,9 @@ const generatePDF = async () => {
       
       showToast('PDF 已生成，请查看下载')
     } else if (isMobile) {
-      // Android 和其他移动设备
       const pdfBlob = pdf.output('blob')
       const pdfUrl = URL.createObjectURL(pdfBlob)
       
-      // 尝试使用 download 属性
       const link = document.createElement('a')
       link.href = pdfUrl
       link.download = fileName
@@ -357,7 +502,6 @@ const generatePDF = async () => {
       
       showToast('PDF 已生成')
     } else {
-      // 桌面端：使用标准 save 方法
       pdf.save(fileName)
       showToast('PDF 已生成')
     }
@@ -366,6 +510,11 @@ const generatePDF = async () => {
     showToast('PDF生成失败，请重试', 'error')
   }
 }
+
+// 页面加载时检查是否有待处理的分析
+onMounted(() => {
+  checkPendingAnalysis()
+})
 </script>
 
 <style>
@@ -376,6 +525,11 @@ const generatePDF = async () => {
   box-sizing: border-box;
 }
 
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: #f8fafc;
@@ -383,101 +537,22 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 适配刘海屏 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .app {
   min-height: 100vh;
-}
-
-/* 顶部导航 */
-.app-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-}
-
-.header-content {
-  max-width: 800px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo svg {
-  width: 32px;
-  height: 32px;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.header-subtitle {
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-/* 主内容区 */
-.main-content {
-  flex: 1;
-  padding: 24px 20px;
-}
-
-.form-wrapper {
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-.form-intro {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.intro-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
-}
-
-.intro-desc {
-  font-size: 15px;
-  color: #64748b;
-  line-height: 1.8;
-}
-
-/* 底部 */
-.app-footer {
-  padding: 24px 20px;
-  text-align: center;
-  border-top: 1px solid #e2e8f0;
-  background: white;
-}
-
-.footer-text {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
-
-.footer-copyright {
-  font-size: 12px;
-  color: #cbd5e1;
+  min-height: 100dvh;
 }
 
 /* Toast 提示 */
 .toast {
   position: fixed;
-  top: 20px;
+  top: max(20px, env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%) translateY(-100px);
   padding: 12px 24px;
@@ -498,6 +573,73 @@ body {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
 }
 
+/* 错误恢复提示 */
+.error-recovery-toast {
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #E2E8F0;
+  animation: slideUp 0.4s ease;
+  max-width: 90vw;
+  width: auto;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.error-content svg {
+  width: 24px;
+  height: 24px;
+  color: #F59E0B;
+  flex-shrink: 0;
+}
+
+.error-text {
+  text-align: left;
+}
+
+.error-text p {
+  font-size: 15px;
+  font-weight: 600;
+  color: #4A5568;
+  margin: 0 0 4px;
+}
+
+.error-text span {
+  font-size: 13px;
+  color: #718096;
+}
+
+.continue-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #8EC5FC 0%, #A8E6CF 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.continue-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(142, 197, 252, 0.4);
+}
+
 @keyframes slideDown {
   to {
     transform: translateX(-50%) translateY(0);
@@ -508,6 +650,17 @@ body {
   to {
     opacity: 0;
     transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }
 
@@ -523,35 +676,30 @@ body {
   transform: translateY(20px);
 }
 
-/* 响应式 */
+/* 响应式 - 移动端优化 */
 @media (max-width: 640px) {
-  .app-header {
+  html {
+    font-size: 15px;
+  }
+  
+  .toast {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  
+  .error-recovery-toast {
+    flex-direction: column;
+    gap: 12px;
     padding: 16px;
   }
   
-  .header-content {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
+  .continue-btn {
+    width: 100%;
   }
-  
-  .logo-text {
-    font-size: 18px;
-  }
-  
-  .header-subtitle {
-    font-size: 12px;
-  }
-  
-  .main-content {
-    padding: 20px 16px;
-  }
-  
-  .intro-title {
-    font-size: 24px;
-  }
-  
-  .intro-desc {
+}
+
+@media (max-width: 480px) {
+  html {
     font-size: 14px;
   }
 }
