@@ -49,7 +49,6 @@
         :result="result"
         :downloading="downloading"
         :ai-analyzing="aiAnalyzing"
-        @analyze-ai="handleAIAnalyze"
         @download="handleDownload"
         @reset="handleReset"
       />

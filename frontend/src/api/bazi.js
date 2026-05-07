@@ -68,10 +68,11 @@ export const getCities = () => {
 /**
  * AI 天赋分析
  * @param {Object} data - 包含 report_id 和 basic_result
+ * @param {string} mode - 分析模式: "detail"(默认) / "deep_explore"
  * @returns {Promise}
  */
-export const analyzeAI = (data) => {
-  return api.post('/api/analyze-ai', data)
+export const analyzeAI = (data, mode = 'detail') => {
+  return api.post('/api/analyze-ai', { ...data, mode })
 }
 
 /**

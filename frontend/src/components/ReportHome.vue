@@ -19,11 +19,17 @@
           :style="{ borderColor: traitInfo.color }"
         >
           <img 
+            v-if="!avatarLoadError"
             :src="avatarUrl" 
             :alt="dayMaster + genderText + ' Q版形象'"
             class="avatar-image"
             @error="handleAvatarError"
           />
+          <!-- 图片加载失败时的降级显示 -->
+          <div v-else class="avatar-fallback" :style="{ background: traitInfo.color + '20', color: traitInfo.color }">
+            <span class="fallback-emoji">{{ traitInfo.element ? ELEMENT_SYMBOLS[traitInfo.element]?.symbol : '🧑' }}</span>
+            <span class="fallback-text">{{ dayMaster }}</span>
+          </div>
           <span class="day-master-badge" :style="{ background: traitInfo.color, color: '#fff' }">
             {{ dayMaster }}{{ traitInfo.element }}
           </span>
@@ -48,7 +54,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { getDayMasterTrait, getQVersionAvatar } from '../data/dayMasterData'
+import { getDayMasterTrait, getQVersionAvatar, ELEMENT_SYMBOLS } from '../data/dayMasterData'
 
 const props = defineProps({
   userInfo: {
@@ -79,7 +85,9 @@ const genderText = computed(() => {
 // 头像URL
 const avatarUrl = computed(() => {
   if (avatarLoadError.value) return ''
-  return getQVersionAvatar(props.dayMaster || '甲', props.userInfo?.gender || 'male')
+  const url = getQVersionAvatar(props.dayMaster || '甲', props.userInfo?.gender || 'male')
+  console.log('[Avatar] dayMaster:', props.dayMaster, 'gender:', props.userInfo?.gender, 'url:', url)
+  return url
 })
 
 // 头像加载失败处理
@@ -205,6 +213,27 @@ const birthDateText = computed(() => {
   height: 100%;
   object-fit: cover;
   border-radius: 22px;
+}
+
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  gap: 4px;
+}
+
+.fallback-emoji {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.fallback-text {
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .day-master-badge {

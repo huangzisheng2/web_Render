@@ -238,10 +238,12 @@ def analyze_ai_endpoint(request: dict):
     AI 天赋分析接口
     
     接收基础分析结果，返回 AI 分析报告
+    支持 mode: "detail"(默认) / "deep_explore"(深度探索)
     """
     try:
         report_id = request.get("report_id")
         basic_result = request.get("basic_result")
+        mode = request.get("mode", "detail")
         
         if not report_id or not basic_result:
             return {
@@ -250,7 +252,7 @@ def analyze_ai_endpoint(request: dict):
             }
         
         # 执行 AI 分析
-        ai_report = bazi_service.analyze_ai(report_id, basic_result)
+        ai_report = bazi_service.analyze_ai(report_id, basic_result, mode=mode)
         
         return {
             "success": True,
