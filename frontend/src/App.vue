@@ -42,16 +42,16 @@
         @retry="handleReportRetry"
       />
       
-      <!-- 6. 结果展示页 -->
-      <ResultDisplay
+      <!-- 6. 结果展示页（新架构：顶部导航 + 首页 + 简易/详细切换）-->
+      <ReportPage
         v-else-if="currentPage === 'result'"
         key="result"
         :result="result"
-        :ai-analyzing="aiAnalyzing"
-        @reset="handleReset"
-        @download="handleDownload"
-        @analyze-ai="handleAIAnalyze"
         :downloading="downloading"
+        :ai-analyzing="aiAnalyzing"
+        @analyze-ai="handleAIAnalyze"
+        @download="handleDownload"
+        @reset="handleReset"
       />
     </Transition>
 
@@ -92,7 +92,7 @@ import IntroPage from './components/IntroPage.vue'
 import QuizPage from './components/QuizPage.vue'
 import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
-import ResultDisplay from './components/ResultDisplay.vue'
+import ReportPage from './components/ReportPage.vue'
 import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
 
 // 检测调试模式

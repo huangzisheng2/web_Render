@@ -67,6 +67,7 @@ class AnalyzeRequest(BaseModel):
     gender: Literal["male", "female"] = Field(..., description="性别: male/female")
     province: str = Field(..., description="省份", max_length=50)
     city: str = Field(..., description="城市", max_length=50)
+    mode: Optional[Literal["simple", "detail"]] = Field("simple", description="分析模式：simple(简易) 或 detail(详细)")
 
 
 class AnalyzeResponse(BaseModel):
@@ -170,19 +171,27 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 "data": result
             }
         else:
-            # 用户模式：自动执行 AI 分析（Step 4 + Step 5 合并）
-            print("[TIMER] Step 5 开始: AI 分析报告生成")
+            # 用户模式：根据 mode 参数决定分析深度
+            analysis_mode = request.mode or "simple"
+            print(f"[TIMER] 分析模式: {analysis_mode}")
             
             # 获取 report_id 用于 AI 分析
             report_id = result.get("report_id")
             if not report_id:
                 report_id = f"bazi_{request.name}_{request.year}{request.month:02d}{request.day:02d}"
             
-            # 自动执行 AI 分析（Step 5）
-            step5_start = time.time()
-            ai_report = bazi_service.analyze_ai(report_id, result)
-            step5_time = time.time() - step5_start
-            print(f"[TIMER] Step 5 完成: AI 分析耗时 {step5_time:.2f}s")
+            ai_report = None
+            
+            # 简易模式（默认）：自动执行简易版 AI 分析
+            if analysis_mode == "simple":
+                print("[TIMER] Step 5 开始: AI 简易版分析")
+                step5_start = time.time()
+                ai_report = bazi_service.analyze_ai(report_id, result, mode="simple")
+                step5_time = time.time() - step5_start
+                print(f"[TIMER] Step 5 完成: AI 简易版分析耗时 {step5_time:.2f}s")
+            else:
+                # 详细模式：不自动执行AI，返回基础数据让前端手动触发
+                print("[TIMER] 详细模式，跳过自动AI分析，等待手动触发")
             
             # 清理用户模式不需要的大字段
             if "raw_data" in result:
@@ -190,12 +199,18 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
             if "ai_prompt" in result:
                 del result["ai_prompt"]
             
-            # 构建用户模式的精简响应（只包含必要字段 + AI报告）
+            # 构建用户模式的响应
             user_result = {
                 "report_id": result.get("report_id"),
                 "user_info": result.get("user_info"),
-                "ai_report": ai_report
+                "bazi": {
+                    "day_master": result.get("bazi", {}).get("day_master", "")
+                }
             }
+            
+            # 只有简易模式下有AI报告时才添加
+            if ai_report:
+                user_result["ai_report"] = ai_report
             
             total_time = time.time() - total_start
             print(f"[TIMER] ========== 请求完成 总耗时: {total_time:.2f}s (Step4: {step4_time:.2f}s, Step5: {step5_time:.2f}s) ==========")
