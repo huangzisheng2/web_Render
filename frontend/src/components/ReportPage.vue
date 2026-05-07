@@ -128,6 +128,18 @@
       </template>
     </main>
 
+    <!-- 导出 PDF 按钮（统一放在底部） -->
+    <div class="export-section">
+      <button class="export-btn" :disabled="downloading" @click="handleExportPdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        {{ downloading ? '生成中...' : '导出PDF' }}
+      </button>
+    </div>
+
     <!-- 分享海报 -->
     <SharePoster
       ref="sharePosterRef"
@@ -154,7 +166,7 @@ const props = defineProps({
   aiAnalyzing: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['download', 'reset'])
+const emit = defineEmits(['export-pdf', 'reset'])
 
 // Tabs
 const activeTab = ref('simple')
@@ -229,6 +241,20 @@ const handleShare = async () => {
     console.error('生成分享图失败:', e)
   } finally {
     shareGenerating.value = false
+  }
+}
+
+// ========== 导出 PDF ==========
+const handleExportPdf = () => {
+  if (props.downloading) return
+  if (activeTab.value === 'simple') {
+    const content = props.result?.ai_report
+    if (!content) return
+    emit('export-pdf', { type: 'simple', content, userName: userInfo.value?.name || '探索者' })
+  } else {
+    const content = deepExploreReport.value
+    if (!content) return
+    emit('export-pdf', { type: 'deep', content, userName: userInfo.value?.name || '探索者' })
   }
 }
 
@@ -466,6 +492,38 @@ function renderModuleContent(text) {
 }
 
 .share-btn svg { width: 20px; height: 20px; }
+
+/* 导出 PDF 按钮 */
+.export-section {
+  text-align: center;
+  padding: 8px 16px 32px;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 28px;
+  background: white;
+  color: #4A5568;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.export-btn:hover {
+  border-color: #8EC5FC;
+  color: #3B82F6;
+  box-shadow: 0 2px 8px rgba(142, 197, 252, 0.15);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

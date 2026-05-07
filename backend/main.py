@@ -208,9 +208,19 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 }
             }
             
+            # 保留 raw_data 用于前端深度探索分析
+            if "raw_data" in result:
+                user_result["raw_data"] = result["raw_data"]
+            
             # 只有简易模式下有AI报告时才添加
             if ai_report:
                 user_result["ai_report"] = ai_report
+            
+            # 清理原始 result 中的大字段
+            if "raw_data" in result:
+                del result["raw_data"]
+            if "ai_prompt" in result:
+                del result["ai_prompt"]
             
             total_time = time.time() - total_start
             print(f"[TIMER] ========== 请求完成 总耗时: {total_time:.2f}s (Step4: {step4_time:.2f}s, Step5: {step5_time:.2f}s) ==========")

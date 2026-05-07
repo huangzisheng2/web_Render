@@ -49,7 +49,7 @@
         :result="result"
         :downloading="downloading"
         :ai-analyzing="aiAnalyzing"
-        @download="handleDownload"
+        @export-pdf="handleExportPdf"
         @reset="handleReset"
       />
     </Transition>
@@ -503,10 +503,19 @@ const handleDownload = async () => {
   }
 }
 
-// 前端生成 PDF
-const generatePDF = async () => {
+// 处理导出PDF（从ReportPage接收）
+const handleExportPdf = async ({ type, content, userName }) => {
+  if (!content) {
+    showToast('暂无内容可导出', 'error')
+    return
+  }
+  await generatePDF(content, userName || result.value?.user_info?.name || '探索者')
+}
+
+// 前端生成 PDF（可指定内容）
+const generatePDF = async (customContent, customName) => {
   try {
-    const aiReport = result.value?.ai_report
+    const aiReport = customContent || result.value?.ai_report
     if (!aiReport) {
       showToast('AI报告尚未生成', 'error')
       return
@@ -514,7 +523,7 @@ const generatePDF = async () => {
     
     showToast('正在生成 PDF...')
     
-    const userName = result.value.user_info?.name || '匿名'
+    const userName = customName || result.value.user_info?.name || '匿名'
     const gender = result.value.user_info?.gender || '未知'
     const isMobile = isMobileDevice()
     const isIOS = isIOSDevice()
