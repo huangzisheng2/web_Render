@@ -205,7 +205,9 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 "report_id": result.get("report_id"),
                 "user_info": result.get("user_info"),
                 "bazi": {
-                    "day_master": result.get("bazi", {}).get("day_master", "")
+                    "day_master": result.get("bazi", {}).get("day_master", ""),
+                    "day_pillar": result.get("bazi", {}).get("day_pillar", ""),
+                    "day_zhi": result.get("bazi", {}).get("day_zhi", "")
                 }
             }
             

@@ -49,7 +49,6 @@
         :result="result"
         :downloading="downloading"
         :ai-analyzing="aiAnalyzing"
-        @export-pdf="handleExportPdf"
         @reset="handleReset"
       />
     </Transition>
