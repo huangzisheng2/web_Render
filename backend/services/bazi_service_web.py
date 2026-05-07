@@ -396,6 +396,7 @@ class BaziAnalysisServiceWeb:
         调用 DeepSeek API 生成分析报告
         """
         import urllib.request
+        import urllib.error
         import json
         
         if mode == "simple":
@@ -439,9 +440,17 @@ class BaziAnalysisServiceWeb:
                 result = json.loads(response.read().decode('utf-8'))
                 return result['choices'][0]['message']['content']
                 
+        except urllib.error.HTTPError as e:
+            error_msg = f"DeepSeek API 调用失败 (HTTP {e.code})"
+            try:
+                error_body = e.read().decode('utf-8')
+                print(f"{error_msg}: {error_body}")
+            except:
+                print(f"{error_msg}: {str(e)}")
+            raise Exception(f"AI 分析服务暂时不可用（错误码: {e.code}），请稍后重试")
         except Exception as e:
             print(f"DeepSeek API 调用失败: {e}")
-            return f"AI 分析暂时不可用，请稍后重试。错误: {str(e)}"
+            raise Exception(f"AI 分析暂时不可用，请稍后重试")
     
     def _build_ai_prompt(self, bazi_data: Dict, analysis_data: Dict, user_info: Dict) -> str:
         """
