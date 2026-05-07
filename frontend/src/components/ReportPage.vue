@@ -93,7 +93,21 @@
                 <span>{{ new Date().toLocaleDateString('zh-CN') }}</span>
               </div>
             </div>
-            <div class="result-content" v-html="formatDeepReport(deepExploreReport)"></div>
+            <!-- 模块卡片 -->
+            <div class="result-cards">
+              <div
+                v-for="(section, idx) in deepReportSections"
+                :key="idx"
+                class="deep-card"
+                :class="section.type"
+              >
+                <div class="card-header">
+                  <span class="card-icon">{{ section.icon }}</span>
+                  <h3 class="card-title">{{ section.title }}</h3>
+                </div>
+                <div class="card-body markdown-body" v-html="section.html"></div>
+              </div>
+            </div>
             <div class="result-actions">
               <button class="regenerate-btn" @click="resetDeepExplore">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -254,39 +268,94 @@ function resetDeepExplore() {
   deepExploreError.value = ''
 }
 
-// Markdown 渲染（适配深度探索的 4 模块结构）
-function formatDeepReport(text) {
+// ===== 深度探索报告解析 =====
+// 模块配置
+const MODULE_CONFIG = [
+  { key: '模块一', title: '核心天赋图谱', icon: '🌟', type: 'talent' },
+  { key: '模块二', title: '专属天赋落地指南', icon: '📍', type: 'guide' },
+  { key: '模块三', title: '天赋使用说明书', icon: '🎭', type: 'scene' },
+  { key: '模块四', title: '与天赋共舞的成长提醒', icon: '⚡', type: 'growth' }
+]
+
+// 解析报告为模块
+const deepReportSections = computed(() => {
+  const text = deepExploreReport.value
+  if (!text) return []
+
+  const modules = []
+
+  // 按模块标题分割
+  const modulePattern = /####\s*\*\*模块[一二三四]：(.+?)\*\*/
+  const parts = text.split(modulePattern)
+  
+  // parts: [beforeM1, title1, content1_beforeM2, title2, content2_beforeM3, ...]
+  // 提取模块一之前的文字（可能是「结语」或其他前导内容）
+  if (parts.length >= 1 && parts[0].trim()) {
+    const intro = parts[0].trim()
+    // 结语可能在最后，暂不处理
+  }
+
+  for (let i = 1; i < parts.length - 1; i += 2) {
+    const rawTitle = parts[i] || ''
+    const content = parts[i + 1] || ''
+    
+    // 匹配模块序号
+    let matchedConfig = null
+    for (const cfg of MODULE_CONFIG) {
+      if (rawTitle.includes(cfg.key)) {
+        matchedConfig = cfg
+        break
+      }
+    }
+    if (!matchedConfig) continue
+
+    modules.push({
+      ...matchedConfig,
+      rawTitle,
+      html: renderModuleContent(content)
+    })
+  }
+
+  // 提取结语（最后一个 `## **结语**` 或 `## 结语` 之后的内容）
+  const closingMatch = text.match(/##\s*\*?\*?结语\*?\*?[\s\S]*$/m)
+  if (closingMatch) {
+    const closingText = closingMatch[0].replace(/^##\s*\*?\*?结语\*?\*?/, '').trim()
+    if (closingText) {
+      modules.push({
+        type: 'closing',
+        title: '结语',
+        icon: '💫',
+        html: renderModuleContent(closingText)
+      })
+    }
+  }
+
+  return modules
+})
+
+// 渲染模块内容（Markdown → HTML）
+function renderModuleContent(text) {
   if (!text) return ''
-  let html = text
-    // 模块标题: #### **模块X：标题**
-    .replace(/#### \*\*(.+?)\*\*/g, '<h3 class="md-section-title">$1</h3>')
+  let html = text.trim()
     // 子标题: **【标题】**
-    .replace(/\*\*【(.+?)】\*\*/g, '<h4 class="md-sub-title">【$1】</h4>')
+    .replace(/\*\*【(.+?)】\*\*/g, '<h4 class="md-sub">【$1】</h4>')
+    // 数字子标题: 1. **标题**
+    .replace(/^\d+\.\s+\*\*(.+?)\*\*/gm, '<h4 class="md-sub">$1</h4>')
     // 一般加粗
     .replace(/\*\*(.+?)\*\*/g, '<strong class="md-strong">$1</strong>')
-    // 分割线 ---
-    .replace(/---+/g, '<hr class="md-hr">')
     // 引用 >
-    .replace(/>\s?(.+)/g, '<blockquote class="md-quote">$1</blockquote>')
-    // 无序列表 - 开头
-    .replace(/^-\s+(.+)/gm, '<li class="md-li">$1</li>')
-    // 有序列表 1. 开头
-    .replace(/^\d+\.\s+(.+)/gm, '<li class="md-li">$1</li>')
-    // 连续 <li> 包裹 <ul>
-    .replace(/(<li.*<\/li>\n?)+/g, (match) => `<ul class="md-ul">${match}</ul>`)
-    // 处理 <ul> 内重复嵌套
-    .replace(/<\/ul>\n?<ul class="md-ul">/g, '')
+    .replace(/>\s?(.+)/g, '<blockquote>$1</blockquote>')
+    // 无序列表
+    .replace(/^-\s+(.+)/gm, '<li>$1</li>')
+    // 包裹连续 <li> 为 <ul>
+    .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
+    .replace(/<\/ul>\n?<ul>/g, '')
     // 段落
-    .replace(/\n\n/g, '</p><p class="md-p">')
-    // 换行转 <br>
+    .replace(/\n\n/g, '</p><p>')
+    // 换行
     .replace(/\n/g, '<br>')
   
-  // 包裹在段落中
-  if (!html.startsWith('<h3')) {
-    html = '<p class="md-p">' + html + '</p>'
-  }
-  
-  return html
+  return `<p>${html}</p>`
 }
 </script>
 
@@ -526,70 +595,97 @@ function formatDeepReport(text) {
 
 .result-meta .dot { margin: 0 6px; }
 
-/* 渲染内容 */
-.result-content {
-  line-height: 1.9;
-  color: #334155;
-  font-size: 15px;
+/* 渲染内容 - 卡片布局 */
+.result-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0 16px;
 }
 
-.md-section-title {
-  font-size: 18px;
+.deep-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(142, 197, 252, 0.08);
+  border: 1px solid rgba(142, 197, 252, 0.12);
+}
+
+.deep-card.talent { border-top: 3px solid #8EC5FC; }
+.deep-card.guide { border-top: 3px solid #A8E6CF; }
+.deep-card.scene { border-top: 3px solid #FBBF24; }
+.deep-card.growth { border-top: 3px solid #F472B6; }
+.deep-card.closing { border-top: 3px solid #C084FC; }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(142, 197, 252, 0.08);
+}
+
+.card-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.card-title {
+  font-size: 17px;
   font-weight: 700;
   color: #1E293B;
-  margin: 28px 0 16px;
-  padding-left: 12px;
-  border-left: 3px solid #8EC5FC;
+  margin: 0;
 }
 
-.md-sub-title {
-  font-size: 16px;
+.card-body {
+  padding: 16px 20px 20px;
+  line-height: 1.85;
+  color: #334155;
+  font-size: 14px;
+}
+
+/* Markdown 渲染样式 */
+.card-body .md-sub {
+  font-size: 15px;
   font-weight: 600;
   color: #3B82F6;
-  margin: 20px 0 10px;
+  margin: 16px 0 8px;
 }
 
-.md-strong {
+.card-body .md-strong {
   color: #2563EB;
   font-weight: 600;
 }
 
-.md-p {
-  margin: 0 0 14px;
+.card-body p {
+  margin: 0 0 10px;
 }
 
-.md-hr {
-  border: none;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(142, 197, 252, 0.3), transparent);
-  margin: 24px 0;
-}
-
-.md-quote {
+.card-body blockquote {
   background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
   border-left: 3px solid #8EC5FC;
-  padding: 12px 16px;
-  margin: 12px 0;
+  padding: 10px 14px;
+  margin: 10px 0;
   border-radius: 0 8px 8px 0;
-  font-size: 14px;
+  font-size: 13px;
   color: #475569;
   line-height: 1.7;
 }
 
-.md-ul {
-  padding-left: 20px;
+.card-body ul {
+  padding-left: 18px;
   margin: 8px 0;
 }
 
-.md-li {
-  margin-bottom: 6px;
+.card-body li {
+  margin-bottom: 5px;
   list-style: disc;
   color: #475569;
 }
 
 .result-actions {
   text-align: center;
-  padding: 32px 0;
+  padding: 28px 16px 32px;
 }
 
 .regenerate-btn {
@@ -640,9 +736,13 @@ function formatDeepReport(text) {
   .nav-container { gap: 6px; padding: 10px 12px; }
   .nav-tab { padding: 9px 16px; font-size: 14px; border-radius: 8px; }
   .share-btn { width: 100%; padding: 14px 24px; font-size: 15px; }
-  .deep-explore { padding: 24px 16px; }
+  .deep-explore { padding: 24px 12px; }
   .deep-explore-title { font-size: 20px; }
-  .result-content { font-size: 14px; }
+  .result-cards { padding: 0 8px; }
+  .card-body { font-size: 13px; padding: 14px 16px 18px; }
+  .card-header { padding: 14px 16px 12px; }
+  .card-icon { font-size: 22px; }
+  .card-title { font-size: 15px; }
 }
 
 @media (min-width: 1024px) {

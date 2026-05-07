@@ -53,8 +53,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { getDayMasterTrait, getQVersionAvatar, ELEMENT_SYMBOLS } from '../data/dayMasterData'
+import { computed, ref, onMounted } from 'vue'
+import { getDayMasterTrait, getQVersionAvatar, getFullAvatarUrl, ELEMENT_SYMBOLS } from '../data/dayMasterData'
 
 const props = defineProps({
   userInfo: {
@@ -82,17 +82,41 @@ const genderText = computed(() => {
   return (g === 'male' || g === '男') ? '♂' : '♀'
 })
 
-// 头像URL
+// 头像URL - 使用完整路径含 origin，避免 Vite 路径问题
 const avatarUrl = computed(() => {
   if (avatarLoadError.value) return ''
-  const url = getQVersionAvatar(props.dayMaster || '甲', props.userInfo?.gender || 'male')
-  console.log('[Avatar] dayMaster:', props.dayMaster, 'gender:', props.userInfo?.gender, 'url:', url)
+  const dm = props.dayMaster || '甲'
+  const g = props.userInfo?.gender || 'male'
+  const url = getFullAvatarUrl(dm, g)
+  console.log('[Avatar] dm:', dm, 'gender:', g, 'url:', url)
   return url
 })
 
-// 头像加载失败处理
+// 预加载校验（仅日志，不改变状态）
+onMounted(() => {
+  const dm = props.dayMaster || '甲'
+  const g = props.userInfo?.gender || 'male'
+  const testUrl = getFullAvatarUrl(dm, g)
+  const img = new Image()
+  img.onload = () => console.log('[Avatar] ✅ loaded:', testUrl)
+  img.onerror = (e) => console.error('[Avatar] ❌ failed:', testUrl)
+  img.src = testUrl
+})
+
+// 头像加载失败处理（带重试）
+const avatarRetryCount = ref(0)
 const handleAvatarError = () => {
-  avatarLoadError.value = true
+  if (avatarRetryCount.value < 2) {
+    avatarRetryCount.value++
+    console.log(`[Avatar] retry ${avatarRetryCount.value}/2`)
+    // 尝试重新加载
+    setTimeout(() => {
+      avatarLoadError.value = false
+    }, 1000)
+  } else {
+    console.log('[Avatar] fallback after 2 retries')
+    avatarLoadError.value = true
+  }
 }
 
 // 获取日主特质信息

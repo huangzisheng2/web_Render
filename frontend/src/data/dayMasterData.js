@@ -120,6 +120,15 @@ export function getQVersionAvatar(dayMaster, gender) {
 }
 
 /**
+ * 获取带 origin 的完整 Q版形象 URL（解决部分环境下路径解析问题）
+ */
+export function getFullAvatarUrl(dayMaster, gender) {
+  const path = getQVersionAvatar(dayMaster, gender)
+  const origin = window.location.origin
+  return `${origin}${path}`
+}
+
+/**
  * 根据日主获取特质信息
  * @param {string} dayMaster - 天干
  * @param {string} gender - 性别

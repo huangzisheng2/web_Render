@@ -1,4 +1,11 @@
 {
+  "name": "bazi-talent-root",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview"
+  },
   "dependencies": {
     "echarts": "^6.0.0",
     "html2canvas": "^1.4.1",
