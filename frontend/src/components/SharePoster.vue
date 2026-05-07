@@ -100,18 +100,52 @@ async function generateImage() {
   if (!posterRef.value) return null
 
   try {
+    // 临时将海报移到可见区域以便 html2canvas 渲染
+    const wrapper = posterRef.value.closest('.share-poster-wrapper')
+    const origLeft = wrapper?.style.left
+    if (wrapper) {
+      wrapper.style.left = '0px'
+      wrapper.style.zIndex = '9999'
+    }
+
+    // 等待图片加载完成
+    const images = posterRef.value.querySelectorAll('img')
+    await Promise.all(
+      Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve()
+        return new Promise((resolve) => {
+          img.onload = resolve
+          img.onerror = resolve
+        })
+      })
+    )
+
     const canvas = await html2canvas(posterRef.value, {
       width: 1080,
       height: 1440,
       scale: 1,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: null,
-      logging: false
+      backgroundColor: '#F0F9FF',
+      logging: false,
+      imageTimeout: 15000
     })
+
+    // 恢复隐藏位置
+    if (wrapper) {
+      wrapper.style.left = origLeft || '-9999px'
+      wrapper.style.zIndex = '-1'
+    }
+
     return canvas.toDataURL('image/png')
   } catch (e) {
     console.error('生成分享图失败:', e)
+    // 确保恢复隐藏位置
+    const wrapper = posterRef.value?.closest('.share-poster-wrapper')
+    if (wrapper) {
+      wrapper.style.left = '-9999px'
+      wrapper.style.zIndex = '-1'
+    }
     return null
   }
 }
@@ -123,9 +157,10 @@ defineExpose({ generateImage })
 .share-poster-wrapper {
   position: fixed;
   left: -9999px;
-  top: -9999px;
+  top: 0;
   z-index: -1;
-  visibility: hidden;
+  pointer-events: none;
+  opacity: 1;
 }
 
 .poster-canvas {

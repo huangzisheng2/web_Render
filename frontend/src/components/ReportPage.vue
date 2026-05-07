@@ -35,15 +35,16 @@
 
         <!-- 分享按钮 -->
         <div class="share-section">
-          <button class="share-btn" @click="handleShare">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button class="share-btn" :class="{ generating: shareGenerating }" @click="handleShare" :disabled="shareGenerating">
+            <svg v-if="!shareGenerating" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="18" cy="5" r="3"/>
               <circle cx="6" cy="12" r="3"/>
               <circle cx="18" cy="19" r="3"/>
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
             </svg>
-            一键分享
+            <span v-else class="share-spinner"></span>
+            {{ shareGenerating ? '生成中...' : '一键分享' }}
           </button>
         </div>
       </template>
@@ -182,22 +183,30 @@ const traitDescription = computed(() => {
 
 // 分享海报组件引用
 const sharePosterRef = ref(null)
+const shareGenerating = ref(false)
 
 // 处理分享
 const handleShare = async () => {
-  if (sharePosterRef.value) {
-    try {
-      const dataUrl = await sharePosterRef.value.generateImage()
-      if (dataUrl) {
-        // 创建下载链接
-        const link = document.createElement('a')
-        link.download = `天赋档案_${userInfo.value?.name || '我'}.png`
-        link.href = dataUrl
-        link.click()
-      }
-    } catch (e) {
-      console.error('生成分享图失败:', e)
+  if (shareGenerating.value) return
+  if (!sharePosterRef.value) return
+
+  shareGenerating.value = true
+  try {
+    const dataUrl = await sharePosterRef.value.generateImage()
+    if (dataUrl) {
+      const link = document.createElement('a')
+      link.download = `天赋档案_${userInfo.value?.name || '我'}.png`
+      link.href = dataUrl
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } else {
+      console.error('生成分享图返回空')
     }
+  } catch (e) {
+    console.error('生成分享图失败:', e)
+  } finally {
+    shareGenerating.value = false
   }
 }
 </script>
@@ -308,6 +317,29 @@ const handleShare = async () => {
 .share-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(142, 197, 252, 0.45);
+}
+
+.share-btn.generating {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.share-btn:disabled {
+  pointer-events: none;
+}
+
+.share-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .share-btn svg {

@@ -89,6 +89,22 @@ const GAN_ELEMENT_MAP = {
   '壬': '水', '癸': '水'
 }
 
+// 天干拼音映射（用于ASCII文件名）
+const GAN_PINYIN_MAP = {
+  '甲': 'jia', '乙': 'yi',
+  '丙': 'bing', '丁': 'ding',
+  '戊': 'wu', '己': 'ji',
+  '庚': 'geng', '辛': 'xin',
+  '壬': 'ren', '癸': 'gui'
+}
+
+// 五行拼音映射
+const ELEMENT_PINYIN_MAP = {
+  '木': 'mu', '火': 'huo',
+  '土': 'tu', '金': 'jin',
+  '水': 'shui'
+}
+
 /**
  * 获取Q版形象路径
  * @param {string} dayMaster - 天干（甲乙丙丁戊己庚辛壬癸）
@@ -96,9 +112,11 @@ const GAN_ELEMENT_MAP = {
  * @returns {string} 图片路径
  */
 export function getQVersionAvatar(dayMaster, gender) {
+  const ganPinyin = GAN_PINYIN_MAP[dayMaster] || 'jia'
   const element = GAN_ELEMENT_MAP[dayMaster] || '木'
-  const genderText = (gender === 'male' || gender === '男') ? '男' : '女'
-  return `/q-avatar/${dayMaster}${element}${genderText}.png`
+  const elementPinyin = ELEMENT_PINYIN_MAP[element] || 'mu'
+  const genderText = (gender === 'male' || gender === '男') ? 'm' : 'f'
+  return `/q-avatar/${ganPinyin}_${elementPinyin}_${genderText}.png`
 }
 
 /**
