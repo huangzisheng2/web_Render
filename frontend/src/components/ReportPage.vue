@@ -12,25 +12,6 @@
     </nav>
 
     <main class="report-content">
-      <!-- ========== AI 错误提示（全局） ========== -->
-      <div v-if="aiErrorMessage" class="ai-error-banner">
-        <div class="ai-error-content">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <div class="error-text-wrapper">
-            <p class="error-title">AI 分析暂不可用</p>
-            <p class="error-desc">{{ aiErrorMessage }}</p>
-          </div>
-          <button class="retry-ai-btn" @click="handleRetryAI" :disabled="aiRetrying">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-            {{ aiRetrying ? '重试中...' : '重新获取' }}
-          </button>
-        </div>
-      </div>
-
       <!-- ========== 天赋概览 Tab ========== -->
       <template v-if="activeTab === 'simple'">
         <!-- 天赋档案卡片 -->
@@ -80,9 +61,9 @@
               </div>
               <h2 class="deep-explore-title">深度天赋探索</h2>
               <p class="deep-explore-desc">AI 将根据你的出生信息，从核心天赋图谱、落地指南、场景演绎等维度进行全方位的深度分析。整个过程约需 30~60 秒。</p>
-              <button class="deep-explore-btn" @click="handleDeepExplore" :disabled="!canDeepExplore">
+              <button class="deep-explore-btn" @click="handleDeepExplore">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                {{ canDeepExplore ? '一键天赋分析' : '基础分析未就绪' }}
+                一键天赋分析
               </button>
             </div>
           </template>
@@ -190,34 +171,7 @@ function parseSimpleReport(report) {
   return { coreTalent, talentScenario, growthAdvice, keywords, dayColumn, conclusion }
 }
 
-// AI 错误信息与重试
-const aiErrorMessage = computed(() => props.result?.ai_error || '')
-const aiRetrying = ref(false)
-const canDeepExplore = computed(() => !aiErrorMessage.value)
-
-async function handleRetryAI() {
-  if (!props.result?.report_id) return
-  aiRetrying.value = true
-  try {
-    const response = await analyzeAI(
-      { report_id: props.result.report_id, basic_result: props.result },
-      'simple'
-    )
-    if (response.success && response.ai_report) {
-      props.result.ai_report = response.ai_report
-      delete props.result.ai_error
-    } else {
-      props.result.ai_error = response.error || '重试失败，请稍后再试'
-    }
-  } catch (e) {
-    console.error('AI 重试失败:', e)
-    props.result.ai_error = '网络错误，请稍后再试'
-  } finally {
-    aiRetrying.value = false
-  }
-}
-
-const simpleLoading = computed(() => !props.result?.ai_report && !props.result?.ai_error && !props.result?.error)
+const simpleLoading = computed(() => !props.result?.ai_report && !props.result?.error)
 
 // 分享图天赋标签（复用）
 const talentTags = computed(() => {
@@ -373,56 +327,6 @@ function renderModuleContent(text) {
 
 .report-content { padding-bottom: env(safe-area-inset-bottom); }
 
-/* ===== AI 错误提示横幅 ===== */
-.ai-error-banner {
-  margin: 12px 14px 0;
-  background: linear-gradient(135deg, #FEF3C7, #FFF8E1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  border-radius: 12px;
-  padding: 14px 16px;
-  animation: fadeInUp 0.3s ease;
-}
-.ai-error-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.ai-error-content .error-icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  color: #F59E0B;
-  margin-top: 2px;
-}
-.error-text-wrapper { flex: 1; min-width: 0; }
-.error-title { font-size: 14px; font-weight: 600; color: #92400E; margin: 0 0 4px; }
-.error-desc { font-size: 13px; color: #A16207; margin: 0; line-height: 1.5; }
-.retry-ai-btn {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #FBBF24, #F59E0B);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-}
-.retry-ai-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(251, 191, 36, 0.4);
-}
-.retry-ai-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
 /* 天赋档案卡片容器 */
 .section-profile-card { padding: 14px 14px 0; animation: fadeInUp 0.35s ease; }
 
@@ -458,7 +362,6 @@ function renderModuleContent(text) {
   transition: all .3s ease;
 }
 .deep-explore-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(142,197,252,0.45); }
-.deep-explore-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .deep-explore-loading { display: flex; flex-direction: column; align-items: center; padding: 80px 20px; }
 .loading-pulse { position: relative; width: 80px; height: 80px; margin-bottom: 24px; }

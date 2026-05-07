@@ -187,17 +187,12 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 report_id = f"bazi_{request.name}_{request.year}{request.month:02d}{request.day:02d}"
             
             ai_report = None
-            ai_error = None
             
             # 简易模式（默认）：自动执行简易版 AI 分析
             if analysis_mode == "simple":
                 print("[TIMER] Step 5 开始: AI 简易版分析")
                 step5_start = time.time()
-                try:
-                    ai_report = bazi_service.analyze_ai(report_id, result, mode="simple")
-                except Exception as e:
-                    ai_error = str(e)
-                    print(f"[TIMER] Step 5 失败: {str(e)}")
+                ai_report = bazi_service.analyze_ai(report_id, result, mode="simple")
                 step5_time = time.time() - step5_start
                 print(f"[TIMER] Step 5 完成: AI 简易版分析耗时 {step5_time:.2f}s")
             else:
@@ -223,8 +218,6 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
             # 只有简易模式下有AI报告时才添加
             if ai_report:
                 user_result["ai_report"] = ai_report
-            elif ai_error:
-                user_result["ai_error"] = ai_error
             
             # 清理原始 result 中的大字段
             if "raw_data" in result:

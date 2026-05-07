@@ -92,85 +92,23 @@ import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
 import ReportPage from './components/ReportPage.vue'
 import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 
 // 检测调试模式
 const { appContext } = getCurrentInstance()
 const isDebug = appContext.config.globalProperties.$isDebug || false
 
-// ==================== 状态持久化（sessionStorage，刷新保留，关闭标签页清除） ====================
-const SESSION_KEY = 'bazi_app_state'
-
-const saveState = () => {
-  try {
-    const state = {
-      currentPage: currentPage.value,
-      reportGenerationStatus: reportGenerationStatus.value,
-      analysisStage: analysisStage.value,
-      result: result.value,
-      savedFormData: savedFormData.value,
-      pendingFormData: pendingFormData.value,
-      quizAnswers: quizAnswers.value,
-      aiAnalyzing: aiAnalyzing.value,
-      timestamp: Date.now()
-    }
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state))
-  } catch (e) {
-    console.error('保存页面状态失败:', e)
-  }
-}
-
-const restoreState = () => {
-  try {
-    const saved = sessionStorage.getItem(SESSION_KEY)
-    if (!saved) return false
-    const state = JSON.parse(saved)
-    // 新用户或 landing 页面不恢复
-    if (!state.currentPage || state.currentPage === 'landing') {
-      sessionStorage.removeItem(SESSION_KEY)
-      return false
-    }
-    currentPage.value = state.currentPage
-    if (state.reportGenerationStatus) reportGenerationStatus.value = state.reportGenerationStatus
-    if (state.analysisStage) analysisStage.value = state.analysisStage
-    if (state.result) result.value = state.result
-    if (state.savedFormData) savedFormData.value = state.savedFormData
-    if (state.pendingFormData) pendingFormData.value = state.pendingFormData
-    if (state.quizAnswers) quizAnswers.value = state.quizAnswers
-    if (state.aiAnalyzing !== undefined) aiAnalyzing.value = state.aiAnalyzing
-    console.log(`[恢复] 从 sessionStorage 恢复页面: ${state.currentPage}`)
-    return true
-  } catch (e) {
-    console.error('恢复页面状态失败:', e)
-    sessionStorage.removeItem(SESSION_KEY)
-    return false
-  }
-}
-
-const clearState = () => {
-  try { sessionStorage.removeItem(SESSION_KEY) } catch (e) { /* ignore */ }
-}
-
-// ==================== 状态定义 ====================
-
 // 页面路由状态
 const currentPage = ref('landing') // landing, intro, form, quiz, loading, result
 
-// 监听页面变化，滚动到顶部并保存状态
+// 监听页面变化，滚动到顶部
 watch(currentPage, () => {
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
   })
+  // 同时重置文档的滚动位置
   document.documentElement.scrollTop = 0
   document.body.scrollTop = 0
-  saveState()
-})
-
-// 监听 result 变化自动保存
-watch(result, (newVal) => {
-  if (newVal) saveState()
 })
 
 // 报告生成状态
@@ -298,13 +236,6 @@ const startReportGeneration = async (formData) => {
     
     // 清除待处理状态
     localStorage.removeItem('pendingAnalysis')
-    saveState() // 保存结果到 sessionStorage
-    
-    // 如果 AI 分析失败但基础分析成功，显示提示
-    if (response.data?.ai_error) {
-      console.warn('AI 分析失败:', response.data.ai_error)
-      showToast('基础分析完成，AI 报告生成异常，可在结果页重试', 'info')
-    }
     
   } catch (error) {
     // 清除所有阶段定时器
@@ -315,7 +246,6 @@ const startReportGeneration = async (formData) => {
     analysisStage.value = 'data'
     // 保存错误状态到本地存储，用于恢复
     savePendingState(formData, 'error')
-    saveState()
   }
 }
 
@@ -439,7 +369,6 @@ const handleReportRetry = async () => {
     
     // 清除待处理状态
     localStorage.removeItem('pendingAnalysis')
-    saveState()
     
   } catch (error) {
     console.error('报告重试错误:', error)
@@ -469,7 +398,6 @@ const handleReset = () => {
   pendingFormData.value = null
   localStorage.removeItem('pendingAnalysis')
   showErrorRecovery.value = false
-  clearState()
   currentPage.value = 'landing'
 }
 
@@ -632,8 +560,9 @@ const generatePDF = async (customContent, customName) => {
     `
     
     document.body.appendChild(container)
-
-    const canvas = await html2canvas(container, {
+    
+    const html2canvas = await import('html2canvas')
+    const canvas = await html2canvas.default(container, {
       scale: isMobile ? 1.5 : 2,
       useCORS: true,
       logging: false,
@@ -641,9 +570,10 @@ const generatePDF = async (customContent, customName) => {
       imageTimeout: 0,
       removeContainer: true
     })
-
+    
     document.body.removeChild(container)
-
+    
+    const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF('p', 'mm', 'a4')
     
     const jpegQuality = isMobile ? 0.88 : 0.92
@@ -825,12 +755,9 @@ const generatePDF = async (customContent, customName) => {
   }
 }
 
-// 页面加载时：优先恢复 sessionStorage 状态，否则检查 pendingAnalysis
+// 页面加载时检查是否有待处理的分析
 onMounted(() => {
-  const restored = restoreState()
-  if (!restored) {
-    checkPendingAnalysis()
-  }
+  checkPendingAnalysis()
 })
 </script>
 
