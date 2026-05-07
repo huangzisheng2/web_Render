@@ -92,12 +92,12 @@ const GAN_ELEMENT_MAP = {
 /**
  * 获取Q版形象路径
  * @param {string} dayMaster - 天干（甲乙丙丁戊己庚辛壬癸）
- * @param {string} gender - 性别（male/female）
+ * @param {string} gender - 性别（支持 'male'/'female' 或 '男'/'女'）
  * @returns {string} 图片路径
  */
 export function getQVersionAvatar(dayMaster, gender) {
   const element = GAN_ELEMENT_MAP[dayMaster] || '木'
-  const genderText = gender === 'male' ? '男' : '女'
+  const genderText = (gender === 'male' || gender === '男') ? '男' : '女'
   return `/q-avatar/${dayMaster}${element}${genderText}.png`
 }
 
@@ -109,12 +109,12 @@ export function getQVersionAvatar(dayMaster, gender) {
  */
 export function getDayMasterTrait(dayMaster, gender) {
   const trait = TRAIT_DESCRIPTIONS[dayMaster] || TRAIT_DESCRIPTIONS['甲']
-  const isMale = gender === 'male' ? 'male' : 'female'
+  const isMale = (gender === 'male' || gender === '男')
   return {
     ...trait,
-    description: trait[isMale],
+    description: trait[isMale ? 'male' : 'female'],
     dayMaster,
-    gender: isMale
+    gender: isMale ? 'male' : 'female'
   }
 }
 

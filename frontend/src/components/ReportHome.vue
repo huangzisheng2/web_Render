@@ -72,7 +72,8 @@ const displayName = computed(() => {
 
 // 性别
 const genderText = computed(() => {
-  return props.userInfo?.gender === 'male' ? '♂' : '♀'
+  const g = props.userInfo?.gender
+  return (g === 'male' || g === '男') ? '♂' : '♀'
 })
 
 // 头像URL
