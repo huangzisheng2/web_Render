@@ -199,13 +199,8 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 # 详细模式：不自动执行AI，返回基础数据让前端手动触发
                 print("[TIMER] 详细模式，跳过自动AI分析，等待手动触发")
             
-            # 清理用户模式不需要的大字段
-            if "raw_data" in result:
-                del result["raw_data"]
-            if "ai_prompt" in result:
-                del result["ai_prompt"]
-            
-            # 构建用户模式的响应
+            # 构建用户模式的响应（必须在任何 del 之前保存 raw_data）
+            raw_data = result.get("raw_data")
             user_result = {
                 "report_id": result.get("report_id"),
                 "user_info": result.get("user_info"),
@@ -215,8 +210,8 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
             }
             
             # 保留 raw_data 用于前端深度探索分析
-            if "raw_data" in result:
-                user_result["raw_data"] = result["raw_data"]
+            if raw_data:
+                user_result["raw_data"] = raw_data
             
             # 只有简易模式下有AI报告时才添加
             if ai_report:
