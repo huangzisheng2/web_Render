@@ -28,7 +28,7 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple, Union
 
 # DeepSeek API 默认密钥（用户可替换为自己的密钥）
-DEFAULT_DEEPSEEK_API_KEY = "sk-99f76dba24a242d9b6b358365b356d79"
+DEFAULT_DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 
 
 def parse_input(input_str: str) -> Optional[Tuple]:

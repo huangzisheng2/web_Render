@@ -619,7 +619,7 @@ git config --global --unset http.proxy
    | **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 
 3. **添加环境变量**：
-   - `DEEPSEEK_API_KEY` = `sk-99f76dba24a242d9b6b358365b356d79`
+   - `DEEPSEEK_API_KEY` = `你的 DeepSeek API Key`（在 [platform.deepseek.com](https://platform.deepseek.com) 获取，**不要提交到 Git**）
 
 4. **点击 "Create Web Service"**
 

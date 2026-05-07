@@ -16,6 +16,25 @@ from true_solar_time import calculate_true_solar_time
 from bazi_bridge import analyze_bazi_unified
 
 
+# 自动加载 .env 文件（无需 python-dotenv 依赖）
+_env_loaded = False
+def _load_env():
+    global _env_loaded
+    if _env_loaded:
+        return
+    _env_loaded = True
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, _, val = line.partition('=')
+                    if not os.getenv(key.strip()):
+                        os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
+_load_env()
+
 class BaziAnalysisServiceWeb:
     """
     八字分析服务 - Web端专用
@@ -26,6 +45,9 @@ class BaziAnalysisServiceWeb:
     
     def __init__(self):
         self.city_data = CITY_DATABASE
+        # 从环境变量读取 DeepSeek API Key（.env 文件已自动加载）
+        # 本地开发：复制 backend/.env.example → backend/.env 并填入 key
+        # 部署：在 Render Dashboard 设置环境变量
         self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "")
     
     # ==================== 1. 城市位置服务 ====================
