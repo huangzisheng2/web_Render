@@ -22,7 +22,13 @@ import traceback
 # 导入业务服务
 from services.bazi_service_web import BaziAnalysisServiceWeb
 from services.pdf_service import PDFService
-from feedback import submit_feedback, get_feedback_stats, get_admin_feedback_stats, export_feedback_to_csv
+try:
+    from feedback import submit_feedback, get_feedback_stats, get_admin_feedback_stats, export_feedback_to_csv
+    _has_feedback = True
+except ImportError:
+    print("[WARN] psycopg2 未安装，反馈功能不可用")
+    _has_feedback = False
+    submit_feedback = get_feedback_stats = get_admin_feedback_stats = export_feedback_to_csv = None
 
 from fastapi.responses import StreamingResponse
 import io
@@ -300,12 +306,9 @@ def download_report(report_id: str):
 
 @app.post("/api/feedback", response_model=FeedbackResponse)
 def submit_user_feedback(request: FeedbackRequest, http_request: Request):
-    """
-    提交用户反馈（完全匿名，多维度评分）
-    
-    用户可以对整体体验、设计美观、分析内容、是否有帮助等维度进行1-5分评分
-    数据存储在 PostgreSQL 数据库中，不收集任何个人隐私信息
-    """
+    if not _has_feedback:
+        return {"success": False, "error": "反馈功能暂不可用"}
+    # 提交用户反馈（完全匿名，多维度评分）
     try:
         # 获取请求信息（仅用于防止滥用）
         user_agent = http_request.headers.get("user-agent")
@@ -341,11 +344,9 @@ def submit_user_feedback(request: FeedbackRequest, http_request: Request):
 
 @app.get("/api/feedback/stats")
 def get_feedback_statistics():
-    """
-    获取反馈统计信息（管理用途）
-    
-    返回评分分布、平均评分等统计信息
-    """
+    """获取反馈统计信息（管理用途）"""
+    if not _has_feedback:
+        return {"success": False, "error": "反馈功能暂不可用"}
     try:
         stats = get_feedback_stats()
         return stats
@@ -360,13 +361,9 @@ def get_feedback_statistics():
 
 @app.get("/admin/feedback/stats")
 def admin_feedback_stats(http_request: Request):
-    """
-    管理员反馈统计数据（调试模式专用）
-    
-    返回总反馈数、平均评分、各星级分布、最近20条评论
-    需要 X-Debug-Mode: true 请求头
-    """
-    # 验证调试模式
+    """管理员反馈统计数据（调试模式专用）"""
+    if not _has_feedback:
+        return {"success": False, "error": "反馈功能暂不可用"}
     debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
     if not debug_mode:
         raise HTTPException(status_code=403, detail="禁止访问：需要调试模式权限")
@@ -383,12 +380,9 @@ def admin_feedback_stats(http_request: Request):
 
 @app.get("/admin/feedback/export")
 def admin_feedback_export(http_request: Request):
-    """
-    导出所有反馈数据为CSV（调试模式专用）
-    
-    需要 X-Debug-Mode: true 请求头
-    """
-    # 验证调试模式
+    """导出所有反馈数据为CSV（调试模式专用）"""
+    if not _has_feedback:
+        return {"success": False, "error": "反馈功能暂不可用"}
     debug_mode = http_request.headers.get("X-Debug-Mode", "").lower() == "true"
     if not debug_mode:
         raise HTTPException(status_code=403, detail="禁止访问：需要调试模式权限")

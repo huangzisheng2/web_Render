@@ -105,8 +105,11 @@ const ELEMENT_PINYIN_MAP = {
   '水': 'shui'
 }
 
+// Vite 基准路径（开发环境为 '/'，生产环境为 base 配置值如 './'）
+const BASE_URL = import.meta.env.BASE_URL || '/'
+
 /**
- * 获取Q版形象路径
+ * 获取Q版形象路径（使用 Vite BASE_URL 确保部署子路径下也正确）
  * @param {string} dayMaster - 天干（甲乙丙丁戊己庚辛壬癸）
  * @param {string} gender - 性别（支持 'male'/'female' 或 '男'/'女'）
  * @returns {string} 图片路径
@@ -116,16 +119,31 @@ export function getQVersionAvatar(dayMaster, gender) {
   const element = GAN_ELEMENT_MAP[dayMaster] || '木'
   const elementPinyin = ELEMENT_PINYIN_MAP[element] || 'mu'
   const genderText = (gender === 'male' || gender === '男') ? 'm' : 'f'
-  return `/q-avatar/${ganPinyin}_${elementPinyin}_${genderText}.png`
+  return `${BASE_URL}q-avatar/${ganPinyin}_${elementPinyin}_${genderText}.png`
 }
 
 /**
- * 获取带 origin 的完整 Q版形象 URL（解决部分环境下路径解析问题）
+ * 获取完整 Q版形象 URL（兼容 Vite dev + 部署子路径）
  */
 export function getFullAvatarUrl(dayMaster, gender) {
   const path = getQVersionAvatar(dayMaster, gender)
-  const origin = window.location.origin
-  return `${origin}${path}`
+  // Vite dev 环境：path 为 /q-avatar/xxx.png，直接 origin + path
+  if (!path.startsWith('./')) {
+    return `${window.location.origin}${path}`
+  }
+  // 生产环境下（base='./'）：path 为 ./q-avatar/xxx.png
+  // 从当前页面 URL 提取子路径前缀
+  let basePath = window.location.pathname
+  // 去掉末尾文件名（如 index.html）保留目录路径
+  const lastSlash = basePath.lastIndexOf('/')
+  if (lastSlash > 0) {
+    basePath = basePath.substring(0, lastSlash)
+  } else if (lastSlash === 0) {
+    basePath = ''
+  }
+  const cleanOrigin = window.location.origin.replace(/\/+$/, '')
+  const cleanBase = basePath.replace(/\/+$/, '')
+  return `${cleanOrigin}${cleanBase}/${path.slice(2)}`
 }
 
 /**
