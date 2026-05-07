@@ -26,6 +26,20 @@
           class="section-home"
         />
 
+        <!-- 天赋档案卡片（新增） -->
+        <div class="section-profile-card" v-if="talentTags.length > 0">
+          <TalentProfileCard
+            :name="userInfo.name || '探索者'"
+            :day-master="dayMaster"
+            :gender="userInfo.gender || 'male'"
+            :talent-tags="talentTags"
+            :talent-summary="profileTalentSummary"
+            :keywords="profileKeywords"
+            :day-column-summary="profileDayColumn"
+            :trait-description="traitDescription"
+          />
+        </div>
+
         <!-- 简易分析卡片 -->
         <SimpleReport
           :simple-report="simpleReport"
@@ -93,6 +107,20 @@
                 <span>{{ new Date().toLocaleDateString('zh-CN') }}</span>
               </div>
             </div>
+            <!-- 天赋档案卡片（深度探索） -->
+            <div class="section-profile-card" v-if="deepExploreReport">
+              <TalentProfileCard
+                :name="userInfo.name || '探索者'"
+                :day-master="dayMaster"
+                :gender="userInfo.gender || 'male'"
+                :talent-tags="deepProfileTags"
+                :talent-summary="deepProfileSummary"
+                :keywords="deepProfileKeywords"
+                :day-column-summary="deepProfileDayColumn"
+                :trait-description="traitDescription"
+              />
+            </div>
+
             <!-- 模块卡片 -->
             <div class="result-cards">
               <div
@@ -157,6 +185,7 @@ import { ref, computed } from 'vue'
 import ReportHome from './ReportHome.vue'
 import SimpleReport from './SimpleReport.vue'
 import SharePoster from './SharePoster.vue'
+import TalentProfileCard from './TalentProfileCard.vue'
 import { getDayMasterTrait } from '../data/dayMasterData'
 import { analyzeAI } from '../api/bazi'
 
@@ -195,15 +224,16 @@ const simpleReport = computed(() => {
 
 function parseSimpleReport(report) {
   const sections = report.split(/###\s+/).filter(s => s.trim())
-  let coreTalent = '', talentScenario = '', growthAdvice = ''
+  let coreTalent = '', talentScenario = '', growthAdvice = '', keywords = '', dayColumn = ''
   for (const section of sections) {
     const lower = section.toLowerCase()
     if (lower.startsWith('核心天赋')) coreTalent = section.trim()
     else if (lower.startsWith('天赋场景')) talentScenario = section.trim()
     else if (lower.startsWith('成长意见')) growthAdvice = section.trim()
+    else if (lower.startsWith('天赋关键词')) keywords = section.trim()
+    else if (lower.startsWith('日柱特质')) dayColumn = section.trim()
   }
-  if (coreTalent || talentScenario || growthAdvice) return { coreTalent, talentScenario, growthAdvice }
-  return { coreTalent: report, talentScenario: '', growthAdvice: '' }
+  return { coreTalent, talentScenario, growthAdvice, keywords, dayColumn }
 }
 
 const simpleLoading = computed(() => {
@@ -219,6 +249,27 @@ const talentTags = computed(() => {
 })
 
 const traitDescription = computed(() => traitInfo.value.description || '')
+
+// ===== 天赋档案卡片数据（简易版） =====
+const profileKeywords = computed(() => {
+  const kw = simpleReport.value?.keywords || ''
+  // 提取 "天赋关键词：xxx、xxx、xxx" 中的关键词
+  const content = kw.replace(/^天赋关键词[：:]\s*/i, '')
+  return content.split(/[、,，]/).map(s => s.trim()).filter(Boolean).slice(0, 3)
+})
+
+const profileDayColumn = computed(() => {
+  // 优先用AI返回的日柱特质，为空时 TalentProfileCard 会自动使用前端原生数据
+  const dc = simpleReport.value?.dayColumn || ''
+  return dc.replace(/^日柱特质[：:]\s*/i, '').trim()
+})
+
+const profileTalentSummary = computed(() => {
+  const ct = simpleReport.value?.coreTalent || ''
+  // 去掉"核心天赋"标题后的前60个字作为摘要
+  const text = ct.replace(/^核心天赋[\s\S]*?\*\*(.+?)\*\*/g, '$1').trim()
+  return text.slice(0, 80) || ''
+})
 
 // ========== 分享海报 ==========
 const sharePosterRef = ref(null)
@@ -359,6 +410,40 @@ const deepReportSections = computed(() => {
   return modules
 })
 
+// ===== 深度探索天赋档案数据 =====
+const deepProfileTags = computed(() => {
+  const text = deepExploreReport.value || ''
+  const matches = text.match(/\*\*(.+?)\*\*/g)
+  return matches ? matches.slice(0, 5).map(m => m.replace(/\*\*/g, '')) : talentTags.value
+})
+
+const deepProfileKeywords = computed(() => {
+  // 提取模块一中【两大心智超能力】的标签
+  const text = deepExploreReport.value || ''
+  const labels = text.match(/【(.+?)】/g)
+  return labels ? labels.slice(0, 3).map(m => m.replace(/[【】]/g, '')) : profileKeywords.value
+})
+
+const deepProfileSummary = computed(() => {
+  // 取模块一第一个有效段落
+  const mod1 = deepReportSections.value.find(s => s.type === 'talent')
+  if (mod1?.html) {
+    const plain = mod1.html.replace(/<[^>]+>/g, '').trim()
+    return plain.slice(0, 100)
+  }
+  return ''
+})
+
+const deepProfileDayColumn = computed(() => {
+  // 从模块四中找能量密码相关描述
+  const mod4 = deepReportSections.value.find(s => s.type === 'growth')
+  if (mod4?.html) {
+    const plain = mod4.html.replace(/<[^>]+>/g, '').trim()
+    return plain.slice(0, 120)
+  }
+  return traitDescription.value
+})
+
 // 渲染模块内容（Markdown → HTML）
 function renderModuleContent(text) {
   if (!text) return ''
@@ -453,6 +538,17 @@ function renderModuleContent(text) {
 
 .report-content { padding-bottom: env(safe-area-inset-bottom); }
 .section-simple { animation: fadeInUp 0.35s ease; }
+
+/* 天赋档案卡片容器 */
+.section-profile-card {
+  padding: 0 16px;
+  margin-bottom: 16px;
+  animation: fadeInUp 0.4s ease;
+}
+
+@media (min-width: 1024px) {
+  .section-profile-card { padding: 0 24px; }
+}
 
 /* 分享按钮 */
 .share-section {
