@@ -677,11 +677,18 @@ class BaziAnalysisServiceWeb:
 
     def _build_deep_explore_prompt(self, bazi_data: Dict, analysis_data: Dict, user_info: Dict) -> str:
         """构建深度探索版 AI 提示词"""
+        # 调试：确认 raw_data 是否传入
+        has_data = bool(analysis_data)
+        print(f"[DEEP] analysis_data keys: {list(analysis_data.keys())[:10] if has_data else 'EMPTY'}")
+        
         geju_summary = analysis_data.get('格局综合判定', {})
         first_level = analysis_data.get('第一论级_月令与格局', {})
         sixth_level = analysis_data.get('第六论级_大运流年', {})
         fifth_level_aux = analysis_data.get('第五论级_辅助信息', {})
         basic_info = analysis_data.get('基础信息综合分析', {})
+        
+        print(f"[DEEP] basic_info keys: {list(basic_info.keys())[:10] if basic_info else 'EMPTY'}")
+        print(f"[DEEP] geju_summary keys: {list(geju_summary.keys())[:10] if geju_summary else 'EMPTY'}")
 
         def format_energy(data_dict, name_map=None):
             if not data_dict:

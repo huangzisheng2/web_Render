@@ -267,7 +267,11 @@ def analyze_ai_endpoint(request: dict):
                 "error": "缺少 report_id 或 basic_result 参数"
             }
         
-        # 执行 AI 分析
+        print(f"[DEEP] mode={mode}, report_id={report_id}, has_basic_result={basic_result is not None}")
+        if basic_result:
+            print(f"[DEEP] result keys: {list(basic_result.keys())}")
+            print(f"[DEEP] has raw_data: {'raw_data' in basic_result}")
+        
         ai_report = bazi_service.analyze_ai(report_id, basic_result, mode=mode)
         
         return {
