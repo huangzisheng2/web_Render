@@ -99,10 +99,9 @@ import { jsPDF } from 'jspdf'
 const { appContext } = getCurrentInstance()
 const isDebug = appContext.config.globalProperties.$isDebug || false
 
-// ==================== 状态持久化 ====================
+// ==================== 状态持久化（sessionStorage，刷新保留，关闭标签页清除） ====================
 const SESSION_KEY = 'bazi_app_state'
 
-// 保存当前状态到 sessionStorage
 const saveState = () => {
   try {
     const state = {
@@ -122,19 +121,16 @@ const saveState = () => {
   }
 }
 
-// 从 sessionStorage 恢复状态
 const restoreState = () => {
   try {
     const saved = sessionStorage.getItem(SESSION_KEY)
     if (!saved) return false
-    
     const state = JSON.parse(saved)
-    // 仅恢复非 landing 页面（landing 是初始页，无需恢复）
+    // 新用户或 landing 页面不恢复
     if (!state.currentPage || state.currentPage === 'landing') {
       sessionStorage.removeItem(SESSION_KEY)
       return false
     }
-    
     currentPage.value = state.currentPage
     if (state.reportGenerationStatus) reportGenerationStatus.value = state.reportGenerationStatus
     if (state.analysisStage) analysisStage.value = state.analysisStage
@@ -143,7 +139,6 @@ const restoreState = () => {
     if (state.pendingFormData) pendingFormData.value = state.pendingFormData
     if (state.quizAnswers) quizAnswers.value = state.quizAnswers
     if (state.aiAnalyzing !== undefined) aiAnalyzing.value = state.aiAnalyzing
-    
     console.log(`[恢复] 从 sessionStorage 恢复页面: ${state.currentPage}`)
     return true
   } catch (e) {
@@ -153,13 +148,8 @@ const restoreState = () => {
   }
 }
 
-// 清除持久化状态
 const clearState = () => {
-  try {
-    sessionStorage.removeItem(SESSION_KEY)
-  } catch (e) {
-    console.error('清除状态失败:', e)
-  }
+  try { sessionStorage.removeItem(SESSION_KEY) } catch (e) { /* ignore */ }
 }
 
 // ==================== 状态定义 ====================
@@ -173,18 +163,14 @@ watch(currentPage, () => {
     top: 0,
     behavior: 'smooth'
   })
-  // 同时重置文档的滚动位置
   document.documentElement.scrollTop = 0
   document.body.scrollTop = 0
-  // 保存状态，使刷新后保留当前页面
   saveState()
 })
 
-// 监听 result 变化（AI报告生成后自动保存）
+// 监听 result 变化自动保存
 watch(result, (newVal) => {
-  if (newVal) {
-    saveState()
-  }
+  if (newVal) saveState()
 })
 
 // 报告生成状态
@@ -303,7 +289,6 @@ const startReportGeneration = async (formData) => {
       analysisStage.value = 'data'
       // 保存错误状态到本地存储，用于恢复
       savePendingState(formData, 'error')
-      saveState() // 保存当前状态（含错误信息）
       return
     }
     
@@ -313,7 +298,7 @@ const startReportGeneration = async (formData) => {
     
     // 清除待处理状态
     localStorage.removeItem('pendingAnalysis')
-    saveState() // 保存成功状态（包含 result）
+    saveState() // 保存结果到 sessionStorage
     
     // 如果 AI 分析失败但基础分析成功，显示提示
     if (response.data?.ai_error) {
@@ -330,7 +315,7 @@ const startReportGeneration = async (formData) => {
     analysisStage.value = 'data'
     // 保存错误状态到本地存储，用于恢复
     savePendingState(formData, 'error')
-    saveState() // 保存当前状态
+    saveState()
   }
 }
 
@@ -484,7 +469,7 @@ const handleReset = () => {
   pendingFormData.value = null
   localStorage.removeItem('pendingAnalysis')
   showErrorRecovery.value = false
-  clearState() // 清除 sessionStorage 持久化状态
+  clearState()
   currentPage.value = 'landing'
 }
 
@@ -647,7 +632,7 @@ const generatePDF = async (customContent, customName) => {
     `
     
     document.body.appendChild(container)
-    
+
     const canvas = await html2canvas(container, {
       scale: isMobile ? 1.5 : 2,
       useCORS: true,
@@ -656,9 +641,9 @@ const generatePDF = async (customContent, customName) => {
       imageTimeout: 0,
       removeContainer: true
     })
-    
+
     document.body.removeChild(container)
-    
+
     const pdf = new jsPDF('p', 'mm', 'a4')
     
     const jpegQuality = isMobile ? 0.88 : 0.92
@@ -840,12 +825,10 @@ const generatePDF = async (customContent, customName) => {
   }
 }
 
-// 页面加载时恢复状态或检查待处理的分析
+// 页面加载时：优先恢复 sessionStorage 状态，否则检查 pendingAnalysis
 onMounted(() => {
-  // 优先尝试从 sessionStorage 恢复页面状态
   const restored = restoreState()
   if (!restored) {
-    // 没有可恢复的状态，检查是否有待处理的分析
     checkPendingAnalysis()
   }
 })

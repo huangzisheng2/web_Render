@@ -12,7 +12,7 @@
     </nav>
 
     <main class="report-content">
-      <!-- ========== AI 错误提示（全局，显示在所有 tab 顶部） ========== -->
+      <!-- ========== AI 错误提示（全局） ========== -->
       <div v-if="aiErrorMessage" class="ai-error-banner">
         <div class="ai-error-content">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
@@ -190,20 +190,12 @@ function parseSimpleReport(report) {
   return { coreTalent, talentScenario, growthAdvice, keywords, dayColumn, conclusion }
 }
 
-// AI 错误信息
-const aiErrorMessage = computed(() => {
-  return props.result?.ai_error || ''
-})
-
+// AI 错误信息与重试
+const aiErrorMessage = computed(() => props.result?.ai_error || '')
 const aiRetrying = ref(false)
+const canDeepExplore = computed(() => !aiErrorMessage.value)
 
-// 是否可以执行深度探索
-const canDeepExplore = computed(() => {
-  return !aiErrorMessage.value
-})
-
-// 重试 AI 分析
-const handleRetryAI = async () => {
+async function handleRetryAI() {
   if (!props.result?.report_id) return
   aiRetrying.value = true
   try {
@@ -212,7 +204,6 @@ const handleRetryAI = async () => {
       'simple'
     )
     if (response.success && response.ai_report) {
-      // 直接修改 props.result 中的 ai_report (reactive 响应式)
       props.result.ai_report = response.ai_report
       delete props.result.ai_error
     } else {
@@ -403,22 +394,9 @@ function renderModuleContent(text) {
   color: #F59E0B;
   margin-top: 2px;
 }
-.error-text-wrapper {
-  flex: 1;
-  min-width: 0;
-}
-.error-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #92400E;
-  margin: 0 0 4px;
-}
-.error-desc {
-  font-size: 13px;
-  color: #A16207;
-  margin: 0;
-  line-height: 1.5;
-}
+.error-text-wrapper { flex: 1; min-width: 0; }
+.error-title { font-size: 14px; font-weight: 600; color: #92400E; margin: 0 0 4px; }
+.error-desc { font-size: 13px; color: #A16207; margin: 0; line-height: 1.5; }
 .retry-ai-btn {
   flex-shrink: 0;
   display: inline-flex;
