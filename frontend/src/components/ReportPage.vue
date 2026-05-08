@@ -14,7 +14,7 @@
     <main class="report-content">
       <!-- ========== 天赋概览 Tab ========== -->
       <template v-if="activeTab === 'simple'">
-        <!-- 天赋档案卡片 -->
+        <!-- 天赋综合画像卡片 -->
         <div class="section-profile-card" v-if="talentTags.length">
           <TalentProfileCard
             :name="userInfo.name || '探索者'"
@@ -26,31 +26,63 @@
             :keywords="profileKeywords"
             :day-column-summary="profileDayColumn"
             :trait-description="traitDescription"
+            :historical-figures="historicalFigures"
           />
         </div>
 
-        <!-- 简易分析卡片（核心天赋/天赋场景/成长意见） -->
-        <SimpleReport
-          :simple-report="simpleReport"
-          :loading="simpleLoading"
-          class="section-simple"
-        />
+        <!-- 性格分析卡片 -->
+        <div class="section-cards">
+          <article v-if="profilePersonality" class="info-card card-personality">
+            <header class="card-header">
+              <span class="card-icon personality-icon">🧠</span>
+              <h3 class="card-title">性格综合分析</h3>
+            </header>
+            <div class="card-body" v-html="profilePersonality"></div>
+          </article>
 
-        <!-- AI 综合结论 -->
-        <div v-if="profileConclusion" class="conclusion-section">
-          <div class="conclusion-inner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="conclusion-icon">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <p class="conclusion-text">{{ profileConclusion }}</p>
-          </div>
+          <!-- 核心天赋卡片 -->
+          <article v-if="profileCoreTalent" class="info-card card-core-talent">
+            <header class="card-header">
+              <span class="card-icon talent-icon">🌟</span>
+              <h3 class="card-title">核心天赋</h3>
+            </header>
+            <div class="card-body" v-html="profileCoreTalent"></div>
+          </article>
+
+          <!-- 天赋场景卡片 -->
+          <article v-if="profileScenario" class="info-card card-scenario">
+            <header class="card-header">
+              <span class="card-icon scenario-icon">🎭</span>
+              <h3 class="card-title">天赋场景</h3>
+            </header>
+            <div class="card-body" v-html="profileScenario"></div>
+          </article>
+
+          <!-- 成长意见卡片 -->
+          <article v-if="profileGrowth" class="info-card card-growth">
+            <header class="card-header">
+              <span class="card-icon growth-icon">📈</span>
+              <h3 class="card-title">成长意见</h3>
+            </header>
+            <div class="card-body" v-html="profileGrowth"></div>
+          </article>
+
+          <!-- 历史人物画像卡片 -->
+          <article v-if="profileFigures" class="info-card card-figures">
+            <header class="card-header">
+              <span class="card-icon figures-icon">📜</span>
+              <h3 class="card-title">历史人物画像</h3>
+            </header>
+            <div class="card-body" v-html="profileFigures"></div>
+          </article>
         </div>
       </template>
 
       <!-- ========== 深度探索 Tab ========== -->
       <template v-if="activeTab === 'detail'">
+        <!-- 深度探索内容保持不变 -->
         <div class="deep-explore">
-          <template v-if="!deepExploreReport && !deepExploreLoading">
+          <template v-if="!deepExploreReport && !deepExploreLoading && !deepExploreError">
             <div class="deep-explore-intro">
               <div class="deco-icon">
                 <svg viewBox="0 0 80 80" fill="none" width="80" height="80">
@@ -75,7 +107,6 @@
           </div>
 
           <div v-if="deepExploreReport" class="deep-explore-result">
-            <!-- 天赋档案卡片 -->
             <div class="section-profile-card">
               <TalentProfileCard
                 :name="userInfo.name || '探索者'"
@@ -87,9 +118,9 @@
                 :keywords="deepProfileKeywords"
                 :day-column-summary="deepProfileDayColumn"
                 :trait-description="traitDescription"
+                :historical-figures="[]"
               />
             </div>
-            <!-- 深度模块卡片 -->
             <div class="result-cards">
               <div v-for="(section, idx) in deepReportSections" :key="idx"
                 class="deep-card" :class="section.type">
@@ -118,7 +149,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import TalentProfileCard from './TalentProfileCard.vue'
-import SimpleReport from './SimpleReport.vue'
 import { getDayMasterTrait } from '../data/dayMasterData'
 import { analyzeAI } from '../api/bazi'
 
@@ -130,14 +160,13 @@ const props = defineProps({
 
 const emit = defineEmits(['reset'])
 
-// Tabs - 从 sessionStorage 恢复 activeTab
+// Tabs
 const savedTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bazi_activeTab') : null
 const activeTab = ref(savedTab || 'simple')
 const tabs = [
   { key: 'simple', label: '天赋概览' },
   { key: 'detail', label: '深度探索' }
 ]
-// 保存 activeTab 到 sessionStorage
 watch(activeTab, (val) => {
   try { sessionStorage.setItem('bazi_activeTab', val) } catch {}
 })
@@ -163,26 +192,23 @@ const simpleReport = computed(() => {
 
 function parseSimpleReport(report) {
   const sections = report.split(/###\s+/).filter(s => s.trim())
-  let coreTalent = '', talentScenario = '', growthAdvice = '', keywords = '', dayColumn = '', conclusion = ''
+  let coreTalent = '', personality = '', talentScenario = '', growthAdvice = '', keywords = '', figures = ''
   for (const section of sections) {
     const lower = section.toLowerCase()
     if (lower.startsWith('核心天赋')) coreTalent = section.trim()
+    else if (lower.startsWith('性格综合分析')) personality = section.trim()
     else if (lower.startsWith('天赋场景')) talentScenario = section.trim()
     else if (lower.startsWith('成长意见')) growthAdvice = section.trim()
     else if (lower.startsWith('天赋关键词')) keywords = section.trim()
-    else if (lower.startsWith('日柱特质')) dayColumn = section.trim()
-    else if (lower.startsWith('综合结论')) conclusion = section.trim()
+    else if (lower.startsWith('历史人物画像')) figures = section.trim()
   }
-  // 如果所有段落都为空（解析失败），将整个报告作为 coreTalent 显示
-  if (!coreTalent && !talentScenario && !growthAdvice && !keywords && !dayColumn && !conclusion) {
+  if (!coreTalent && !talentScenario && !growthAdvice && !keywords && !personality && !figures) {
     coreTalent = report.trim()
   }
-  return { coreTalent, talentScenario, growthAdvice, keywords, dayColumn, conclusion }
+  return { coreTalent, personality, talentScenario, growthAdvice, keywords, figures }
 }
 
-const simpleLoading = computed(() => !props.result?.ai_report && !props.result?.error)
-
-// 分享图天赋标签（复用）
+// 天赋标签
 const talentTags = computed(() => {
   const aiReport = props.result?.ai_report || ''
   if (!aiReport) return []
@@ -190,25 +216,84 @@ const talentTags = computed(() => {
   return matches ? matches.slice(0, 5).map(m => m.replace(/\*\*/g, '')) : []
 })
 
-// 天赋档案卡片数据
+// 天赋关键词解析
 const profileKeywords = computed(() => {
   const kw = simpleReport.value?.keywords || ''
   const content = kw.replace(/^天赋关键词[：:]\s*/i, '')
   return content.split(/[、,，]/).map(s => s.trim()).filter(Boolean).slice(0, 5)
 })
-const profileDayColumn = computed(() => {
-  const dc = simpleReport.value?.dayColumn || ''
-  return dc.replace(/^日柱特质[：:]\s*/i, '').trim()
-})
+
+// 天赋摘要
 const profileTalentSummary = computed(() => {
   const ct = simpleReport.value?.coreTalent || ''
   return ct.replace(/^核心天赋[\s\S]*?\*\*(.+?)\*\*/g, '$1').trim().slice(0, 80) || ''
 })
-// AI 综合结论
-const profileConclusion = computed(() => {
-  const conclusion = simpleReport.value?.conclusion || ''
-  const text = conclusion.replace(/^综合结论[：:]\s*/i, '').trim()
-  return text || (simpleReport.value?.growthAdvice ? '你的天赋正在等待被激活，勇敢尝试，你会发现自己比想象中更强大。' : '')
+
+const profileDayColumn = computed(() => '')
+
+// 各卡片内容（Markdown→HTML）
+function mdToHtml(text) {
+  if (!text) return ''
+  return text
+    .replace(/^###\s+.*$/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br/>')
+    .replace(/<p>\s*<\/p>/g, '')
+}
+
+const profilePersonality = computed(() => {
+  const text = simpleReport.value?.personality || ''
+  const content = text.replace(/^性格综合分析[\s\S]*?(?:\n|$)/, '').trim()
+  return content ? `<p>${mdToHtml(content)}</p>` : ''
+})
+
+const profileCoreTalent = computed(() => {
+  const text = simpleReport.value?.coreTalent || ''
+  const content = text.replace(/^核心天赋[\s\S]*?(?:\n|$)/, '').trim()
+  return content ? `<p>${mdToHtml(content)}</p>` : ''
+})
+
+const profileScenario = computed(() => {
+  const text = simpleReport.value?.talentScenario || ''
+  const content = text.replace(/^天赋场景[\s\S]*?(?:\n|$)/, '').trim()
+  return content ? `<p>${mdToHtml(content)}</p>` : ''
+})
+
+const profileGrowth = computed(() => {
+  const text = simpleReport.value?.growthAdvice || ''
+  const content = text.replace(/^成长意见[\s\S]*?(?:\n|$)/, '').trim()
+  return content ? `<p>${mdToHtml(content)}</p>` : ''
+})
+
+const profileFigures = computed(() => {
+  const text = simpleReport.value?.figures || ''
+  if (!text) return ''
+  const content = text.replace(/^历史人物画像[\s\S]*?(?:\n|$)/, '').trim()
+  return content ? `<p>${mdToHtml(content)}</p>` : ''
+})
+
+// 历史人物结构化数据
+const historicalFigures = computed(() => {
+  const text = simpleReport.value?.figures || ''
+  if (!text) return []
+  // 尝试解析历史人物
+  const lines = text.split('\n').filter(l => l.trim())
+  const figures = []
+  for (const line of lines) {
+    // 匹配如 "王羲之，东晋书法家" 或 "- 王羲之" 等模式
+    const match = line.match(/(.+?)[，,]\s*(.+?)(?=[。，]|$)/)
+    if (match) {
+      figures.push({
+        name: match[1].replace(/^[-*]\s*/, ''),
+        title: match[2].trim(),
+        quote: line.slice(line.indexOf('"') !== -1 ? line.indexOf('"') : 0).replace(/^[-*\s]+/, '').slice(0, 40)
+      })
+    }
+  }
+  return figures.slice(0, 2)
 })
 
 // ===== 深度探索 =====
@@ -238,7 +323,6 @@ function resetDeepExplore() {
   deepExploreError.value = ''
 }
 
-// ===== 深度探索模块解析 =====
 const MODULE_CONFIG = [
   { key: '模块一', title: '核心天赋图谱', icon: '🌟', type: 'talent' },
   { key: '模块二', title: '专属天赋落地指南', icon: '📍', type: 'guide' },
@@ -324,7 +408,7 @@ function renderModuleContent(text) {
   flex: 1; max-width: 160px; padding: 10px 20px;
   background: transparent; border: none; border-radius: 10px;
   font-size: 15px; font-weight: 500; color: #718096;
-  cursor: pointer; transition: all .25s ease; position: relative;
+  cursor: pointer; transition: all .25s ease;
 }
 .nav-tab:hover { color: #4A5568; background: rgba(142,197,252,0.08); }
 .nav-tab.active { color: #3B82F6; font-weight: 600; background: rgba(59,130,246,0.08); }
@@ -337,25 +421,83 @@ function renderModuleContent(text) {
 .report-content { padding-bottom: env(safe-area-inset-bottom); }
 
 /* 天赋档案卡片容器 */
-.section-profile-card { padding: 14px 14px 0; animation: fadeInUp 0.35s ease; }
+.section-profile-card { padding: 14px 14px 0; animation: fadeInUp 0.3s ease; }
 
-/* 简易分析卡片 */
-.section-simple { padding: 0 14px; animation: fadeInUp 0.4s ease; }
+/* 信息卡片列表 */
+.section-cards {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 12px 14px 24px;
+  animation: fadeInUp 0.4s ease;
+}
 
-/* ===== AI 综合结论 ===== */
-.conclusion-section { padding: 8px 14px 24px; }
-.conclusion-inner {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 14px 16px;
-  background: linear-gradient(135deg,rgba(142,197,252,0.08),rgba(168,230,207,0.08));
-  border-radius: 12px;
+.info-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(142,197,252,0.06);
   border: 1px solid rgba(142,197,252,0.1);
 }
-.conclusion-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; color: #8EC5FC; }
-.conclusion-text {
-  font-size: clamp(0.8rem,3.5vw,0.9rem);
-  line-height: 1.7; color: #475569; margin: 0;
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(142,197,252,0.06);
 }
+
+.card-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.card-body {
+  padding: 12px 16px 16px;
+  line-height: 1.8;
+  color: #475569;
+  font-size: 14px;
+}
+
+.card-body :deep(strong) {
+  color: #3B82F6;
+  font-weight: 600;
+}
+
+.card-body :deep(blockquote) {
+  margin: 8px 0;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
+  border-left: 3px solid #8EC5FC;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.7;
+  font-style: italic;
+}
+
+.card-body :deep(li) {
+  margin: 4px 0 4px 14px;
+  padding-left: 4px;
+  list-style-type: disc;
+}
+
+.card-body :deep(p) {
+  margin: 6px 0;
+}
+
+/* 卡片顶部颜色标识 */
+.card-personality { border-top: 3px solid #8EC5FC; }
+.card-core-talent { border-top: 3px solid #A8E6CF; }
+.card-scenario { border-top: 3px solid #FBBF24; }
+.card-growth { border-top: 3px solid #A78BFA; }
+.card-figures { border-top: 3px solid #F472B6; }
 
 /* ===== 深度探索 ===== */
 .deep-explore { padding: 32px 14px; max-width: 600px; margin: 0 auto; }
@@ -381,23 +523,14 @@ function renderModuleContent(text) {
 .loading-sub { font-size: 13px; color: #94A3B8; margin: 0; }
 
 .deep-explore-result { animation: fadeInUp .4s ease; }
-.result-cards { display: flex; flex-direction: column; gap: 16px; padding: 0 14px; }
+.result-cards { display: flex; flex-direction: column; gap: 14px; padding: 0 14px; }
 .deep-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(142,197,252,0.06); border: 1px solid rgba(142,197,252,0.1); }
 .deep-card.talent { border-top: 3px solid #8EC5FC; }
 .deep-card.guide { border-top: 3px solid #A8E6CF; }
 .deep-card.scene { border-top: 3px solid #FBBF24; }
 .deep-card.growth { border-top: 3px solid #F472B6; }
 .deep-card.closing { border-top: 3px solid #C084FC; }
-.card-header { display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px; border-bottom: 1px solid rgba(142,197,252,0.06); }
-.card-icon { font-size: 22px; line-height: 1; }
-.card-title { font-size: 15px; font-weight: 700; color: #1E293B; margin: 0; }
-.card-body { padding: 12px 16px 16px; line-height: 1.8; color: #334155; font-size: 14px; }
-.card-body .md-sub { font-size: 14px; font-weight: 600; color: #3B82F6; margin: 14px 0 6px; }
-.card-body .md-strong { color: #2563EB; font-weight: 600; }
-.card-body p { margin: 0 0 8px; }
-.card-body blockquote { background: linear-gradient(135deg,#F0F9FF,#E0F2FE); border-left: 3px solid #8EC5FC; padding: 8px 12px; margin: 8px 0; border-radius: 0 8px 8px 0; font-size: 13px; color: #475569; line-height: 1.7; }
-.card-body ul { padding-left: 16px; margin: 6px 0; }
-.card-body li { margin-bottom: 4px; list-style: disc; color: #475569; }
+
 .result-actions { text-align: center; padding: 20px 14px 28px; }
 .regenerate-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; background: #fff; color: #4A5568; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .3s ease; }
 .regenerate-btn:hover { border-color: #8EC5FC; color: #3B82F6; }
@@ -413,19 +546,24 @@ function renderModuleContent(text) {
   .nav-container { gap: 6px; padding: 10px 12px; }
   .nav-tab { padding: 9px 16px; font-size: 14px; border-radius: 8px; }
   .section-profile-card { padding: 10px 10px 0; }
-  .section-simple { padding: 0 10px; }
+  .section-cards { padding: 8px 10px 18px; gap: 10px; }
+  .info-card { border-radius: 14px; }
+  .card-header { padding: 12px 14px 8px; }
+  .card-title { font-size: 14px; }
+  .card-body { padding: 10px 14px 14px; font-size: 13px; }
   .deep-explore { padding: 24px 10px; }
   .result-cards { padding: 0 10px; }
-  .conclusion-section { padding: 6px 10px 18px; }
 }
 @media (min-width: 1024px) {
   .report-page { max-width: 600px; margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
-  .top-nav { border-bottom-color: rgba(142,197,252,0.2); }
   .nav-container { padding: 14px 32px; gap: 12px; }
   .nav-tab { padding: 11px 28px; font-size: 15px; border-radius: 12px; }
   .section-profile-card { padding: 20px 20px 0; }
-  .section-simple { padding: 0 20px; }
+  .section-cards { padding: 14px 20px 28px; gap: 16px; }
+  .info-card { border-radius: 18px; }
+  .card-header { padding: 16px 20px 12px; }
+  .card-body { padding: 14px 20px 18px; font-size: 14px; line-height: 1.9; }
+  .card-title { font-size: 16px; }
   .result-cards { padding: 0 20px; }
-  .conclusion-section { padding: 10px 20px 28px; }
 }
 </style>
