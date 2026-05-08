@@ -1,21 +1,19 @@
 <template>
   <div class="talent-card">
 
-    <!-- ===== 顶部：主标题 + 日柱行（含概述） ===== -->
+    <!-- ===== 顶部：主标题 + 日柱行（含身份） ===== -->
     <div class="card-top">
       <div class="title-row">
         <span class="top-name">{{ displayName }}</span>
         <span class="top-title">的潜在天赋档案</span>
       </div>
-      <!-- 日柱行：日主五行图标 + 日柱(高亮) + · + 日柱概述(高亮) -->
+      <!-- 日柱行：五行符号(高亮) + 日柱(高亮) + · + 身份(五行色艺术字) -->
       <div class="daypillar-line">
-        <span class="dp-element-icon" :style="{ color: traitInfo.color }">{{ traitInfo.elementSymbol }}</span>
+        <span class="dp-element-icon" :style="{ color: traitInfo.color }">{{ elementSymbol }}</span>
         <span class="dp-label" :style="{ color: traitInfo.color }">{{ dayPillarLabel }}</span>
         <span class="dp-sep">·</span>
-        <span class="dp-summary" :style="{ color: traitInfo.color }">{{ dayPillarSummary }}</span>
+        <span class="dp-identity" :style="{ color: traitInfo.color }">{{ dayColumnIdentity }}</span>
       </div>
-      <!-- 日柱长文说明（DAY_COLUMN_SUMMARIES） -->
-      <p class="day-column-text" v-if="dayColumnFullText">{{ dayColumnFullText }}</p>
     </div>
 
     <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
@@ -35,6 +33,12 @@
       </div>
 
       <div class="center-right">
+        <!-- 日柱描述：放在Q版画像上方，艺术字斜体+五行色 -->
+        <p
+          v-if="dayColumnDescription"
+          class="day-column-desc"
+          :style="{ color: traitInfo.color }"
+        >{{ dayColumnDescription }}</p>
         <img
           v-if="avatarUrl"
           :src="avatarUrl"
@@ -99,7 +103,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { getDayMasterTrait, getFullAvatarUrl, DAY_PILLAR_SUMMARIES, DAY_COLUMN_SUMMARIES } from '../data/dayMasterData'
+import { getDayMasterTrait, getFullAvatarUrl, DAY_PILLAR_SUMMARIES, getDayColumnIdentity, getDayColumnDescription } from '../data/dayMasterData'
 
 const props = defineProps({
   name: { type: String, default: '探索者' },
@@ -122,6 +126,12 @@ const traitInfo = computed(() => {
   return getDayMasterTrait(props.dayMaster, props.gender)
 })
 
+// 五行符号
+const elementSymbol = computed(() => {
+  const map = { '木': '🌲', '火': '🔥', '土': '⛰️', '金': '⚔️', '水': '💧' }
+  return map[traitInfo.value.element] || '✨'
+})
+
 // 日柱标签：优先用完整 dayPillar（如"壬辰"）
 const dayPillarLabel = computed(() => {
   if (props.dayPillar) return props.dayPillar
@@ -136,13 +146,20 @@ const dayPillarSummary = computed(() => {
   return ''
 })
 
-// 日柱长文说明：从 DAY_COLUMN_SUMMARIES 取对应天干+性别的完整描述
-const dayColumnFullText = computed(() => {
-  if (props.dayColumnSummary) return props.dayColumnSummary
-  const summaries = DAY_COLUMN_SUMMARIES[props.dayMaster]
-  if (!summaries) return ''
-  const isMale = (props.gender === 'male' || props.gender === '男')
-  return summaries[isMale ? 'male' : 'female'] || ''
+// 日柱身份（六十日柱数据库）
+const dayColumnIdentity = computed(() => {
+  if (props.dayPillar) {
+    return getDayColumnIdentity(props.dayPillar, props.gender)
+  }
+  return ''
+})
+
+// 日柱描述（六十日柱数据库）
+const dayColumnDescription = computed(() => {
+  if (props.dayPillar) {
+    return getDayColumnDescription(props.dayPillar, props.gender)
+  }
+  return ''
 })
 
 const avatarUrl = computed(() => {
@@ -245,23 +262,26 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   font-weight: 600;
 }
 
-.dp-summary {
+.dp-identity {
   font-size: clamp(0.95rem, 4vw, 1.15rem);
   font-weight: 800;
   font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
   letter-spacing: 0.06em;
 }
 
-/* 日柱长文说明（黑体书法风格） */
-.day-column-text {
-  margin: 6px 0 0;
-  font-size: clamp(0.62rem, 2.6vw, 0.75rem);
-  font-weight: 600;
-  font-family: "STHeiti", "SimHei", "STKaiti", "KaiTi", "Noto Serif SC", serif;
-  color: #475569;
+/* 日柱描述：艺术字、斜体、五行色，放在Q版画像上方 */
+.day-column-desc {
+  margin: 0 0 8px;
+  padding: 0 4px;
+  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+  font-weight: 700;
+  font-family: "STXingkai", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  font-style: italic;
   line-height: 1.6;
   text-align: center;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 6px currentColor;
+  opacity: 0.92;
 }
 
 /* ===== 中部 ===== */

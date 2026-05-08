@@ -24,7 +24,6 @@
             :talent-tags="talentTags"
             :talent-summary="profileTalentSummary"
             :keywords="profileKeywords"
-            :day-column-summary="profileDayColumn"
             :trait-description="traitDescription"
             :historical-figures="historicalFigures"
           />
@@ -223,7 +222,7 @@ const profileTalentSummary = computed(() => {
   return ct.replace(/^核心天赋[\s\S]*?\*\*(.+?)\*\*/g, '$1').trim().slice(0, 80) || ''
 })
 
-const profileDayColumn = computed(() => '')
+
 
 // 各卡片内容（Markdown→HTML）
 function mdToHtml(text) {
