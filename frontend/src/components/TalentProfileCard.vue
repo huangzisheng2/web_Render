@@ -1,97 +1,123 @@
 <template>
-  <div class="talent-card" :style="cardStyle">
-    <!-- 水波纹背景装饰 -->
-    <div class="wave-bg" aria-hidden="true">
-      <svg class="wave wave-1" viewBox="0 0 800 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,200 C200,150 350,250 500,200 C650,150 750,220 800,180 L800,400 L0,400 Z" fill="currentColor" opacity="0.06"/>
-      </svg>
-      <svg class="wave wave-2" viewBox="0 0 800 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,250 C150,200 300,300 450,250 C600,200 700,280 800,240 L800,400 L0,400 Z" fill="currentColor" opacity="0.04"/>
-      </svg>
-      <svg class="wave wave-3" viewBox="0 0 800 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,300 C100,270 250,330 400,290 C550,250 680,310 800,280 L800,400 L0,400 Z" fill="currentColor" opacity="0.03"/>
-      </svg>
-    </div>
+  <div class="talent-card">
+    <!-- 淡雅水墨晕染背景 -->
+    <div class="ink-wash-bg" aria-hidden="true"></div>
 
-    <!-- ===== 顶部标题区 ~10% ===== -->
-    <header class="card-header">
-      <h1 class="main-title">
-        <span class="name-text">{{ displayName }}</span>
-        <span class="title-suffix">的潜在天赋档案</span>
-      </h1>
-      <div class="daypillar-row">
-        <span class="daypillar-badge" :style="{ background: elementGradient }">{{ dayPillarLabel }}</span>
-        <span class="daypillar-dot">·</span>
-        <span class="daypillar-summary">{{ dayPillarSummaryText }}</span>
+    <!-- 左侧五行侧边栏 -->
+    <aside class="element-sidebar">
+      <div
+        v-for="el in elementList"
+        :key="el"
+        :class="['sidebar-item', { active: el === currentElement }]"
+      >
+        {{ el }}
       </div>
-    </header>
+    </aside>
 
-    <!-- ===== 中部主视觉区 ~70% ===== -->
-    <div class="card-body">
-      <!-- 左侧 30%：核心天赋标签 -->
-      <div class="body-left">
-        <div
-          v-for="(tag, i) in displayTags"
-          :key="i"
-          class="talent-item"
-        >
-          <span class="talent-icon" :style="{ background: talentColors[i] }">
-            {{ talentEmojis[i] }}
+    <!-- 主内容区 -->
+    <div class="card-main">
+      <!-- ===== 顶部标题区 ===== -->
+      <header class="card-header">
+        <h1 class="main-title">
+          <span class="name-text">{{ displayName }}</span>
+          <span class="title-suffix">的潜在天赋档案</span>
+        </h1>
+        <div class="daypillar-row">
+          <span class="dp-badge" :style="dpBadgeStyle">
+            <span class="dp-icon">{{ elementIcon }}</span>
+            <span class="dp-name">{{ dayPillarLabel }}</span>
           </span>
-          <div class="talent-text">
-            <span class="talent-name">{{ tag }}</span>
-            <p class="talent-desc" v-if="tagDescriptions[i]">{{ tagDescriptions[i] }}</p>
+          <span class="dp-dot">·</span>
+          <span class="dp-summary">{{ dayPillarSummaryText }}</span>
+        </div>
+      </header>
+
+      <!-- ===== 中部主视觉区 ===== -->
+      <div class="card-body">
+        <!-- 左侧：天赋标签 -->
+        <div class="talent-list">
+          <div
+            v-for="(tag, i) in displayTags"
+            :key="i"
+            class="talent-item"
+          >
+            <div class="talent-icon" :style="{ background: talentColors[i] }">
+              <span class="t-icon">{{ talentEmojis[i] }}</span>
+            </div>
+            <div class="talent-info">
+              <div class="talent-name">{{ tag }}</div>
+              <div v-if="tagDescriptions[i]" class="talent-desc">{{ tagDescriptions[i] }}</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 右侧 70%：Q版形象 -->
-      <div class="body-right">
+        <!-- 右侧：Q版人物形象 -->
         <div class="avatar-area">
-          <!-- 光晕背景 -->
-          <div class="avatar-glow" :style="{ background: elementGlowColor }"></div>
-          <img
-            v-if="avatarUrl"
-            :src="avatarUrl"
-            alt="Q版形象"
-            class="avatar-img"
-            @error="avatarError = true"
-          />
-          <div v-else class="avatar-placeholder">
-            <span class="ph-char">{{ dayMaster }}</span>
-            <span class="ph-el">{{ traitInfo.element }}</span>
+          <div class="avatar-ring" :style="{ borderColor: elementAccent + '40' }">
+            <div class="avatar-inner">
+              <img
+                v-if="avatarUrl"
+                :src="avatarUrl"
+                alt="Q版形象"
+                class="avatar-img"
+                @error="avatarError = true"
+              />
+              <div v-else class="avatar-placeholder">
+                <span class="ph-char">{{ dayMaster }}</span>
+                <span class="ph-label">{{ currentElement }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- 右下角水波纹装饰 -->
+          <div class="wave-deco" aria-hidden="true" :style="{ color: elementAccent }">
+            <svg viewBox="0 0 160 80" preserveAspectRatio="none">
+              <path d="M0,40 Q40,10 80,40 T160,40 L160,80 L0,80 Z" fill="currentColor" opacity="0.08"/>
+              <path d="M0,55 Q40,30 80,55 T160,55 L160,80 L0,80 Z" fill="currentColor" opacity="0.05"/>
+            </svg>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ===== 底部总结区 ~20% ===== -->
-    <footer class="card-footer">
-      <!-- 一句话概括 -->
-      <p class="trait-summary">{{ traitDescription || traitInfo.description }}</p>
-
-      <!-- 天赋关键词 -->
-      <div class="keywords-row" v-if="displayKeywords.length">
-        <span
-          v-for="(kw, i) in displayKeywords"
-          :key="i"
-          class="keyword-dot"
-        >{{ kw }}<span v-if="i < displayKeywords.length - 1" class="dot-sep"> · </span></span>
-      </div>
-
-      <!-- 历史人物 -->
-      <div class="history-row" v-if="historicalFigures.length">
-        <div
-          v-for="(figure, i) in historicalFigures"
-          :key="i"
-          class="history-item"
-        >
-          <span class="fig-bullet">•</span>
-          <span class="fig-name">{{ figure.name }}</span>
-          <span class="fig-title">，{{ figure.title }}</span>
+      <!-- ===== 底部总结区 ===== -->
+      <footer class="card-footer">
+        <!-- 金色装饰线 -->
+        <div class="deco-line">
+          <span class="deco-left">◆</span>
+          <span class="deco-dragon">🐉</span>
+          <span class="deco-right">◆</span>
         </div>
-      </div>
-    </footer>
+
+        <!-- 一句话概括 -->
+        <p class="trait-summary">{{ traitDescription || traitInfo.description }}</p>
+
+        <!-- 关键词 + 历史人物 -->
+        <div class="bottom-grid">
+          <div class="keywords-section">
+            <h3 class="section-title">天赋关键词</h3>
+            <div class="keywords-pills">
+              <span
+                v-for="(kw, i) in displayKeywords"
+                :key="i"
+                class="keyword-pill"
+              >{{ kw }}</span>
+            </div>
+          </div>
+          <div class="history-section">
+            <h3 class="section-title">历史人物</h3>
+            <div class="history-list">
+              <div
+                v-for="(figure, i) in historicalFigures"
+                :key="i"
+                class="history-item"
+              >
+                <span class="fig-bullet">•</span>
+                <span class="fig-text">{{ figure.name }}，{{ figure.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   </div>
 </template>
 
@@ -120,19 +146,20 @@ const traitInfo = computed(() => {
   return getDayMasterTrait(props.dayMaster, props.gender)
 })
 
+const currentElement = computed(() => traitInfo.value.element || '水')
+
 const dayPillarLabel = computed(() => {
   if (props.dayPillar) return props.dayPillar
   return props.dayMaster + (traitInfo.value.element || '')
 })
 
-// 日柱概述（如"气势雄浑，龙归大海"）
+// 日柱概述（取前12字）
 const dayPillarSummaryText = computed(() => {
   if (props.dayColumnSummary) return props.dayColumnSummary
   const summaries = DAY_COLUMN_SUMMARIES[props.dayMaster]
   if (!summaries) return ''
   const isMale = (props.gender === 'male' || props.gender === '男')
   const full = summaries[isMale ? 'male' : 'female'] || ''
-  // 取前12字作为概述
   return full.slice(0, 12) + (full.length > 12 ? '…' : '')
 })
 
@@ -149,18 +176,11 @@ const displayKeywords = computed(() => {
   return props.keywords?.length ? props.keywords.slice(0, 5) : []
 })
 
-// 五行对应的 emoji 和颜色
-const talentEmojis = ['🌊', '🔍', '⚖️', '👑', '💜']
+// 固定天赋图标与配色（与参考图一致）
+const talentEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
+const talentColors = ['#4A90D9', '#52B788', '#D4A853', '#E06C75', '#9B8EC2']
 
-const talentColors = [
-  '#3B82F6', // 蓝 - 水/创新
-  '#10B981', // 绿 - 木/洞察
-  '#D4A853', // 金 - 土/调配
-  '#EF4444', // 红 - 火/领导
-  '#8B5CF6'  // 紫 - 共情
-]
-
-// 天赋标签配25字说明
+// 天赋说明（从 talentSummary 切分，每段限25字）
 const tagDescriptions = computed(() => {
   const summary = props.talentSummary || ''
   if (!summary) return []
@@ -168,256 +188,224 @@ const tagDescriptions = computed(() => {
   return parts.slice(0, 5).map(p => p.trim().slice(0, 25))
 })
 
-// ===== 五行主题色系 =====
-const elementThemes = {
-  '水': {
-    bgFrom: '#0A1628',
-    bgTo: '#0C2D4A',
-    bgMid: '#0E2240',
-    accent: '#38BDF8',
-    accentLight: '#7DD3FC',
-    glowColor: 'rgba(56, 189, 248, 0.15)',
-    waveColor: '#38BDF8',
-    goldAccent: '#C9A96E'
-  },
-  '木': {
-    bgFrom: '#071A0E',
-    bgTo: '#0A3320',
-    bgMid: '#0C2818',
-    accent: '#22C55E',
-    accentLight: '#4ADE80',
-    glowColor: 'rgba(34, 197, 94, 0.15)',
-    waveColor: '#22C55E',
-    goldAccent: '#C9A96E'
-  },
-  '火': {
-    bgFrom: '#1A0A0A',
-    bgTo: '#3D1010',
-    bgMid: '#2A0E0E',
-    accent: '#EF4444',
-    accentLight: '#F87171',
-    glowColor: 'rgba(239, 68, 68, 0.15)',
-    waveColor: '#EF4444',
-    goldAccent: '#C9A96E'
-  },
-  '土': {
-    bgFrom: '#1A1508',
-    bgTo: '#33280E',
-    bgMid: '#2A200C',
-    accent: '#D97706',
-    accentLight: '#F59E0B',
-    glowColor: 'rgba(217, 119, 6, 0.15)',
-    waveColor: '#D97706',
-    goldAccent: '#C9A96E'
-  },
-  '金': {
-    bgFrom: '#111318',
-    bgTo: '#1E2430',
-    bgMid: '#181C26',
-    accent: '#94A3B8',
-    accentLight: '#CBD5E1',
-    glowColor: 'rgba(148, 163, 184, 0.15)',
-    waveColor: '#94A3B8',
-    goldAccent: '#C9A96E'
-  }
+// ===== 五行主题配置 =====
+const elementList = ['金', '木', '水', '火', '土']
+
+const elementMeta = {
+  '水': { accent: '#4A90D9', bgLight: '#EFF6FF', icon: '💧' },
+  '木': { accent: '#52B788', bgLight: '#F0FDF4', icon: '🌿' },
+  '火': { accent: '#E06C75', bgLight: '#FEF2F2', icon: '🔥' },
+  '土': { accent: '#D4A853', bgLight: '#FFFBEB', icon: '⛰️' },
+  '金': { accent: '#9CA3AF', bgLight: '#F3F4F6', icon: '⚜️' }
 }
 
-const currentTheme = computed(() => {
-  return elementThemes[traitInfo.value.element] || elementThemes['水']
-})
+const currentMeta = computed(() => elementMeta[currentElement.value] || elementMeta['水'])
 
-const elementGradient = computed(() => {
-  return `linear-gradient(135deg, ${currentTheme.value.accent}, ${currentTheme.value.accentLight})`
-})
+const elementAccent = computed(() => currentMeta.value.accent)
+const elementBgLight = computed(() => currentMeta.value.bgLight)
+const elementIcon = computed(() => currentMeta.value.icon)
 
-const elementGlowColor = computed(() => {
-  return currentTheme.value.glowColor
-})
-
-const cardStyle = computed(() => {
-  const t = currentTheme.value
-  return {
-    '--bg-from': t.bgFrom,
-    '--bg-to': t.bgTo,
-    '--bg-mid': t.bgMid,
-    '--accent': t.accent,
-    '--accent-light': t.accentLight,
-    '--glow': t.glowColor,
-    '--wave-color': t.waveColor,
-    '--gold': t.goldAccent
-  }
-})
+const dpBadgeStyle = computed(() => ({
+  background: elementBgLight.value,
+  color: elementAccent.value
+}))
 </script>
 
 <style scoped>
-/* ===== 整体卡片：深色五行渐变 ===== */
+/* ===== 整体卡片 ===== */
 .talent-card {
   width: 100%;
   aspect-ratio: 3 / 4;
   border-radius: 16px;
-  background: linear-gradient(165deg, var(--bg-from) 0%, var(--bg-mid) 50%, var(--bg-to) 100%);
+  background: #F8F5EE;
   overflow: hidden;
   display: flex;
-  flex-direction: column;
   position: relative;
-  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "STSong", serif;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  color: #E8E4DF;
+  font-family: "PingFang SC", "Microsoft YaHei", "STSong", "Noto Serif SC", serif;
+  box-shadow: 0 8px 32px rgba(44, 36, 22, 0.08);
+  color: #2C2416;
 }
 
-/* ===== 水波纹背景 ===== */
-.wave-bg {
+/* 淡雅水墨晕染背景 */
+.ink-wash-bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  overflow: hidden;
   z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 20%, rgba(74, 144, 217, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 80%, rgba(212, 169, 83, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(44, 36, 22, 0.015) 0%, transparent 70%);
 }
 
-.wave {
-  position: absolute;
-  width: 200%;
-  height: 100%;
-  color: var(--wave-color);
-}
-
-.wave-1 {
-  bottom: 30%;
-  left: -10%;
-  animation: waveDrift 12s ease-in-out infinite;
-}
-
-.wave-2 {
-  bottom: 20%;
-  left: -30%;
-  animation: waveDrift 16s ease-in-out infinite reverse;
-}
-
-.wave-3 {
-  bottom: 10%;
-  left: -20%;
-  animation: waveDrift 20s ease-in-out infinite;
-}
-
-@keyframes waveDrift {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(5%); }
-}
-
-/* ===== 顶部标题区 ~10% ===== */
-.card-header {
+/* ===== 左侧五行侧边栏 ===== */
+.element-sidebar {
+  width: 32px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 0;
+  border-right: 1px solid rgba(44, 36, 22, 0.06);
   position: relative;
   z-index: 1;
-  padding: clamp(14px, 4vw, 22px) clamp(16px, 5vw, 28px) clamp(8px, 2.5vw, 14px);
+}
+
+.sidebar-item {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: 12px;
+  font-weight: 700;
+  color: #C4BDB0;
+  padding: 8px 2px;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+  letter-spacing: 0.06em;
+  cursor: default;
+}
+
+.sidebar-item.active {
+  background: v-bind(elementAccent);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== 主内容区 ===== */
+.card-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 12px;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== 顶部标题区 ===== */
+.card-header {
   text-align: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 
 .main-title {
   margin: 0 0 6px;
-  font-size: clamp(1.2rem, 5.5vw, 1.65rem);
+  font-size: clamp(1.2rem, 5vw, 1.7rem);
   font-weight: 900;
-  color: #FFFFFF;
-  letter-spacing: 0.06em;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  line-height: 1.3;
+  color: #2C2416;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
 }
 
 .name-text {
-  color: var(--gold);
+  color: #2C2416;
 }
 
 .title-suffix {
-  color: rgba(255, 255, 255, 0.92);
+  color: #5A5040;
 }
 
 .daypillar-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
-.daypillar-badge {
-  display: inline-block;
-  font-size: clamp(0.7rem, 3vw, 0.85rem);
+.dp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: clamp(0.7rem, 2.8vw, 0.85rem);
   font-weight: 800;
-  color: #FFFFFF;
-  padding: 2px 12px;
-  border-radius: 12px;
-  letter-spacing: 0.08em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.daypillar-dot {
-  color: var(--gold);
-  font-size: clamp(0.8rem, 3vw, 1rem);
-  font-weight: 700;
+.dp-icon {
+  font-size: 13px;
+  line-height: 1;
 }
 
-.daypillar-summary {
-  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
-  color: rgba(255, 255, 255, 0.65);
-  font-style: italic;
+.dp-name {
   letter-spacing: 0.04em;
 }
 
-/* ===== 中部主视觉区 ~70% ===== */
+.dp-dot {
+  color: #C9A96E;
+  font-weight: 700;
+  font-size: clamp(0.75rem, 3vw, 0.9rem);
+}
+
+.dp-summary {
+  font-size: clamp(0.62rem, 2.5vw, 0.78rem);
+  color: #8A8070;
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+
+/* ===== 中部主视觉区 ===== */
 .card-body {
   flex: 1;
   display: flex;
-  position: relative;
-  z-index: 1;
-  padding: 0 clamp(14px, 4vw, 24px) clamp(8px, 2.5vw, 14px);
-  gap: clamp(10px, 3vw, 18px);
+  gap: 12px;
   min-height: 0;
+  margin-bottom: 10px;
 }
 
-/* ===== 左侧天赋标签 ~30% ===== */
-.body-left {
-  flex: 0 0 32%;
+/* 左侧天赋标签 */
+.talent-list {
+  flex: 0 0 36%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(7px, 2vw, 11px);
+  gap: clamp(6px, 1.8vw, 10px);
+  min-width: 0;
 }
 
 .talent-item {
   display: flex;
   align-items: flex-start;
-  gap: clamp(7px, 2vw, 10px);
+  gap: 8px;
 }
 
 .talent-icon {
-  width: clamp(28px, 8vw, 36px);
-  height: clamp(28px, 8vw, 36px);
+  width: clamp(28px, 7.5vw, 36px);
+  height: clamp(28px, 7.5vw, 36px);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(0.8rem, 3vw, 1rem);
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.talent-text {
+.t-icon {
+  font-size: clamp(13px, 3.2vw, 16px);
+  line-height: 1;
+  filter: grayscale(0.2) brightness(1.1);
+}
+
+.talent-info {
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 1px;
 }
 
 .talent-name {
-  display: block;
-  font-size: clamp(0.75rem, 3.2vw, 0.92rem);
+  font-size: clamp(0.72rem, 3vw, 0.88rem);
   font-weight: 800;
-  color: #FFFFFF;
-  letter-spacing: 0.03em;
+  color: #2C2416;
+  letter-spacing: 0.02em;
   line-height: 1.2;
 }
 
 .talent-desc {
   margin: 2px 0 0;
-  font-size: clamp(0.52rem, 2.2vw, 0.64rem);
-  color: rgba(255, 255, 255, 0.55);
+  font-size: clamp(0.52rem, 2.1vw, 0.65rem);
+  color: #8A8070;
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -425,155 +413,194 @@ const cardStyle = computed(() => {
   overflow: hidden;
 }
 
-/* ===== 右侧Q版形象 ~70% ===== */
-.body-right {
+/* 右侧人物形象 */
+.avatar-area {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  min-width: 0;
 }
 
-.avatar-area {
+.avatar-ring {
+  width: clamp(150px, 42vw, 260px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid;
+  padding: 5px;
   position: relative;
+  z-index: 1;
+}
+
+.avatar-inner {
   width: 100%;
-  max-width: clamp(180px, 45vw, 280px);
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #F5F0E6 0%, #EBE4D6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* 光晕 */
-.avatar-glow {
-  position: absolute;
-  width: 120%;
-  height: 120%;
-  border-radius: 50%;
-  filter: blur(30px);
-  z-index: 0;
 }
 
 .avatar-img {
-  position: relative;
-  z-index: 1;
   width: 100%;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
 }
 
 .avatar-placeholder {
-  position: relative;
-  z-index: 1;
-  width: 70%;
-  aspect-ratio: 3 / 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  gap: 4px;
 }
 
 .ph-char {
-  font-size: clamp(28px, 8vw, 44px);
+  font-size: clamp(32px, 9vw, 48px);
   font-weight: 900;
-  color: var(--accent-light);
+  color: #C4BDB0;
 }
 
-.ph-el {
-  font-size: clamp(12px, 3.5vw, 16px);
+.ph-label {
+  font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.6);
+  color: #B0A898;
 }
 
-/* ===== 底部总结区 ~20% ===== */
+/* 右下角水波纹装饰 */
+.wave-deco {
+  position: absolute;
+  right: -6%;
+  bottom: -4%;
+  width: 55%;
+  height: 35%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wave-deco svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== 底部总结区 ===== */
 .card-footer {
-  position: relative;
-  z-index: 1;
-  padding: clamp(10px, 3vw, 16px) clamp(16px, 5vw, 28px) clamp(12px, 3.5vw, 18px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.15) 100%);
+  flex-shrink: 0;
+  border-top: 1px solid #E8E0D0;
+  padding-top: 10px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: clamp(6px, 2vw, 10px);
+  gap: 8px;
 }
 
+/* 金色装饰线 */
+.deco-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.deco-left,
+.deco-right {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9A96E 30%, #C9A96E 70%, transparent);
+  font-size: 0;
+}
+
+.deco-dragon {
+  font-size: 14px;
+  color: #C9A96E;
+  flex-shrink: 0;
+}
+
+/* 一句话概括 */
 .trait-summary {
   margin: 0;
-  font-size: clamp(0.82rem, 3.6vw, 1rem);
+  font-size: clamp(0.8rem, 3.4vw, 1rem);
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: #C9A96E;
   text-align: center;
   line-height: 1.5;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   letter-spacing: 0.04em;
 }
 
-/* 关键词行 */
-.keywords-row {
+/* 关键词 + 历史人物 */
+.bottom-grid {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0;
+  gap: 12px;
 }
 
-.keyword-dot {
-  font-size: clamp(0.65rem, 2.8vw, 0.8rem);
+.keywords-section,
+.history-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.section-title {
+  margin: 0 0 6px;
+  font-size: clamp(0.6rem, 2.4vw, 0.72rem);
+  font-weight: 800;
+  color: #5A5040;
+  letter-spacing: 0.04em;
+}
+
+.keywords-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.keyword-pill {
+  font-size: clamp(0.55rem, 2.2vw, 0.7rem);
   font-weight: 700;
-  color: var(--gold);
-  letter-spacing: 0.05em;
+  color: #C9A96E;
+  background: #F0E8D8;
+  padding: 3px 9px;
+  border-radius: 10px;
+  border: 1px solid #E8DCC8;
   white-space: nowrap;
 }
 
-.dot-sep {
-  color: rgba(255, 255, 255, 0.3);
-  margin: 0 2px;
-}
-
-/* 历史人物两列 */
-.history-row {
+.history-list {
   display: flex;
-  gap: clamp(12px, 4vw, 24px);
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .history-item {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-size: clamp(0.58rem, 2.4vw, 0.7rem);
-  color: rgba(255, 255, 255, 0.45);
-  white-space: nowrap;
+  font-size: clamp(0.55rem, 2.2vw, 0.7rem);
+  color: #6A6050;
+  line-height: 1.4;
 }
 
 .fig-bullet {
-  color: var(--gold);
-  font-size: 0.7em;
-  opacity: 0.7;
+  color: #C9A96E;
+  font-size: 1.1em;
+  line-height: 1;
 }
 
-.fig-name {
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 700;
-}
-
-.fig-title {
-  color: rgba(255, 255, 255, 0.4);
+.fig-text {
+  letter-spacing: 0.02em;
 }
 
 /* ===== 响应式 ===== */
 @media (max-width: 480px) {
+  .card-main {
+    padding: 10px 12px 10px;
+  }
   .card-body {
     flex-direction: column-reverse;
     gap: 8px;
-    padding: 6px 12px 10px;
   }
-  .body-left {
+  .talent-list {
     flex: none;
     flex-direction: row;
     flex-wrap: wrap;
@@ -582,27 +609,47 @@ const cardStyle = computed(() => {
   .talent-item {
     flex: 0 0 48%;
   }
-  .body-right {
-    flex: none;
+  .avatar-ring {
+    width: 140px;
   }
-  .avatar-area {
-    max-width: 160px;
-  }
-  .history-row {
+  .bottom-grid {
     flex-direction: column;
-    gap: 4px;
-    align-items: center;
+    gap: 8px;
   }
 }
 
 @media (min-width: 768px) {
-  .card-header { padding: 22px 28px 14px; }
-  .main-title { font-size: 1.7rem; }
-  .talent-icon { width: 40px; height: 40px; font-size: 1.1rem; }
-  .talent-name { font-size: 0.95rem; }
-  .talent-desc { font-size: 0.68rem; }
-  .avatar-area { max-width: 300px; }
-  .trait-summary { font-size: 1.05rem; }
-  .keyword-dot { font-size: 0.82rem; }
+  .card-main {
+    padding: 18px 24px 14px;
+  }
+  .main-title {
+    font-size: 1.85rem;
+  }
+  .talent-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .t-icon {
+    font-size: 18px;
+  }
+  .talent-name {
+    font-size: 0.95rem;
+  }
+  .talent-desc {
+    font-size: 0.72rem;
+  }
+  .avatar-ring {
+    width: 280px;
+  }
+  .trait-summary {
+    font-size: 1.05rem;
+  }
+  .keyword-pill {
+    font-size: 0.78rem;
+    padding: 4px 12px;
+  }
+  .history-item {
+    font-size: 0.78rem;
+  }
 }
 </style>
