@@ -1,23 +1,23 @@
 <template>
   <div class="talent-card">
 
-    <!-- ===== 顶部：主标题 + 日柱行 ===== -->
+    <!-- ===== 顶部：主标题 + 日柱行（含概述） ===== -->
     <div class="card-top">
       <div class="title-row">
         <span class="top-name">{{ displayName }}</span>
         <span class="top-title">的潜在天赋档案</span>
       </div>
-      <!-- 日柱信息行：大字号高亮色 + 概述 -->
+      <!-- 日柱行：五行图标 + 日柱(高亮) + · + 日柱概述(高亮) -->
       <div class="daypillar-line">
+        <span class="dp-element-icon">{{ traitInfo.elementSymbol }}</span>
         <span class="dp-label" :style="{ color: traitInfo.color }">{{ dayPillarLabel }}</span>
         <span class="dp-sep">·</span>
-        <span class="dp-desc">{{ dayColumnText }}</span>
+        <span class="dp-summary" :style="{ color: traitInfo.color }">{{ dayPillarSummary }}</span>
       </div>
     </div>
 
-    <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%，放大20%) ===== -->
+    <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
     <div class="card-center">
-      <!-- 左侧 40%（原30%+10%） -->
       <div class="center-left">
         <div
           v-for="(tag, i) in displayTags"
@@ -29,11 +29,10 @@
             <span class="tag-emoji">{{ tagEmojis[i] }}</span>
             <span class="tag-label">{{ tag }}</span>
           </div>
-          <span class="tag-desc">{{ tagDescriptions[i] }}</span>
+          <span class="tag-desc" v-if="tagDescriptions[i]">{{ tagDescriptions[i] }}</span>
         </div>
       </div>
 
-      <!-- 右侧 60%，图片放大20%，居中偏下 -->
       <div class="center-right">
         <img
           v-if="avatarUrl"
@@ -53,34 +52,57 @@
       </div>
     </div>
 
-    <!-- ===== 底部：概括语 + 关键词 · 分隔 + 历史人物两列 ===== -->
+    <!-- ===== 五行图标行 ===== -->
+    <div class="five-element-row">
+      <div
+        v-for="el in elementList"
+        :key="el.name"
+        class="element-icon-wrap"
+        :class="{ active: el.name === traitInfo.element }"
+        :style="el.name === traitInfo.element ? { color: el.color, borderColor: el.color, background: el.color + '12' } : {}"
+      >
+        <span class="el-symbol">{{ el.symbol }}</span>
+        <span class="el-name">{{ el.name }}</span>
+      </div>
+    </div>
+
+    <!-- ===== 底部：概括语 + 双列布局 ===== -->
     <div
       class="card-bottom"
       :style="{ borderTopColor: traitInfo.color + '15' }"
     >
-      <!-- 一句话概括：大字号书法体，阴影 -->
+      <!-- 一句话概括 -->
       <p class="trait-text" :style="{ textShadow: `0 2px 8px ${traitInfo.color}20` }">
         {{ traitDescription || traitInfo.description }}
       </p>
 
-      <!-- 天赋关键词：中等字号，" · " 分隔，一字排开居中 -->
-      <div class="keyword-line" v-if="displayKeywords.length">
-        <span
-          v-for="(kw, i) in displayKeywords"
-          :key="i"
-          class="kw-item"
-        >{{ kw }}<span v-if="i < displayKeywords.length - 1" class="kw-sep"> · </span></span>
-      </div>
+      <!-- 双列布局：天赋关键词 | 历史人物 -->
+      <div class="bottom-columns" v-if="displayKeywords.length || historicalFigures.length">
+        <!-- 左列：天赋关键词 -->
+        <div class="bottom-col left-col" v-if="displayKeywords.length">
+          <div class="col-title">天赋关键词</div>
+          <div class="keyword-pills">
+            <span
+              v-for="(kw, i) in displayKeywords"
+              :key="i"
+              class="kw-pill"
+            >{{ kw }}</span>
+          </div>
+        </div>
 
-      <!-- 历史人物：两列并排居中，小字号低不透明度 -->
-      <div class="history-row" v-if="historicalFigures.length">
-        <div
-          v-for="(figure, i) in historicalFigures"
-          :key="i"
-          class="history-figure"
-        >
-          <span class="fig-bullet" :style="{ color: traitInfo.color }">·</span>
-          <span class="fig-text">{{ figure.name }}，{{ figure.title }}</span>
+        <!-- 右列：历史人物 -->
+        <div class="bottom-col right-col" v-if="displayHistoricalFigures.length">
+          <div class="col-title">历史人物</div>
+          <div class="history-list">
+            <div
+              v-for="(figure, i) in displayHistoricalFigures"
+              :key="i"
+              class="history-figure"
+            >
+              <span class="fig-bullet" :style="{ color: traitInfo.color }">·</span>
+              <span class="fig-text">{{ figure.name }}，{{ figure.title }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -90,7 +112,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { getDayMasterTrait, getFullAvatarUrl, getDayColumnSummary } from '../data/dayMasterData'
+import { getDayMasterTrait, getFullAvatarUrl, DAY_PILLAR_SUMMARIES, ELEMENT_COLORS } from '../data/dayMasterData'
 
 const props = defineProps({
   name: { type: String, default: '探索者' },
@@ -113,15 +135,19 @@ const traitInfo = computed(() => {
   return getDayMasterTrait(props.dayMaster, props.gender)
 })
 
-// 日柱标签：优先用完整 dayPillar（如"壬辰"），否则用 dayMaster + element
+// 日柱标签：优先用完整 dayPillar（如"壬辰"）
 const dayPillarLabel = computed(() => {
   if (props.dayPillar) return props.dayPillar
   return props.dayMaster + (traitInfo.value.element || '')
 })
 
-// 日柱概述（来自 DAY_COLUMN_SUMMARIES 或 prop）
-const dayColumnText = computed(() => {
-  return props.dayColumnSummary || getDayColumnSummary(props.dayMaster, props.gender) || ''
+// 日柱概述：从 DAY_PILLAR_SUMMARIES 取精简短句
+const dayPillarSummary = computed(() => {
+  if (props.dayPillar && DAY_PILLAR_SUMMARIES[props.dayPillar]) {
+    return DAY_PILLAR_SUMMARIES[props.dayPillar]
+  }
+  // 回退：用日柱名拼接尝试
+  return ''
 })
 
 const avatarUrl = computed(() => {
@@ -139,18 +165,79 @@ const displayKeywords = computed(() => {
   return props.keywords?.length ? props.keywords.slice(0, 5) : []
 })
 
-// 固定天赋图标（参考图风格）
+// 历史人物（最多2个）
+const displayHistoricalFigures = computed(() => {
+  return props.historicalFigures?.slice(0, 2) || []
+})
+
+// 固定天赋图标
 const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 
-// 天赋标签描述：从 talentSummary 按标点切分，每段限15字，不足5个用''填充
+// 五行列表（用于图标行）
+const elementList = computed(() => [
+  { name: '金', symbol: '⚔️', color: ELEMENT_COLORS['金'] },
+  { name: '木', symbol: '🌲', color: ELEMENT_COLORS['木'] },
+  { name: '水', symbol: '💧', color: ELEMENT_COLORS['水'] },
+  { name: '火', symbol: '🔥', color: ELEMENT_COLORS['火'] },
+  { name: '土', symbol: '⛰️', color: ELEMENT_COLORS['土'] }
+])
+
+/**
+ * 天赋标签描述：
+ * 对每个 displayTags[i]，在 talentSummary 中按标签名匹配对应段落，
+ * 取该段落中标签名后（即"标签名："之后）的前15个字，超出用…省略。
+ */
 const tagDescriptions = computed(() => {
   const summary = props.talentSummary || ''
-  if (!summary) return ['', '', '', '', '']
-  const parts = summary.split(/[。！？]/).filter(s => s.trim())
-  const sliced = parts.slice(0, 5).map(p => p.trim().slice(0, 15))
-  // 补足到5个
-  while (sliced.length < 5) sliced.push('')
-  return sliced
+  const tags = props.talentTags?.slice(0, 5) || []
+  const result = []
+
+  for (let i = 0; i < 5; i++) {
+    const tag = tags[i]
+    if (!tag || !summary) { result.push(''); continue }
+
+    let startIdx = -1
+    const candidates = [
+      `**${tag}**：`, `${tag}：`, `**${tag}**:`, `${tag}:`
+    ]
+    for (const pat of candidates) {
+      startIdx = summary.indexOf(pat)
+      if (startIdx !== -1) break
+    }
+    if (startIdx === -1) { result.push(''); continue }
+
+    const colonIdx = summary.indexOf('：', startIdx)
+    const colonIdx2 = summary.indexOf(':', startIdx)
+    const realColonIdx = (colonIdx !== -1 && (colonIdx2 === -1 || colonIdx < colonIdx2)) ? colonIdx : colonIdx2
+    if (realColonIdx === -1 || realColonIdx >= summary.length - 1) { result.push(''); continue }
+
+    const contentStart = realColonIdx + 1
+
+    let endIdx = summary.length
+    for (let j = 0; j < 5; j++) {
+      if (j === i) continue
+      const nextTag = tags[j]
+      if (!nextTag) continue
+      const nextCandidates = [
+        `**${nextTag}**：`, `**${nextTag}**:`,
+        `${nextTag}：`, `${nextTag}:`
+      ]
+      for (const np of nextCandidates) {
+        const idx = summary.indexOf(np, startIdx + 1)
+        if (idx !== -1 && idx < endIdx) endIdx = idx
+      }
+    }
+
+    const text = summary.substring(contentStart, endIdx).trim()
+    if (text) {
+      result.push(text.slice(0, 15) + (text.length > 15 ? '…' : ''))
+    } else {
+      result.push('')
+    }
+  }
+
+  while (result.length < 5) result.push('')
+  return result
 })
 </script>
 
@@ -194,13 +281,18 @@ const tagDescriptions = computed(() => {
   margin-left: 2px;
 }
 
-/* 日柱信息行 */
+/* 日柱信息行：五行图标 + 日柱 + · + 概述 */
 .daypillar-line {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.dp-element-icon {
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  flex-shrink: 0;
 }
 
 .dp-label {
@@ -216,12 +308,11 @@ const tagDescriptions = computed(() => {
   font-weight: 600;
 }
 
-.dp-desc {
-  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+.dp-summary {
+  font-size: clamp(0.85rem, 3.6vw, 1rem);
+  font-weight: 700;
   font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
-  color: #6B7280;
-  letter-spacing: 0.03em;
-  font-style: italic;
+  letter-spacing: 0.04em;
 }
 
 /* ===== 中部 ===== */
@@ -233,7 +324,7 @@ const tagDescriptions = computed(() => {
   min-height: 0;
 }
 
-/* 左侧 • 天赋标签 40%（原30% + 10%） */
+/* 左侧 · 天赋标签 40% */
 .center-left {
   flex: 0 0 40%;
   display: flex;
@@ -282,7 +373,7 @@ const tagDescriptions = computed(() => {
   white-space: nowrap;
 }
 
-/* 右侧 • Q版形象 60%，放大20%，居中偏下 */
+/* 右侧 · Q版形象 60% */
 .center-right {
   flex: 0 0 60%;
   display: flex;
@@ -292,7 +383,7 @@ const tagDescriptions = computed(() => {
 
 .avatar-img {
   width: 100%;
-  max-width: 288px;  /* 原240px * 1.2 = 288px，放大20% */
+  max-width: 288px;
   height: auto;
   object-fit: contain;
   object-position: center bottom;
@@ -314,6 +405,43 @@ const tagDescriptions = computed(() => {
 .placeholder-char { font-size: 48px; font-weight: 800; }
 .placeholder-el { font-size: 16px; font-weight: 600; opacity: 0.7; }
 
+/* ===== 五行图标行 ===== */
+.five-element-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 18px 6px;
+}
+
+.element-icon-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1.5px solid #E2E8F0;
+  color: #CBD5E1;
+  transition: all 0.3s ease;
+}
+
+.element-icon-wrap.active {
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.el-symbol {
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  line-height: 1;
+}
+
+.el-name {
+  font-size: clamp(0.5rem, 2.2vw, 0.65rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-family: "STKaiti", "KaiTi", serif;
+}
+
 /* ===== 底部 ===== */
 .card-bottom {
   padding: 12px 16px;
@@ -321,11 +449,11 @@ const tagDescriptions = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* 一句话概括：大字号，书法体，阴影 */
+/* 一句话概括 */
 .trait-text {
   margin: 0;
   font-size: clamp(0.85rem, 3.8vw, 1.05rem);
@@ -337,34 +465,50 @@ const tagDescriptions = computed(() => {
   letter-spacing: 0.04em;
 }
 
-/* 天赋关键词：中等字号，" · " 分隔一字排开居中 */
-.keyword-line {
+/* 双列布局 */
+.bottom-columns {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0;
-}
-
-.kw-item {
-  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
-  font-weight: 600;
-  color: #475569;
-  white-space: nowrap;
-}
-
-.kw-sep {
-  color: #C9A96E;
-  font-weight: 700;
-  margin: 0 2px;
-}
-
-/* 历史人物：两列并排居中，小字号低不透明度 */
-.history-row {
-  display: flex;
+  width: 100%;
   gap: 16px;
-  justify-content: center;
+}
+
+.bottom-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.col-title {
+  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+  font-weight: 700;
+  color: #1E293B;
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+
+/* 左列：天赋关键词 pill 按钮 */
+.keyword-pills {
+  display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kw-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #F5ECD7;
+  color: #5C4A1E;
+  font-size: clamp(0.55rem, 2.4vw, 0.7rem);
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* 右列：历史人物 */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .history-figure {
@@ -373,8 +517,7 @@ const tagDescriptions = computed(() => {
   gap: 4px;
   font-size: clamp(0.55rem, 2.4vw, 0.7rem);
   color: #94A3B8;
-  opacity: 0.8;
-  white-space: nowrap;
+  opacity: 0.85;
   line-height: 1.4;
 }
 
@@ -382,6 +525,7 @@ const tagDescriptions = computed(() => {
   font-weight: 700;
   font-size: 1.1em;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .fig-text {
@@ -395,8 +539,10 @@ const tagDescriptions = computed(() => {
   .center-left { flex: 0 0 42%; }
   .center-right { flex: 0 0 58%; }
   .avatar-img { max-width: 220px; }
-  .card-bottom { padding: 10px 12px; gap: 6px; }
-  .history-row { gap: 10px; }
+  .five-element-row { gap: 8px; padding: 6px 12px 4px; }
+  .element-icon-wrap { padding: 4px 7px; }
+  .card-bottom { padding: 10px 12px; gap: 8px; }
+  .bottom-columns { gap: 10px; }
 }
 
 @media (min-width: 1024px) {
@@ -406,6 +552,9 @@ const tagDescriptions = computed(() => {
   .center-right { flex: 0 0 62%; }
   .talent-tag-item { padding: 8px 14px; border-radius: 12px; }
   .avatar-img { max-width: 320px; }
-  .card-bottom { padding: 14px 20px 16px; gap: 10px; }
+  .five-element-row { gap: 16px; padding: 10px 24px 8px; }
+  .element-icon-wrap { padding: 8px 14px; border-radius: 12px; }
+  .card-bottom { padding: 14px 20px 16px; gap: 12px; }
+  .bottom-columns { gap: 20px; }
 }
 </style>
