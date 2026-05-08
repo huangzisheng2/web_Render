@@ -1,7 +1,7 @@
 <template>
   <div class="talent-card">
 
-    <!-- ===== 顶部 20%：标题 + 日柱·身份 + 日柱概述 + 日柱描述 ===== -->
+    <!-- ===== 顶部 20%：标题 + 日柱·身份 + 日柱描述 ===== -->
     <div class="card-top">
       <div class="title-row">
         <span class="top-name">{{ displayName }}</span>
@@ -18,9 +18,8 @@
       <p class="day-column-text" v-if="dayColumnDescription">{{ dayColumnDescription }}</p>
     </div>
 
-    <!-- ===== 中部：日柱概述 + 左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
+    <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
     <div class="card-center">
-      <p class="daypillar-summary-text" v-if="dayPillarSummary">{{ dayPillarSummary }}</p>
       <div class="center-left">
         <div
           v-for="(tag, i) in displayTags"
@@ -36,6 +35,12 @@
       </div>
 
       <div class="center-right">
+        <!-- 日柱概述（DAY_PILLAR_SUMMARIES）：艺术字斜体+五行色 -->
+        <p
+          v-if="dayPillarSummary"
+          class="daypillar-summary-art"
+          :style="{ color: traitInfo.color }"
+        >{{ dayPillarSummary }}</p>
         <img
           v-if="avatarUrl"
           :src="avatarUrl"
@@ -68,7 +73,7 @@
       <div class="bottom-columns" v-if="displayKeywords.length || displayHistoricalFigures.length">
         <!-- 左列：天赋关键词 -->
         <div class="bottom-col left-col" v-if="displayKeywords.length">
-          <div class="col-title"><span class="col-icon">💎</span>天赋关键词</div>
+          <div class="col-title">天赋关键词</div>
           <div class="keyword-pills">
             <span
               v-for="(kw, i) in displayKeywords"
@@ -80,7 +85,7 @@
 
         <!-- 右列：历史人物画像 -->
         <div class="bottom-col right-col" v-if="displayHistoricalFigures.length">
-          <div class="col-title"><span class="col-icon">📜</span>历史人物画像</div>
+          <div class="col-title">历史人物画像</div>
           <div class="history-list">
             <div
               v-for="(figure, i) in displayHistoricalFigures"
@@ -266,28 +271,11 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   letter-spacing: 0.06em;
 }
 
-/* 日柱概述：和日柱描述同字体，放在日柱·身份下方 */
-/* 日柱概述：居于画面中间，字体大小、类型跟日柱保持一致 */
-.daypillar-summary-text {
-  margin: 0;
-  padding: 0 8px;
-  font-size: clamp(0.95rem, 4vw, 1.15rem);
-  font-weight: 800;
-  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
-  color: #475569;
-  line-height: 1.6;
-  text-align: center;
-  letter-spacing: 0.06em;
-  text-shadow: none;
-  flex: 0 0 100%;
-  box-sizing: border-box;
-}
-
 /* 日柱描述：恢复原来格式（黑体书法风格），居中偏左对齐 */
 .day-column-text {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   padding: 0 8px;
-  font-size: clamp(0.75rem, 3vw, 0.9rem);
+  font-size: clamp(0.62rem, 2.6vw, 0.75rem);
   font-weight: 600;
   font-family: "STHeiti", "SimHei", "STKaiti", "KaiTi", "Noto Serif SC", serif;
   color: #475569;
@@ -296,19 +284,33 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   letter-spacing: 0.02em;
 }
 
+/* 日柱概述（DAY_PILLAR_SUMMARIES）：艺术字斜体+五行色，放在Q版画像上方 */
+.daypillar-summary-art {
+  margin: 0 0 8px;
+  padding: 0 4px;
+  font-size: clamp(0.7rem, 3vw, 0.85rem);
+  font-weight: 700;
+  font-family: "STXingkai", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  font-style: italic;
+  line-height: 1.5;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 6px currentColor;
+  opacity: 0.9;
+}
+
 /* ===== 中部 ===== */
 .card-center {
   flex: 1;
   display: flex;
-  flex-wrap: wrap;
   padding: 12px 14px 10px;
   gap: 10px;
   min-height: 0;
 }
 
-/* 左侧 · 天赋标签 60% */
+/* 左侧 · 天赋标签 40% */
 .center-left {
-  flex: 0 0 60%;
+  flex: 0 0 40%;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -342,20 +344,20 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   white-space: nowrap;
 }
 
-/* 右侧 · Q版形象 30% (中间70%区域) */
+/* 右侧 · Q版形象 60% */
 .center-right {
-  flex: 0 0 30%;
+  flex: 0 0 60%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
 }
 
 .avatar-img {
   width: 100%;
-  max-width: 160px;
+  max-width: 288px;
   height: auto;
   object-fit: contain;
-  object-position: center center;
+  object-position: center bottom;
   display: block;
 }
 
@@ -410,35 +412,27 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 }
 
 .col-title {
-  font-size: clamp(0.75rem, 3.2vw, 0.9rem);
+  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
   font-weight: 700;
   color: #1E293B;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   letter-spacing: 0.03em;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.col-icon {
-  font-size: 1.1em;
-  line-height: 1;
 }
 
 /* 左列：天赋关键词 pill 按钮 */
 .keyword-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .kw-pill {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
   background: #F5ECD7;
   color: #5C4A1E;
-  font-size: clamp(0.7rem, 3vw, 0.85rem);
+  font-size: clamp(0.55rem, 2.4vw, 0.7rem);
   font-weight: 600;
   white-space: nowrap;
   letter-spacing: 0.02em;
@@ -448,16 +442,16 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .history-figure {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-size: clamp(0.7rem, 3vw, 0.85rem);
+  font-size: clamp(0.55rem, 2.4vw, 0.7rem);
   color: #1E293B;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .fig-bullet {
