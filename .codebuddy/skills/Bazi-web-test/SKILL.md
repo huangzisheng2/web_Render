@@ -391,6 +391,42 @@ document.body.scrollTop = 0;
 - `references/component-library.md` - 组件库文档
 - `assets/frontend-template/` - 前端项目模板
 
+## 多导航栏AI提示词开发规则
+
+当导航栏新增的功能需发送不同AI提示词，并依据返回文字填充相应卡片时，必须满足以下两个核心要求：
+
+### 规则1：共用同一套 raw data
+
+- 所有导航栏的AI分析必须使用**同一份用户输入信息**（姓名、性别、出生时间、出生地点、八字计算结果、命理分析数据等）
+- 仅区分发送给AI的**提示词内容**，数据源必须一致
+- 实现方式：各导航栏的AI调用函数从同一个 `props.result`（或等价数据源）中提取出生信息，传入后端 `/api/analyze` 接口
+- 禁止在任何导航栏中修改或重新收集用户输入
+
+### 规则2：各导航栏内容完全独立
+
+- 每个导航栏必须维护**独立的** loading / error / data 状态（各自的 `ref` 或 `computed`）
+- 一个导航栏的AI分析结果**不得**影响另一个导航栏的显示内容
+- 除非另有声明，各模块之间不得产生数据混淆或相互干涉
+- 切换导航栏时不应触发其他导航栏的重新请求或数据刷新
+
+### 规则3：新增导航栏开发检查清单
+
+| 检查项 | 要求 |
+|--------|------|
+| 数据源 | 是否使用同一份 `props.result` / `basic_result`？ |
+| 提示词 | 是否有独立的 `_build_xxx_prompt()` 函数？ |
+| 状态隔离 | 是否有独立的 `loading` / `error` / `report` ref？ |
+| 模式标识 | 后端 `mode` 参数是否新增了对应枚举值？ |
+| 卡片渲染 | 是否设计了独立卡片样式匹配AI输出结构？ |
+| 无副作用 | 切换Tab时是否不影响其他Tab数据？ |
+
+### 现有模式对照
+
+| 导航栏 | mode参数 | 提示词函数 | 独立状态 |
+|--------|----------|-----------|---------|
+| 天赋概览 | `simple` | `_build_simple_prompt()` | `simpleReport` / `talentTags` / `profileKeywords` 等 |
+| 深度探索 | `deep_explore` | `_build_deep_explore_prompt()` | `deepExploreReport` / `deepExploreLoading` / `deepExploreError` |
+
 ## 禁止事项
 
 1. 不得使用固定像素单位（px）定义关键尺寸（应使用rem/vw/vh/clamp）

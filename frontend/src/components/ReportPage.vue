@@ -742,5 +742,4 @@ function renderModuleContent(text) {
   .module-body { padding: 16px 20px 22px; font-size: 14px; line-height: 1.9; }
   .deep-header { padding: 28px 20px 20px; }
 }
-}
 </style>
