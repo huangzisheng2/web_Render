@@ -114,19 +114,9 @@
               <p class="deep-header-sub">{{ dayPillar }} · {{ traitInfo.element }}属性</p>
             </div>
 
-            <!-- 深度探索4模块+结语 独立卡片 -->
-            <div class="deep-cards">
-              <div v-for="(section, idx) in deepReportSections" :key="idx"
-                class="deep-module-card" :class="'module-' + section.type">
-                <div class="module-header">
-                  <span class="module-badge" :class="'badge-' + section.type">{{ section.icon }}</span>
-                  <div class="module-title-group">
-                    <span class="module-index">{{ ['壹','贰','叁','肆','终'][idx] }}</span>
-                    <h3 class="module-title">{{ section.title }}</h3>
-                  </div>
-                </div>
-                <div class="module-body" v-html="section.html"></div>
-              </div>
+            <!-- 全部文字统一放到同一卡片 -->
+            <div class="deep-single-card">
+              <div class="deep-single-body" v-html="deepFullHtml"></div>
             </div>
 
             <div class="result-actions">
@@ -355,30 +345,9 @@ const MODULE_CONFIG = [
   { key: '模块四', title: '与天赋共舞的成长提醒', icon: '⚡', type: 'growth' }
 ]
 
-const deepReportSections = computed(() => {
-  const text = deepExploreReport.value
-  if (!text) return []
-  const modules = []
-  // 捕获组包含完整标题 "模块一：xxx"，以便后续 includes("模块一") 能匹配
-  const modulePattern = /####\s*\*\*(模块[一二三四][：:].+?)\*\*/
-  const parts = text.split(modulePattern)
-  for (let i = 1; i < parts.length - 1; i += 2) {
-    const rawTitle = parts[i] || ''
-    const content = parts[i + 1] || ''
-    let matchedConfig = null
-    for (const cfg of MODULE_CONFIG) {
-      if (rawTitle.includes(cfg.key)) { matchedConfig = cfg; break }
-    }
-    if (!matchedConfig) continue
-    modules.push({ ...matchedConfig, rawTitle, html: renderModuleContent(content) })
-  }
-  // 结语：兼容多种格式 ## 结语 / ## **结语** / ## *结语*
-  const closingMatch = text.match(/##\s*\*{0,2}结语\*{0,2}[\s\S]*$/)
-  if (closingMatch) {
-    const closingText = closingMatch[0].replace(/^##\s*\*{0,2}结语\*{0,2}/, '').trim()
-    if (closingText) modules.push({ type: 'closing', title: '结语', icon: '💫', html: renderModuleContent(closingText) })
-  }
-  return modules
+// 深度探索全文HTML（不再分模块，直接渲染整篇报告）
+const deepFullHtml = computed(() => {
+  return renderModuleContent(deepExploreReport.value)
 })
 
 
@@ -558,117 +527,52 @@ function renderModuleContent(text) {
   letter-spacing: 0.04em;
 }
 
-/* 模块卡片容器 */
-.deep-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 14px;
-}
-
-/* 模块卡片基础样式 */
-.deep-module-card {
+/* 深度探索单卡片 */
+.deep-single-card {
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.deep-module-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+  border-top: 3px solid #8EC5FC;
+  margin: 0 14px;
 }
 
-/* 模块头部 */
-.module-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-}
-.module-badge {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.badge-talent   { background: linear-gradient(135deg, #8EC5FC, #6DA8F5); }
-.badge-guide    { background: linear-gradient(135deg, #A8E6CF, #7BD4A8); }
-.badge-scene    { background: linear-gradient(135deg, #FBBF24, #F59E0B); }
-.badge-growth   { background: linear-gradient(135deg, #A78BFA, #8B5CF6); }
-.badge-closing  { background: linear-gradient(135deg, #C084FC, #A855F7); }
-
-.module-title-group {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-.module-index {
-  font-size: clamp(0.6rem, 2.4vw, 0.72rem);
-  font-weight: 800;
-  color: #CBD5E1;
-  font-family: "STKaiti", "KaiTi", serif;
-  letter-spacing: 0.1em;
-}
-.module-talent .module-index   { color: #8EC5FC; }
-.module-guide .module-index    { color: #A8E6CF; }
-.module-scene .module-index    { color: #FBBF24; }
-.module-growth .module-index   { color: #A78BFA; }
-.module-closing .module-index  { color: #C084FC; }
-
-.module-title {
-  font-size: clamp(0.85rem, 3.6vw, 1rem);
-  font-weight: 700;
-  color: #1E293B;
-  margin: 0;
-  letter-spacing: 0.02em;
-}
-
-/* 模块卡片顶部装饰线 */
-.module-talent  { border-top: 3px solid #8EC5FC; }
-.module-guide   { border-top: 3px solid #A8E6CF; }
-.module-scene   { border-top: 3px solid #FBBF24; }
-.module-growth  { border-top: 3px solid #A78BFA; }
-.module-closing { border-top: 3px solid #C084FC; }
-
-/* 模块正文 */
-.module-body {
-  padding: 14px 16px 18px;
+.deep-single-body {
+  padding: 18px 18px 24px;
   font-size: clamp(0.82rem, 3.4vw, 0.92rem);
   line-height: 1.85;
   color: #475569;
 }
 
-/* Markdown 子元素样式（deep-module-card 内部） */
-.module-body :deep(.md-sub) {
-  display: block;
-  font-size: clamp(0.82rem, 3.4vw, 0.92rem);
+/* Markdown 子元素样式 */
+.deep-single-body :deep(h4) {
+  font-size: clamp(0.88rem, 3.6vw, 1rem);
   font-weight: 700;
   color: #334155;
-  margin: 12px 0 6px;
+  margin: 16px 0 8px;
   padding-left: 10px;
   border-left: 3px solid #8EC5FC;
 }
-.module-talent  .module-body :deep(.md-sub) { border-left-color: #8EC5FC; }
-.module-guide   .module-body :deep(.md-sub) { border-left-color: #A8E6CF; }
-.module-scene   .module-body :deep(.md-sub) { border-left-color: #FBBF24; }
-.module-growth  .module-body :deep(.md-sub) { border-left-color: #A78BFA; }
-.module-closing .module-body :deep(.md-sub) { border-left-color: #C084FC; }
 
-.module-body :deep(.md-strong) {
+.deep-single-body :deep(.md-sub) {
+  display: block;
+  font-size: clamp(0.85rem, 3.5vw, 0.95rem);
+  font-weight: 700;
+  color: #334155;
+  margin: 14px 0 6px;
+  padding-left: 10px;
+  border-left: 3px solid #8EC5FC;
+}
+
+.deep-single-body :deep(.md-strong) {
   color: #3B82F6;
   font-weight: 600;
 }
 
-.module-body :deep(blockquote) {
-  margin: 8px 0;
-  padding: 8px 14px;
+.deep-single-body :deep(blockquote) {
+  margin: 10px 0;
+  padding: 10px 16px;
   background: linear-gradient(135deg, #F0F9FF 0%, #F0FFF4 100%);
   border-left: 3px solid #8EC5FC;
   border-radius: 0 8px 8px 0;
@@ -678,28 +582,23 @@ function renderModuleContent(text) {
   font-style: italic;
 }
 
-.module-body :deep(ul) {
-  margin: 6px 0;
-  padding-left: 18px;
+.deep-single-body :deep(ul) {
+  margin: 8px 0;
+  padding-left: 20px;
 }
-.module-body :deep(li) {
-  margin: 3px 0;
+.deep-single-body :deep(li) {
+  margin: 4px 0;
   line-height: 1.7;
-  color: #475569;
 }
-.module-body :deep(p) {
+.deep-single-body :deep(p) {
   margin: 6px 0;
 }
-
-/* 结语卡片特殊样式 */
-.module-closing .module-body {
-  text-align: center;
-  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
-  font-size: clamp(0.85rem, 3.6vw, 0.95rem);
-  color: #64748B;
-  line-height: 1.9;
-  letter-spacing: 0.03em;
-  padding: 18px 20px 22px;
+.deep-single-body :deep(h3),
+.deep-single-body :deep(h2) {
+  font-size: clamp(0.95rem, 4vw, 1.1rem);
+  font-weight: 700;
+  color: #1E293B;
+  margin: 18px 0 8px;
 }
 
 .result-actions { text-align: center; padding: 20px 14px 28px; }
@@ -723,10 +622,8 @@ function renderModuleContent(text) {
   .card-title { font-size: 14px; }
   .card-body { padding: 10px 14px 14px; font-size: 13px; }
   .deep-explore { padding: 24px 10px; }
-  .deep-cards { padding: 0 10px; gap: 12px; }
-  .module-header { padding: 12px 14px 10px; gap: 10px; }
-  .module-badge { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
-  .module-body { padding: 10px 14px 14px; }
+  .deep-single-card { margin: 0 10px; }
+  .deep-single-body { padding: 14px 14px 18px; }
 }
 @media (min-width: 1024px) {
   .report-page { max-width: 600px; margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,0.06); }
@@ -738,10 +635,8 @@ function renderModuleContent(text) {
   .card-header { padding: 16px 20px 12px; }
   .card-body { padding: 14px 20px 18px; font-size: 14px; line-height: 1.9; }
   .card-title { font-size: 16px; }
-  .deep-cards { padding: 0 20px; gap: 18px; }
-  .module-header { padding: 16px 20px 14px; }
-  .module-badge { width: 44px; height: 44px; border-radius: 14px; font-size: 22px; }
-  .module-body { padding: 16px 20px 22px; font-size: 14px; line-height: 1.9; }
+  .deep-single-card { margin: 0 20px; }
+  .deep-single-body { padding: 20px 24px 28px; font-size: 14px; line-height: 1.9; }
   .deep-header { padding: 28px 20px 20px; }
 }
 </style>
