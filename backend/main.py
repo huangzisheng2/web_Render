@@ -73,7 +73,7 @@ class AnalyzeRequest(BaseModel):
     gender: Literal["male", "female"] = Field(..., description="性别: male/female")
     province: str = Field(..., description="省份", max_length=50)
     city: str = Field(..., description="城市", max_length=50)
-    mode: Optional[Literal["simple", "detail"]] = Field("simple", description="分析模式：simple(简易) 或 detail(详细)")
+    mode: Optional[Literal["simple", "detail", "deep_explore"]] = Field("simple", description="分析模式：simple(简易)、detail(详细) 或 deep_explore(深度探索)")
 
 
 class AnalyzeResponse(BaseModel):
@@ -195,6 +195,13 @@ def analyze_bazi(request: AnalyzeRequest, http_request: Request):
                 ai_report = bazi_service.analyze_ai(report_id, result, mode="simple")
                 step5_time = time.time() - step5_start
                 print(f"[TIMER] Step 5 完成: AI 简易版分析耗时 {step5_time:.2f}s")
+            elif analysis_mode == "deep_explore":
+                # 深度探索模式：执行深度版 AI 分析
+                print("[TIMER] Step 5 开始: AI 深度探索版分析")
+                step5_start = time.time()
+                ai_report = bazi_service.analyze_ai(report_id, result, mode="deep_explore")
+                step5_time = time.time() - step5_start
+                print(f"[TIMER] Step 5 完成: AI 深度探索版分析耗时 {step5_time:.2f}s")
             else:
                 # 详细模式：不自动执行AI，返回基础数据让前端手动触发
                 print("[TIMER] 详细模式，跳过自动AI分析，等待手动触发")

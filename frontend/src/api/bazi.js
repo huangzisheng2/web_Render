@@ -12,17 +12,20 @@ const isDebugMode = urlParams.get('debug') === 'true'
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 120000, // 120秒超时（AI分析可能较慢）
+  timeout: 150000, // 150秒超时（热点网络可能较慢）
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// 请求拦截器 - 根据调试模式添加请求头
+// 请求重试计数器
+const retryMap = new WeakMap()
+const MAX_RETRIES = 2
+
+// 请求拦截器
 api.interceptors.request.use(
   (config) => {
     console.log('API Request:', config.method?.toUpperCase(), config.url)
-    // 调试模式下添加 X-Debug-Mode 请求头
     if (isDebugMode) {
       config.headers['X-Debug-Mode'] = 'true'
       console.log('[DEBUG] 已添加 X-Debug-Mode 请求头')
@@ -34,17 +37,35 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器
+// 响应拦截器 - 增加重试逻辑，兼容不稳定网络（如手机热点）
 api.interceptors.response.use(
   (response) => {
     return response.data
   },
-  (error) => {
+  async (error) => {
+    const config = error.config
+    if (!config) {
+      return Promise.reject(error)
+    }
+
+    // 网络错误或5xx错误时重试
+    const isNetworkError = !error.response
+    const isServerError = error.response && error.response.status >= 500
+    const retryCount = retryMap.get(config) || 0
+
+    if ((isNetworkError || isServerError) && retryCount < MAX_RETRIES) {
+      retryMap.set(config, retryCount + 1)
+      console.log(`API 请求重试 (${retryCount + 1}/${MAX_RETRIES}):`, config.url)
+      // 延迟重试，避免立即重发
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
+      return api(config)
+    }
+
     console.error('API Error:', error)
     if (error.response) {
       return Promise.reject(new Error(error.response.data?.error || '服务器错误'))
     }
-    return Promise.reject(new Error('网络错误'))
+    return Promise.reject(new Error('网络错误，请检查网络连接后重试'))
   }
 )
 

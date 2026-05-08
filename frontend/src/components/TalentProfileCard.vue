@@ -7,10 +7,11 @@
         <span class="top-name">{{ displayName }}</span>
         <span class="top-title">的潜在天赋档案</span>
       </div>
-      <!-- 日柱行：日柱(高亮) + 五行图标 + 日柱概述(高亮) -->
+      <!-- 日柱行：日主五行图标 + 日柱(高亮) + · + 日柱概述(高亮) -->
       <div class="daypillar-line">
-        <span class="dp-label" :style="{ color: traitInfo.color }">{{ dayPillarLabel }}</span>
         <span class="dp-element-icon" :style="{ color: traitInfo.color }">{{ traitInfo.elementSymbol }}</span>
+        <span class="dp-label" :style="{ color: traitInfo.color }">{{ dayPillarLabel }}</span>
+        <span class="dp-sep">·</span>
         <span class="dp-summary" :style="{ color: traitInfo.color }">{{ dayPillarSummary }}</span>
       </div>
       <!-- 日柱长文说明（DAY_COLUMN_SUMMARIES） -->
@@ -216,7 +217,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   margin-left: 2px;
 }
 
-/* 日柱信息行：日柱 + 五行图标 + 概述 */
+/* 日柱信息行：五行图标 + 日柱 + · + 概述 */
 .daypillar-line {
   display: flex;
   align-items: center;
@@ -225,23 +226,30 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   flex-wrap: wrap;
 }
 
+.dp-element-icon {
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
+  flex-shrink: 0;
+}
+
 .dp-label {
-  font-size: clamp(0.9rem, 3.8vw, 1.1rem);
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
   font-weight: 800;
+  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
   letter-spacing: 0.06em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.dp-element-icon {
-  font-size: clamp(0.9rem, 3.8vw, 1.1rem);
-  flex-shrink: 0;
+.dp-sep {
+  font-size: clamp(0.8rem, 3.2vw, 0.95rem);
+  color: #C9A96E;
+  font-weight: 600;
 }
 
 .dp-summary {
-  font-size: clamp(0.85rem, 3.6vw, 1rem);
-  font-weight: 700;
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
+  font-weight: 800;
   font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 /* 日柱长文说明（黑体书法风格） */

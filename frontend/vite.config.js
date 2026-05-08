@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // 允许局域网访问（手机热点/其他设备）
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
@@ -22,5 +24,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+  },
+  preview: {
+    host: '0.0.0.0', // 允许局域网访问预览
+    port: 4173,
   },
 })

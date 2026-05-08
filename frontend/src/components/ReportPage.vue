@@ -150,7 +150,7 @@
 import { ref, computed, watch } from 'vue'
 import TalentProfileCard from './TalentProfileCard.vue'
 import { getDayMasterTrait } from '../data/dayMasterData'
-import { analyzeAI } from '../api/bazi'
+import { analyzeBazi } from '../api/bazi'
 
 const props = defineProps({
   result: { type: Object, default: null },
@@ -219,8 +219,10 @@ const talentTags = computed(() => {
 // 天赋关键词解析
 const profileKeywords = computed(() => {
   const kw = simpleReport.value?.keywords || ''
-  const content = kw.replace(/^天赋关键词[：:]\s*/i, '')
-  return content.split(/[、,，]/).map(s => s.trim()).filter(Boolean).slice(0, 5)
+  // 去掉section标题行，仅保留关键词内容
+  const content = kw.replace(/^天赋关键词[：:\s]*/i, '').replace(/\n/g, ' ').trim()
+  // 按分隔符拆分，清理 * 号和空格
+  return content.split(/[、,，\s]+/).map(s => s.replace(/\*+/g, '').trim()).filter(Boolean).slice(0, 5)
 })
 
 // 天赋摘要
@@ -307,12 +309,33 @@ async function handleDeepExplore() {
   deepExploreError.value = ''
   deepExploreReport.value = ''
   try {
-    const response = await analyzeAI({ report_id: props.result.report_id, basic_result: props.result }, 'deep_explore')
-    if (response.success && response.ai_report) deepExploreReport.value = response.ai_report
-    else deepExploreError.value = response.error || '分析失败'
+    // 使用 /api/analyze 接口，传入 deep_explore 模式
+    const userInfo = props.result.user_info || {}
+    const birthTime = userInfo.birth_time?.original || {}
+    const birthLocation = userInfo.birth_time?.location || {}
+    const birthData = {
+      name: userInfo.name || '探索者',
+      gender: userInfo.gender === '男' ? 'male' : 'female',
+      year: birthTime.year || 2000,
+      month: birthTime.month || 1,
+      day: birthTime.day || 1,
+      hour: birthTime.hour,
+      minute: birthTime.minute || 0,
+      province: birthLocation.province || '北京',
+      city: birthLocation.city || '北京',
+      mode: 'deep_explore'
+    }
+    const response = await analyzeBazi(birthData)
+    if (response.success && response.data?.ai_report) {
+      deepExploreReport.value = response.data.ai_report
+    } else if (response.success && response.data) {
+      deepExploreError.value = '深度分析未返回报告，请重试'
+    } else {
+      deepExploreError.value = response.error || '分析失败'
+    }
   } catch (e) {
     console.error('深度探索失败:', e)
-    deepExploreError.value = '网络错误'
+    deepExploreError.value = '网络错误，请检查网络连接后重试'
   } finally {
     deepExploreLoading.value = false
   }
