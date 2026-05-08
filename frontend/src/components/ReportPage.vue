@@ -359,7 +359,8 @@ const deepReportSections = computed(() => {
   const text = deepExploreReport.value
   if (!text) return []
   const modules = []
-  const modulePattern = /####\s*\*\*模块[一二三四]：(.+?)\*\*/
+  // 捕获组包含完整标题 "模块一：xxx"，以便后续 includes("模块一") 能匹配
+  const modulePattern = /####\s*\*\*(模块[一二三四][：:].+?)\*\*/
   const parts = text.split(modulePattern)
   for (let i = 1; i < parts.length - 1; i += 2) {
     const rawTitle = parts[i] || ''
@@ -371,9 +372,10 @@ const deepReportSections = computed(() => {
     if (!matchedConfig) continue
     modules.push({ ...matchedConfig, rawTitle, html: renderModuleContent(content) })
   }
-  const closingMatch = text.match(/##\s*\*?\*?结语\*?\*?[\s\S]*$/m)
+  // 结语：兼容多种格式 ## 结语 / ## **结语** / ## *结语*
+  const closingMatch = text.match(/##\s*\*{0,2}结语\*{0,2}[\s\S]*$/)
   if (closingMatch) {
-    const closingText = closingMatch[0].replace(/^##\s*\*?\*?结语\*?\*?/, '').trim()
+    const closingText = closingMatch[0].replace(/^##\s*\*{0,2}结语\*{0,2}/, '').trim()
     if (closingText) modules.push({ type: 'closing', title: '结语', icon: '💫', html: renderModuleContent(closingText) })
   }
   return modules
