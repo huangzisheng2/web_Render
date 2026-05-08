@@ -276,8 +276,9 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   font-family: "STHeiti", "SimHei", "STKaiti", "KaiTi", "Noto Serif SC", serif;
   color: #475569;
   line-height: 1.6;
-  text-align: left;
+  text-align: center;
   letter-spacing: 0.02em;
+  text-shadow: none;
 }
 
 /* 日柱描述：恢复原来格式（黑体书法风格），居中偏左对齐 */
