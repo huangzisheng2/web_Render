@@ -1,73 +1,111 @@
 <template>
   <div class="talent-card" :style="cardStyle">
-    <!-- 顶部 10%：姓名 + 潜在天赋档案 + 日柱 -->
-    <div class="card-top">
-      <span class="top-name">{{ displayName }}</span>
-      <span class="top-title">的潜在天赋档案</span>
-      <span class="top-divider"></span>
-      <span class="top-daypillar">{{ dayPillar || (dayMaster + traitInfo.element) }}</span>
+    <!-- 顶部区域 -->
+    <div class="card-header">
+      <!-- 方案徽章行 -->
+      <div class="header-badge-row">
+        <span class="scheme-badge">方案三</span>
+        <span class="style-badge">五行趣姻风</span>
+      </div>
+
+      <!-- 主标题 -->
+      <h2 class="header-title">{{ displayName }}的潜在天赋档案</h2>
+
+      <!-- 副标题：日柱 + 气势描述 -->
+      <div class="header-subtitle">
+        <span class="subtitle-icon" :style="{ background: traitInfo.color, color: '#fff' }">{{ dayMaster }}</span>
+        <span class="subtitle-text">
+          <strong>{{ dayPillarLabel }}</strong> · {{ traitInfo.motto || traitInfo.description.slice(0, 12) }}
+        </span>
+      </div>
     </div>
 
-    <!-- 中间 75%：左侧标签(30%) + 右侧头像(70%) -->
-    <div class="card-center">
-      <!-- 左侧 30%：天赋标签 -->
-      <div class="center-left">
-        <div class="tag-scroll">
-          <div
-            v-for="(tag, i) in displayTags"
-            :key="i"
-            class="talent-tag-item"
-            :style="{ borderColor: traitInfo.color + '50', background: traitInfo.color + '08' }"
+    <!-- 中间主体：左侧天赋列表 + 右侧Q版圆形框 -->
+    <div class="card-body">
+      <!-- 左侧：天赋列表（圆形图标+文字） -->
+      <div class="body-left">
+        <div
+          v-for="(tag, i) in displayTags"
+          :key="i"
+          class="talent-item"
+        >
+          <span
+            class="talent-icon"
+            :style="{ background: talentColors[i], color: '#fff' }"
           >
-            <span class="tag-emoji">{{ tagEmojis[i] }}</span>
-            <span class="tag-label">{{ tag }}</span>
-            <span class="tag-desc" v-if="tagDescriptions[i]">{{ tagDescriptions[i] }}</span>
+            {{ tagEmojis[i] }}
+          </span>
+          <div class="talent-info">
+            <span class="talent-name">{{ tag }}</span>
+            <span class="talent-desc-icon">{{ tagIcons[i] }}</span>
+            <p class="talent-desc">{{ tagDescriptions[i] || '' }}</p>
           </div>
         </div>
       </div>
 
-      <!-- 右侧 70%：Q版形象（无圆角框，原比例） -->
-      <div class="center-right">
-        <img
-          v-if="avatarUrl"
-          :src="avatarUrl"
-          alt="Q版形象"
-          class="avatar-img"
-          @error="avatarError = true"
-        />
-        <div v-else class="avatar-placeholder" :style="{ background: traitInfo.color + '15', color: traitInfo.color }">
-          <span class="placeholder-char">{{ dayMaster }}</span>
-          <span class="placeholder-el">{{ traitInfo.element }}</span>
+      <!-- 右侧：Q版形象（中式圆形装饰框） -->
+      <div class="body-right">
+        <div class="avatar-circle-frame">
+          <div class="avatar-inner">
+            <img
+              v-if="avatarUrl"
+              :src="avatarUrl"
+              alt="Q版形象"
+              class="avatar-img"
+              @error="avatarError = true"
+            />
+            <div v-else class="avatar-placeholder" :style="{ color: traitInfo.color }">
+              <span class="ph-char">{{ dayMaster }}</span>
+              <span class="ph-el">{{ traitInfo.element }}</span>
+            </div>
+          </div>
+          <!-- 装饰性圆环 -->
+          <svg class="circle-decoration" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="96" fill="none" stroke="url(#goldGrad)" stroke-width="1.5" opacity="0.6"/>
+            <circle cx="100" cy="100" r="88" fill="none" stroke="url(#goldGrad)" stroke-width="0.5" opacity="0.3"/>
+            <defs>
+              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#C9A96E;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#8B7355;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#C9A96E;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
       </div>
     </div>
 
-    <!-- 底部：特质 + 关键词 + 历史人物 -->
-    <div class="card-bottom" :style="{ background: `linear-gradient(135deg, ${traitInfo.color}08, ${traitInfo.color}02)`, borderTopColor: traitInfo.color + '15' }">
-      <!-- 第一行：特质概括（大字体） -->
-      <p class="trait-text">{{ traitDescription || traitInfo.description }}</p>
+    <!-- 底部：特质语 + 关键词 | 历史人物 -->
+    <div class="card-footer">
+      <!-- 特质概括语（带金色装饰） -->
+      <p class="footer-trait">
+        <span class="trait-deco trait-deco-left">☀</span>
+        {{ traitDescription || traitInfo.description }}
+        <span class="trait-deco trait-deco-right">☀</span>
+      </p>
 
-      <!-- 第二行：五个天赋关键词横向等距 -->
-      <div class="keyword-row" v-if="displayKeywords.length">
-        <span
-          v-for="(kw, i) in displayKeywords"
-          :key="i"
-          class="keyword-item"
-          :style="{ color: traitInfo.color, background: traitInfo.color + '12' }"
-        >{{ kw }}</span>
-      </div>
+      <!-- 左右分栏：关键词 | 历史人物 -->
+      <div class="footer-columns">
+        <!-- 左侧：天赋关键词（金棕胶囊） -->
+        <div class="footer-left">
+          <h4 class="col-title">天赋关键调</h4>
+          <div class="keyword-pills">
+            <span
+              v-for="(kw, i) in displayKeywords"
+              :key="i"
+              class="keyword-pill"
+            >{{ kw }}</span>
+          </div>
+        </div>
 
-      <!-- 第三行：历史人物两列排布 -->
-      <div class="history-row" v-if="historicalFigures.length">
-        <div
-          v-for="(figure, i) in historicalFigures"
-          :key="i"
-          class="history-figure"
-          :style="{ borderColor: traitInfo.color + '20' }"
-        >
-          <span class="figure-name">{{ figure.name }}</span>
-          <span class="figure-title">{{ figure.title }}</span>
-          <p class="figure-quote">{{ figure.quote }}</p>
+        <!-- 右侧：历史人物（简洁列表） -->
+        <div class="footer-right">
+          <h4 class="col-title">历史人物</h4>
+          <ul class="history-list">
+            <li v-for="(figure, i) in historicalFigures" :key="i" class="history-item">
+              {{ figure.name }}，{{ figure.title }}。
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -116,15 +154,26 @@ const displayKeywords = computed(() => {
   return props.keywords?.length ? props.keywords.slice(0, 5) : []
 })
 
-const tagEmojis = ['✨', '🌟', '💫', '🔥', '💎']
+// 圆形图标 emoji（对应期望图风格）
+const tagEmojis = ['🌊', '🔍', '⚖️', '👑', '💜']
+// 每个天赋右侧的小图标
+const tagIcons = ['💡', '🔍', '⚖️', '👑', '💙']
 
-// 每个天赋标签配前25字说明
+// 天赋圆形图标颜色（蓝/绿/金/红/紫 - 对应五行）
+const talentColors = [
+  '#3B82F6', // 蓝 - 水/创新
+  '#10B981', // 绿 - 木/洞察
+  '#D4A853', // 金 - 土/调配
+  '#DC2626', // 红 - 火/领导
+  '#8B5CF6'  // 紫 - 共情
+]
+
+// 每个天赋标签配描述
 const tagDescriptions = computed(() => {
   const summary = props.talentSummary || ''
   if (!summary) return []
-  // 按标点分割取段落
   const parts = summary.split(/[。！？]/).filter(s => s.trim())
-  return parts.slice(0, 5).map(p => p.trim().slice(0, 25))
+  return parts.slice(0, 5).map(p => p.trim().slice(0, 22))
 })
 
 const cardStyle = computed(() => ({
@@ -133,232 +182,351 @@ const cardStyle = computed(() => ({
 </script>
 
 <style scoped>
+/* ===== 整体卡片：古风宣纸底色 ===== */
 .talent-card {
   width: 100%;
-  border-radius: 18px;
-  background: linear-gradient(145deg, #ffffff 0%, #FAFBFC 100%);
-  border: 1px solid rgba(142, 197, 252, 0.12);
-  box-shadow: 0 4px 20px rgba(142, 197, 252, 0.06);
+  border-radius: 16px;
+  background: linear-gradient(160deg, #FDF8F0 0%, #FAF3E8 40%, #F5EDE0 100%);
+  border: 1px solid rgba(201, 169, 110, 0.25);
+  box-shadow:
+    0 4px 24px rgba(139, 115, 85, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.6);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
-/* ===== 顶部 ===== */
-.card-top {
-  padding: 14px 18px;
-  text-align: center;
-  border-bottom: 1px solid rgba(142, 197, 252, 0.06);
+/* ===== 顶部区域 ===== */
+.card-header {
+  padding: 14px 18px 10px;
+  position: relative;
 }
 
-.top-name {
-  font-size: clamp(1.05rem, 4.8vw, 1.3rem);
-  font-weight: 800;
-  color: #1E293B;
-  letter-spacing: 0.04em;
+/* 方案徽章行 */
+.header-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.top-title {
-  font-size: clamp(0.8rem, 3.8vw, 0.95rem);
-  font-weight: 500;
-  color: var(--card-accent);
-  letter-spacing: 0.04em;
+.scheme-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #5B6B7C 0%, #4A5568 100%);
+  padding: 2px 10px;
+  border-radius: 10px 10px 10px 1px;
+  letter-spacing: 0.05em;
 }
 
-.top-divider {
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--card-accent);
-  margin: 0 8px 3px;
-  opacity: 0.4;
-}
-
-.top-daypillar {
-  font-size: clamp(0.7rem, 3vw, 0.8rem);
+.style-badge {
+  font-size: 0.6rem;
+  color: #8B7355;
   font-weight: 600;
-  color: var(--card-accent);
   opacity: 0.7;
 }
 
-/* ===== 中间 75% ===== */
-.card-center {
-  flex: 1;
-  display: flex;
-  padding: 12px 14px 10px;
-  gap: 10px;
-  min-height: 0;
+/* 主标题 */
+.header-title {
+  font-size: clamp(1.15rem, 5vw, 1.45rem);
+  font-weight: 900;
+  color: #2D2416;
+  margin: 0 0 6px;
+  letter-spacing: 0.06em;
 }
 
-.center-left {
-  flex: 0 0 30%;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  justify-content: center;
-}
-
-.tag-scroll {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.talent-tag-item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 8px;
-  border-radius: 8px;
-  border-left: 3px solid;
-  font-size: clamp(0.6rem, 2.8vw, 0.72rem);
-  font-weight: 600;
-  color: #334155;
-  line-height: 1.2;
-}
-
-.tag-emoji {
-  font-size: clamp(0.75rem, 3.2vw, 0.9rem);
-  flex-shrink: 0;
-}
-
-.tag-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tag-desc {
-  width: 100%;
-  font-size: clamp(0.5rem, 2.2vw, 0.6rem);
-  font-weight: 400;
-  color: #94A3B8;
-  line-height: 1.3;
-  padding-left: 2px;
-}
-
-.center-right {
-  flex: 0 0 70%;
+/* 副标题（日柱+气势描述） */
+.header-subtitle {
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.avatar-img {
-  width: 100%;
-  max-width: 240px;
-  height: auto;
-  aspect-ratio: auto;
-  object-fit: contain;
-  background: transparent;
-}
-
-.avatar-placeholder {
-  width: 80%;
-  max-width: 200px;
-  aspect-ratio: 3 / 4;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 12px;
-}
-
-.placeholder-char { font-size: 48px; font-weight: 800; }
-.placeholder-el { font-size: 16px; font-weight: 600; opacity: 0.7; }
-
-/* ===== 底部 ===== */
-.card-bottom {
-  padding: 12px 16px 14px;
-  border-top: 1px solid;
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.trait-text {
-  font-size: clamp(0.75rem, 3.2vw, 0.85rem);
-  font-weight: 600;
-  color: #334155;
-  line-height: 1.5;
-  margin: 0;
-  text-align: center;
-}
-
-/* 关键词横向等距 */
-.keyword-row {
+.subtitle-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   display: flex;
-  justify-content: space-around;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
-.keyword-item {
-  padding: 3px 14px;
-  border-radius: 16px;
-  font-size: clamp(0.6rem, 2.6vw, 0.7rem);
-  font-weight: 600;
+.subtitle-text {
+  font-size: clamp(0.7rem, 3vw, 0.82rem);
+  color: #6B5D4D;
+  line-height: 1.4;
+}
+
+.subtitle-text strong {
+  color: #3D3426;
+  font-weight: 700;
+}
+
+/* ===== 中间主体 ===== */
+.card-body {
+  flex: 1;
+  display: flex;
+  padding: 10px 16px 12px;
+  gap: 14px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* ===== 左侧天赋列表 ===== */
+.body-left {
+  flex: 0 0 38%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+}
+
+.talent-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.talent-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.talent-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 4px;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+.talent-name {
+  font-size: clamp(0.72rem, 3vw, 0.86rem);
+  font-weight: 800;
+  color: #2D2416;
   white-space: nowrap;
 }
 
-/* 历史人物两列 */
-.history-row {
-  display: flex;
-  gap: 10px;
+.talent-desc-icon {
+  font-size: 0.65rem;
+  flex-shrink: 0;
 }
 
-.history-figure {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.7);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.figure-name {
-  font-size: clamp(0.65rem, 2.8vw, 0.75rem);
-  font-weight: 700;
-  color: var(--card-accent);
-}
-
-.figure-title {
-  font-size: clamp(0.5rem, 2.2vw, 0.6rem);
-  color: #94A3B8;
-}
-
-.figure-quote {
-  font-size: clamp(0.5rem, 2.2vw, 0.6rem);
-  color: #64748B;
-  line-height: 1.4;
-  margin: 2px 0 0;
+.talent-desc {
+  width: 100%;
+  font-size: clamp(0.55rem, 2.4vw, 0.66rem);
+  color: #8B8070;
+  line-height: 1.35;
+  margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* ===== 响应式 ===== */
+/* ===== 右侧Q版形象圆形装饰框 ===== */
+.body-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.avatar-circle-frame {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1.15;
+}
+
+.avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50% / 48%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(250,243,232,0.8) 100%);
+  border: 1.5px solid rgba(201, 169, 110, 0.35);
+  box-shadow:
+    0 4px 20px rgba(139, 115, 85, 0.1),
+    inset 0 2px 8px rgba(255,255,255,0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.ph-char { font-size: 36px; font-weight: 900; }
+.ph-el { font-size: 14px; font-weight: 700; opacity: 0.6; }
+
+/* SVG 装饰圆环 */
+.circle-decoration {
+  position: absolute;
+  top: -3%;
+  left: -3%;
+  width: 106%;
+  height: 106%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ===== 底部区域 ===== */
+.card-footer {
+  padding: 12px 16px 14px;
+  border-top: 1px solid rgba(201, 169, 110, 0.15);
+  background: linear-gradient(180deg, rgba(253,248,240,0) 0%, rgba(245,237,224,0.5) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 特质语（带金色装饰） */
+.footer-trait {
+  font-size: clamp(0.75rem, 3.2vw, 0.88rem);
+  font-weight: 700;
+  color: #3D3426;
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trait-deco {
+  color: #C9A96E;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* 左右分栏 */
+.footer-columns {
+  display: flex;
+  gap: 16px;
+}
+
+.footer-left,
+.footer-right {
+  flex: 1;
+}
+
+.col-title {
+  font-size: clamp(0.68rem, 2.8vw, 0.78rem);
+  font-weight: 800;
+  color: #3D3426;
+  margin: 0 0 7px;
+  letter-spacing: 0.04em;
+}
+
+/* 金棕胶囊关键词 */
+.keyword-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.keyword-pill {
+  font-size: clamp(0.6rem, 2.5vw, 0.7rem);
+  font-weight: 700;
+  color: #6B5D4D;
+  background: linear-gradient(135deg, #E8DCC8 0%, #DDD0BA 100%);
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  padding: 4px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+.keyword-pill:hover {
+  background: linear-gradient(135deg, #DDD0BA 0%, #D0C2AA 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(139, 115, 85, 0.15);
+}
+
+/* 历史人物简洁列表 */
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-item {
+  font-size: clamp(0.62rem, 2.6vw, 0.72rem);
+  color: #6B5D4D;
+  line-height: 1.5;
+  padding-left: 12px;
+  position: relative;
+}
+
+.history-item::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #C9A96E;
+  font-weight: 700;
+}
+
+/* ===== 响应式适配 ===== */
 @media (max-width: 640px) {
-  .card-top { padding: 10px 12px; }
-  .card-center { padding: 10px 10px 8px; gap: 8px; }
-  .center-left { flex: 0 0 28%; }
-  .center-right { flex: 0 0 72%; }
-  .avatar-img { max-width: 180px; }
-  .card-bottom { padding: 10px 12px 12px; gap: 6px; }
-  .history-row { flex-direction: column; gap: 6px; }
+  .card-header { padding: 11px 13px 8px; }
+  .card-body {
+    padding: 8px 11px 10px;
+    gap: 10px;
+    flex-direction: column-reverse;
+  }
+  .body-left { flex: none; gap: 6px; }
+  .body-right { flex: none; max-width: 200px; margin: 0 auto; }
+  .talent-icon { width: 28px; height: 28px; font-size: 0.78rem; }
+  .avatar-circle-frame { max-width: 180px; }
+  .footer-columns { flex-direction: column; gap: 10px; }
+  .card-footer { padding: 10px 12px 12px; gap: 8px; }
 }
 
 @media (min-width: 1024px) {
-  .card-top { padding: 16px 24px; }
-  .card-center { padding: 16px 20px 12px; gap: 14px; }
-  .talent-tag-item { padding: 7px 12px; border-radius: 10px; }
-  .avatar-img { max-width: 260px; }
-  .card-bottom { padding: 14px 20px 16px; }
+  .card-header { padding: 18px 26px 14px; }
+  .header-title { font-size: 1.55rem; }
+  .card-body { padding: 16px 24px 16px; gap: 20px; }
+  .body-left { gap: 10px; }
+  .talent-icon { width: 38px; height: 38px; font-size: 1rem; }
+  .talent-name { font-size: 0.95rem; }
+  .talent-desc { font-size: 0.72rem; }
+  .avatar-circle-frame { max-width: 260px; }
+  .card-footer { padding: 16px 24px 18px; gap: 12px; }
+  .keyword-pill { padding: 5px 18px; font-size: 0.76rem; }
+  .history-item { font-size: 0.78rem; }
 }
 </style>
