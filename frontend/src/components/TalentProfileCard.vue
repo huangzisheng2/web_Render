@@ -1,19 +1,23 @@
 <template>
   <div class="talent-card">
 
-    <!-- ===== 顶部：主标题 + 日柱行（含身份） ===== -->
+    <!-- ===== 顶部 20%：标题 + 日柱·身份 + 日柱概述 + 日柱描述 ===== -->
     <div class="card-top">
       <div class="title-row">
         <span class="top-name">{{ displayName }}</span>
         <span class="top-title">的潜在天赋档案</span>
       </div>
-      <!-- 日柱行：五行符号(高亮) + 日柱(高亮) + · + 身份(五行色艺术字) -->
+      <!-- 日柱行：五行符号(高亮) + 日柱(高亮) + · + 身份(五行色) -->
       <div class="daypillar-line">
         <span class="dp-element-icon" :style="{ color: traitInfo.color }">{{ elementSymbol }}</span>
         <span class="dp-label" :style="{ color: traitInfo.color }">{{ dayPillarLabel }}</span>
         <span class="dp-sep">·</span>
         <span class="dp-identity" :style="{ color: traitInfo.color }">{{ dayColumnIdentity }}</span>
       </div>
+      <!-- 日柱概述：和日柱描述同字体，放在日柱·身份下方 -->
+      <p class="daypillar-summary-text" v-if="dayPillarSummary">{{ dayPillarSummary }}</p>
+      <!-- 日柱描述：恢复原来格式，居中偏左对齐 -->
+      <p class="day-column-text" v-if="dayColumnDescription">{{ dayColumnDescription }}</p>
     </div>
 
     <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
@@ -33,12 +37,6 @@
       </div>
 
       <div class="center-right">
-        <!-- 日柱描述：放在Q版画像上方，艺术字斜体+五行色 -->
-        <p
-          v-if="dayColumnDescription"
-          class="day-column-desc"
-          :style="{ color: traitInfo.color }"
-        >{{ dayColumnDescription }}</p>
         <img
           v-if="avatarUrl"
           :src="avatarUrl"
@@ -71,7 +69,7 @@
       <div class="bottom-columns" v-if="displayKeywords.length || displayHistoricalFigures.length">
         <!-- 左列：天赋关键词 -->
         <div class="bottom-col left-col" v-if="displayKeywords.length">
-          <div class="col-title">天赋关键词</div>
+          <div class="col-title"><span class="col-icon">💎</span>天赋关键词</div>
           <div class="keyword-pills">
             <span
               v-for="(kw, i) in displayKeywords"
@@ -83,7 +81,7 @@
 
         <!-- 右列：历史人物画像 -->
         <div class="bottom-col right-col" v-if="displayHistoricalFigures.length">
-          <div class="col-title">历史人物画像</div>
+          <div class="col-title"><span class="col-icon">📜</span>历史人物画像</div>
           <div class="history-list">
             <div
               v-for="(figure, i) in displayHistoricalFigures"
@@ -269,19 +267,30 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   letter-spacing: 0.06em;
 }
 
-/* 日柱描述：艺术字、斜体、五行色，放在Q版画像上方 */
-.day-column-desc {
-  margin: 0 0 8px;
-  padding: 0 4px;
-  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
-  font-weight: 700;
-  font-family: "STXingkai", "STKaiti", "KaiTi", "Noto Serif SC", serif;
-  font-style: italic;
+/* 日柱概述：和日柱描述同字体，放在日柱·身份下方 */
+.daypillar-summary-text {
+  margin: 4px 0 0;
+  padding: 0 8px;
+  font-size: clamp(0.75rem, 3vw, 0.9rem);
+  font-weight: 600;
+  font-family: "STHeiti", "SimHei", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  color: #475569;
   line-height: 1.6;
-  text-align: center;
-  letter-spacing: 0.04em;
-  text-shadow: 0 1px 6px currentColor;
-  opacity: 0.92;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+
+/* 日柱描述：恢复原来格式（黑体书法风格），居中偏左对齐 */
+.day-column-text {
+  margin: 4px 0 0;
+  padding: 0 8px;
+  font-size: clamp(0.75rem, 3vw, 0.9rem);
+  font-weight: 600;
+  font-family: "STHeiti", "SimHei", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  color: #475569;
+  line-height: 1.6;
+  text-align: left;
+  letter-spacing: 0.02em;
 }
 
 /* ===== 中部 ===== */
@@ -397,27 +406,35 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 }
 
 .col-title {
-  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+  font-size: clamp(0.75rem, 3.2vw, 0.9rem);
   font-weight: 700;
   color: #1E293B;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-icon {
+  font-size: 1.1em;
+  line-height: 1;
 }
 
 /* 左列：天赋关键词 pill 按钮 */
 .keyword-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .kw-pill {
   display: inline-block;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   background: #F5ECD7;
   color: #5C4A1E;
-  font-size: clamp(0.55rem, 2.4vw, 0.7rem);
+  font-size: clamp(0.7rem, 3vw, 0.85rem);
   font-weight: 600;
   white-space: nowrap;
   letter-spacing: 0.02em;
@@ -427,16 +444,16 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .history-figure {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-size: clamp(0.55rem, 2.4vw, 0.7rem);
+  font-size: clamp(0.7rem, 3vw, 0.85rem);
   color: #1E293B;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .fig-bullet {
