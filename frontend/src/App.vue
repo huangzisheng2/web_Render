@@ -84,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, getCurrentInstance, onMounted } from 'vue'
+import { ref, reactive, watch, getCurrentInstance, onMounted } from 'vue'
 import LandingPage from './components/LandingPage.vue'
 import IntroPage from './components/IntroPage.vue'
 import QuizPage from './components/QuizPage.vue'
@@ -97,19 +97,50 @@ import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
 const { appContext } = getCurrentInstance()
 const isDebug = appContext.config.globalProperties.$isDebug || false
 
-// 页面路由状态
-const currentPage = ref('landing') // landing, intro, form, quiz, loading, result
+// ====== 页面刷新状态保持（5分钟内有效，sessionStorage按标签页隔离） ======
+const SESSION_KEY = 'bazi_app_state'
+const STATE_TTL = 5 * 60 * 1000 // 5分钟
 
-// 监听页面变化，滚动到顶部
-watch(currentPage, () => {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  })
-  // 同时重置文档的滚动位置
-  document.documentElement.scrollTop = 0
-  document.body.scrollTop = 0
-})
+function savePageState(page, resultData) {
+  try {
+    const state = {
+      currentPage: page,
+      result: resultData,
+      timestamp: Date.now()
+    }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state))
+  } catch (e) {
+    // 数据过大时静默失败
+    console.warn('[State] 保存状态失败:', e.message)
+  }
+}
+
+function loadPageState() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const state = JSON.parse(raw)
+    // 检查是否过期（超过5分钟）
+    if (Date.now() - state.timestamp > STATE_TTL) {
+      sessionStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return state
+  } catch (e) {
+    sessionStorage.removeItem(SESSION_KEY)
+    return null
+  }
+}
+
+function clearPageState() {
+  try { sessionStorage.removeItem(SESSION_KEY) } catch {}
+}
+
+// 尝试从 sessionStorage 恢复状态
+const restoredState = loadPageState()
+
+// 页面路由状态
+const currentPage = ref(restoredState?.currentPage || 'landing') // landing, intro, form, quiz, loading, result
 
 // 报告生成状态
 const reportGenerationStatus = ref('idle') // idle, generating, completed, error
@@ -126,8 +157,29 @@ const showErrorRecovery = ref(false)
 
 const downloading = ref(false)
 const aiAnalyzing = ref(false)
-const result = ref(null)
+const result = ref(restoredState?.result || null)
 const quizAnswers = ref([])
+
+// 监听页面变化，滚动到顶部 + 保存状态
+watch(currentPage, () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+  document.documentElement.scrollTop = 0
+  document.body.scrollTop = 0
+  // 保存页面状态（关键页面才保存）
+  if (['result', 'loading', 'quiz'].includes(currentPage.value)) {
+    savePageState(currentPage.value, result.value)
+  }
+})
+
+// 监听 result 变化，自动保存（报告生成完成后）
+watch(result, (val) => {
+  if (val && currentPage.value === 'result') {
+    savePageState('result', val)
+  }
+})
 
 // 页面导航
 const goToIntro = () => {
@@ -236,6 +288,8 @@ const startReportGeneration = async (formData) => {
     
     // 清除待处理状态
     localStorage.removeItem('pendingAnalysis')
+    // 保存结果到 sessionStorage（用于刷新恢复）
+    savePageState('quiz', response.data)
     
   } catch (error) {
     // 清除所有阶段定时器
@@ -336,6 +390,7 @@ const handleQuizComplete = (answers) => {
   if (reportGenerationStatus.value === 'completed' && result.value) {
     // 报告已生成，直接跳转结果页
     currentPage.value = 'result'
+    savePageState('result', result.value)
   } else {
     // 报告未生成或出错，跳转到 loading 页等待
     goToLoading()
@@ -378,12 +433,12 @@ const handleReportRetry = async () => {
 }
 
 // 监听报告生成状态，如果在 loading 页面且报告完成，自动跳转
-import { watch } from 'vue'
 watch(() => reportGenerationStatus.value, (newStatus) => {
   if (newStatus === 'completed' && currentPage.value === 'loading' && result.value) {
     // 延迟一点点让用户看到完成状态
     setTimeout(() => {
       currentPage.value = 'result'
+      savePageState('result', result.value)
     }, 500)
   }
 })
@@ -398,6 +453,7 @@ const handleReset = () => {
   pendingFormData.value = null
   localStorage.removeItem('pendingAnalysis')
   showErrorRecovery.value = false
+  clearPageState()
   currentPage.value = 'landing'
 }
 
@@ -755,9 +811,15 @@ const generatePDF = async (customContent, customName) => {
   }
 }
 
-// 页面加载时检查是否有待处理的分析
+// 页面加载时检查是否有待处理的分析 + 恢复 sessionStorage 状态
 onMounted(() => {
-  checkPendingAnalysis()
+  // 如果从 sessionStorage 恢复了 result 页面，恢复报告生成状态
+  if (restoredState?.currentPage === 'result' && restoredState?.result) {
+    reportGenerationStatus.value = 'completed'
+  } else {
+    // 检查 localStorage 中是否有待处理的分析（旧逻辑）
+    checkPendingAnalysis()
+  }
 })
 </script>
 

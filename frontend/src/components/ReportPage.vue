@@ -116,26 +116,31 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import TalentProfileCard from './TalentProfileCard.vue'
 import SimpleReport from './SimpleReport.vue'
 import { getDayMasterTrait } from '../data/dayMasterData'
 import { analyzeAI } from '../api/bazi'
 
 const props = defineProps({
-  result: { type: Object, required: true },
+  result: { type: Object, default: null },
   downloading: { type: Boolean, default: false },
   aiAnalyzing: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['reset'])
 
-// Tabs
-const activeTab = ref('simple')
+// Tabs - 从 sessionStorage 恢复 activeTab
+const savedTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bazi_activeTab') : null
+const activeTab = ref(savedTab || 'simple')
 const tabs = [
   { key: 'simple', label: '天赋概览' },
   { key: 'detail', label: '深度探索' }
 ]
+// 保存 activeTab 到 sessionStorage
+watch(activeTab, (val) => {
+  try { sessionStorage.setItem('bazi_activeTab', val) } catch {}
+})
 
 // 基础数据
 const userInfo = computed(() => props.result?.user_info || {})
@@ -167,6 +172,10 @@ function parseSimpleReport(report) {
     else if (lower.startsWith('天赋关键词')) keywords = section.trim()
     else if (lower.startsWith('日柱特质')) dayColumn = section.trim()
     else if (lower.startsWith('综合结论')) conclusion = section.trim()
+  }
+  // 如果所有段落都为空（解析失败），将整个报告作为 coreTalent 显示
+  if (!coreTalent && !talentScenario && !growthAdvice && !keywords && !dayColumn && !conclusion) {
+    coreTalent = report.trim()
   }
   return { coreTalent, talentScenario, growthAdvice, keywords, dayColumn, conclusion }
 }
