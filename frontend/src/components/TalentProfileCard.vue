@@ -1,129 +1,96 @@
 <template>
   <div class="talent-card">
-    <!-- 淡雅水墨晕染背景 -->
-    <div class="ink-wash-bg" aria-hidden="true"></div>
 
-    <!-- 左侧五行侧边栏 -->
-    <aside class="element-sidebar">
-      <div
-        v-for="el in elementList"
-        :key="el"
-        :class="['sidebar-item', { active: el === currentElement }]"
-      >
-        {{ el }}
+    <!-- ===== 顶部：主标题 + 日柱行 ===== -->
+    <div class="card-top">
+      <div class="title-row">
+        <span class="top-name">{{ displayName }}</span>
+        <span class="top-title">的潜在天赋档案</span>
       </div>
-    </aside>
+      <!-- 日柱信息行：大字号高亮色 + 概述 -->
+      <div class="daypillar-line">
+        <span class="dp-label" :style="{ color: traitInfo.color }">{{ dayPillarLabel }}</span>
+        <span class="dp-sep">·</span>
+        <span class="dp-desc">{{ dayColumnText }}</span>
+      </div>
+    </div>
 
-    <!-- 主内容区 -->
-    <div class="card-main">
-      <!-- ===== 顶部标题区 ===== -->
-      <header class="card-header">
-        <h1 class="main-title">
-          <span class="name-text">{{ displayName }}</span>
-          <span class="title-suffix">的潜在天赋档案</span>
-        </h1>
-        <div class="daypillar-row">
-          <span class="dp-badge" :style="dpBadgeStyle">
-            <span class="dp-icon">{{ elementIcon }}</span>
-            <span class="dp-name">{{ dayPillarLabel }}</span>
-          </span>
-          <span class="dp-dot">·</span>
-          <span class="dp-summary">{{ dayPillarSummaryText }}</span>
-        </div>
-      </header>
-
-      <!-- ===== 中部主视觉区 ===== -->
-      <div class="card-body">
-        <!-- 左侧：天赋标签 -->
-        <div class="talent-list">
-          <div
-            v-for="(tag, i) in displayTags"
-            :key="i"
-            class="talent-item"
-          >
-            <div class="talent-icon" :style="{ background: talentColors[i] }">
-              <span class="t-icon">{{ talentEmojis[i] }}</span>
-            </div>
-            <div class="talent-info">
-              <div class="talent-name">{{ tag }}</div>
-              <div v-if="tagDescriptions[i]" class="talent-desc">{{ tagDescriptions[i] }}</div>
-            </div>
+    <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%，放大20%) ===== -->
+    <div class="card-center">
+      <!-- 左侧 40%（原30%+10%） -->
+      <div class="center-left">
+        <div
+          v-for="(tag, i) in displayTags"
+          :key="i"
+          class="talent-tag-item"
+          :style="{ borderColor: traitInfo.color + '50', background: traitInfo.color + '08' }"
+        >
+          <div class="tag-upper">
+            <span class="tag-emoji">{{ tagEmojis[i] }}</span>
+            <span class="tag-label">{{ tag }}</span>
           </div>
-        </div>
-
-        <!-- 右侧：Q版人物形象 -->
-        <div class="avatar-area">
-          <div class="avatar-ring" :style="{ borderColor: elementAccent + '40' }">
-            <div class="avatar-inner">
-              <img
-                v-if="avatarUrl"
-                :src="avatarUrl"
-                alt="Q版形象"
-                class="avatar-img"
-                @error="avatarError = true"
-              />
-              <div v-else class="avatar-placeholder">
-                <span class="ph-char">{{ dayMaster }}</span>
-                <span class="ph-label">{{ currentElement }}</span>
-              </div>
-            </div>
-          </div>
-          <!-- 右下角水波纹装饰 -->
-          <div class="wave-deco" aria-hidden="true" :style="{ color: elementAccent }">
-            <svg viewBox="0 0 160 80" preserveAspectRatio="none">
-              <path d="M0,40 Q40,10 80,40 T160,40 L160,80 L0,80 Z" fill="currentColor" opacity="0.08"/>
-              <path d="M0,55 Q40,30 80,55 T160,55 L160,80 L0,80 Z" fill="currentColor" opacity="0.05"/>
-            </svg>
-          </div>
+          <span class="tag-desc">{{ tagDescriptions[i] }}</span>
         </div>
       </div>
 
-      <!-- ===== 底部总结区 ===== -->
-      <footer class="card-footer">
-        <!-- 金色装饰线 -->
-        <div class="deco-line">
-          <span class="deco-left">◆</span>
-          <span class="deco-dragon">🐉</span>
-          <span class="deco-right">◆</span>
+      <!-- 右侧 60%，图片放大20%，居中偏下 -->
+      <div class="center-right">
+        <img
+          v-if="avatarUrl"
+          :src="avatarUrl"
+          alt="Q版形象"
+          class="avatar-img"
+          @error="avatarError = true"
+        />
+        <div
+          v-else
+          class="avatar-placeholder"
+          :style="{ background: traitInfo.color + '15', color: traitInfo.color }"
+        >
+          <span class="placeholder-char">{{ dayMaster }}</span>
+          <span class="placeholder-el">{{ traitInfo.element }}</span>
         </div>
+      </div>
+    </div>
 
-        <!-- 一句话概括 -->
-        <p class="trait-summary">{{ traitDescription || traitInfo.description }}</p>
+    <!-- ===== 底部：概括语 + 关键词 · 分隔 + 历史人物两列 ===== -->
+    <div
+      class="card-bottom"
+      :style="{ borderTopColor: traitInfo.color + '15' }"
+    >
+      <!-- 一句话概括：大字号书法体，阴影 -->
+      <p class="trait-text" :style="{ textShadow: `0 2px 8px ${traitInfo.color}20` }">
+        {{ traitDescription || traitInfo.description }}
+      </p>
 
-        <!-- 关键词 + 历史人物 -->
-        <div class="bottom-grid">
-          <div class="keywords-section">
-            <h3 class="section-title">天赋关键词</h3>
-            <div class="keywords-pills">
-              <span
-                v-for="(kw, i) in displayKeywords"
-                :key="i"
-                class="keyword-pill"
-              >{{ kw }}</span>
-            </div>
-          </div>
-          <div class="history-section">
-            <h3 class="section-title">历史人物</h3>
-            <div class="history-list">
-              <div
-                v-for="(figure, i) in historicalFigures"
-                :key="i"
-                class="history-item"
-              >
-                <span class="fig-bullet">•</span>
-                <span class="fig-text">{{ figure.name }}，{{ figure.title }}</span>
-              </div>
-            </div>
-          </div>
+      <!-- 天赋关键词：中等字号，" · " 分隔，一字排开居中 -->
+      <div class="keyword-line" v-if="displayKeywords.length">
+        <span
+          v-for="(kw, i) in displayKeywords"
+          :key="i"
+          class="kw-item"
+        >{{ kw }}<span v-if="i < displayKeywords.length - 1" class="kw-sep"> · </span></span>
+      </div>
+
+      <!-- 历史人物：两列并排居中，小字号低不透明度 -->
+      <div class="history-row" v-if="historicalFigures.length">
+        <div
+          v-for="(figure, i) in historicalFigures"
+          :key="i"
+          class="history-figure"
+        >
+          <span class="fig-bullet" :style="{ color: traitInfo.color }">·</span>
+          <span class="fig-text">{{ figure.name }}，{{ figure.title }}</span>
         </div>
-      </footer>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { getDayMasterTrait, getFullAvatarUrl, DAY_COLUMN_SUMMARIES } from '../data/dayMasterData'
+import { getDayMasterTrait, getFullAvatarUrl, getDayColumnSummary } from '../data/dayMasterData'
 
 const props = defineProps({
   name: { type: String, default: '探索者' },
@@ -146,21 +113,15 @@ const traitInfo = computed(() => {
   return getDayMasterTrait(props.dayMaster, props.gender)
 })
 
-const currentElement = computed(() => traitInfo.value.element || '水')
-
+// 日柱标签：优先用完整 dayPillar（如"壬辰"），否则用 dayMaster + element
 const dayPillarLabel = computed(() => {
   if (props.dayPillar) return props.dayPillar
   return props.dayMaster + (traitInfo.value.element || '')
 })
 
-// 日柱概述（取前12字）
-const dayPillarSummaryText = computed(() => {
-  if (props.dayColumnSummary) return props.dayColumnSummary
-  const summaries = DAY_COLUMN_SUMMARIES[props.dayMaster]
-  if (!summaries) return ''
-  const isMale = (props.gender === 'male' || props.gender === '男')
-  const full = summaries[isMale ? 'male' : 'female'] || ''
-  return full.slice(0, 12) + (full.length > 12 ? '…' : '')
+// 日柱概述（来自 DAY_COLUMN_SUMMARIES 或 prop）
+const dayColumnText = computed(() => {
+  return props.dayColumnSummary || getDayColumnSummary(props.dayMaster, props.gender) || ''
 })
 
 const avatarUrl = computed(() => {
@@ -168,421 +129,257 @@ const avatarUrl = computed(() => {
   return getFullAvatarUrl(props.dayMaster, props.gender)
 })
 
+// 天赋标签（最多5个）
 const displayTags = computed(() => {
   return props.talentTags?.length ? props.talentTags.slice(0, 5) : []
 })
 
+// 天赋关键词（最多5个）
 const displayKeywords = computed(() => {
   return props.keywords?.length ? props.keywords.slice(0, 5) : []
 })
 
-// 固定天赋图标与配色（与参考图一致）
-const talentEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
-const talentColors = ['#4A90D9', '#52B788', '#D4A853', '#E06C75', '#9B8EC2']
+// 固定天赋图标（参考图风格）
+const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 
-// 天赋说明（从 talentSummary 切分，每段限25字）
+// 天赋标签描述：从 talentSummary 按标点切分，每段限15字，不足5个用''填充
 const tagDescriptions = computed(() => {
   const summary = props.talentSummary || ''
-  if (!summary) return []
+  if (!summary) return ['', '', '', '', '']
   const parts = summary.split(/[。！？]/).filter(s => s.trim())
-  return parts.slice(0, 5).map(p => p.trim().slice(0, 25))
+  const sliced = parts.slice(0, 5).map(p => p.trim().slice(0, 15))
+  // 补足到5个
+  while (sliced.length < 5) sliced.push('')
+  return sliced
 })
-
-// ===== 五行主题配置 =====
-const elementList = ['金', '木', '水', '火', '土']
-
-const elementMeta = {
-  '水': { accent: '#4A90D9', bgLight: '#EFF6FF', icon: '💧' },
-  '木': { accent: '#52B788', bgLight: '#F0FDF4', icon: '🌿' },
-  '火': { accent: '#E06C75', bgLight: '#FEF2F2', icon: '🔥' },
-  '土': { accent: '#D4A853', bgLight: '#FFFBEB', icon: '⛰️' },
-  '金': { accent: '#9CA3AF', bgLight: '#F3F4F6', icon: '⚜️' }
-}
-
-const currentMeta = computed(() => elementMeta[currentElement.value] || elementMeta['水'])
-
-const elementAccent = computed(() => currentMeta.value.accent)
-const elementBgLight = computed(() => currentMeta.value.bgLight)
-const elementIcon = computed(() => currentMeta.value.icon)
-
-const dpBadgeStyle = computed(() => ({
-  background: elementBgLight.value,
-  color: elementAccent.value
-}))
 </script>
 
 <style scoped>
-/* ===== 整体卡片 ===== */
 .talent-card {
   width: 100%;
-  aspect-ratio: 3 / 4;
-  border-radius: 16px;
-  background: #F8F5EE;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff 0%, #FAFBFC 100%);
+  border: 1px solid rgba(142, 197, 252, 0.12);
+  box-shadow: 0 4px 20px rgba(142, 197, 252, 0.06);
   overflow: hidden;
   display: flex;
-  position: relative;
+  flex-direction: column;
   font-family: "PingFang SC", "Microsoft YaHei", "STSong", "Noto Serif SC", serif;
-  box-shadow: 0 8px 32px rgba(44, 36, 22, 0.08);
-  color: #2C2416;
+  color: #1E293B;
 }
 
-/* 淡雅水墨晕染背景 */
-.ink-wash-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 10% 20%, rgba(74, 144, 217, 0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 90% 80%, rgba(212, 169, 83, 0.03) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(44, 36, 22, 0.015) 0%, transparent 70%);
-}
-
-/* ===== 左侧五行侧边栏 ===== */
-.element-sidebar {
-  width: 32px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 20px 0;
-  border-right: 1px solid rgba(44, 36, 22, 0.06);
-  position: relative;
-  z-index: 1;
-}
-
-.sidebar-item {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  font-size: 12px;
-  font-weight: 700;
-  color: #C4BDB0;
-  padding: 8px 2px;
-  border-radius: 10px;
-  transition: all 0.25s ease;
-  letter-spacing: 0.06em;
-  cursor: default;
-}
-
-.sidebar-item.active {
-  background: v-bind(elementAccent);
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-/* ===== 主内容区 ===== */
-.card-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 16px 12px;
-  min-width: 0;
-  position: relative;
-  z-index: 1;
-}
-
-/* ===== 顶部标题区 ===== */
-.card-header {
+/* ===== 顶部 ===== */
+.card-top {
+  padding: 14px 18px;
   text-align: center;
-  margin-bottom: 10px;
-  flex-shrink: 0;
+  border-bottom: 1px solid rgba(142, 197, 252, 0.06);
 }
 
-.main-title {
-  margin: 0 0 6px;
-  font-size: clamp(1.2rem, 5vw, 1.7rem);
-  font-weight: 900;
-  color: #2C2416;
+.title-row {
+  margin-bottom: 6px;
+}
+
+.top-name {
+  font-size: clamp(1.2rem, 5vw, 1.5rem);
+  font-weight: 800;
+  color: #1E293B;
   letter-spacing: 0.04em;
-  line-height: 1.25;
 }
 
-.name-text {
-  color: #2C2416;
+.top-title {
+  font-size: clamp(0.85rem, 3.8vw, 1rem);
+  font-weight: 500;
+  color: #64748B;
+  letter-spacing: 0.04em;
+  margin-left: 2px;
 }
 
-.title-suffix {
-  color: #5A5040;
-}
-
-.daypillar-row {
-  display: inline-flex;
+/* 日柱信息行 */
+.daypillar-line {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.dp-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 14px;
-  font-size: clamp(0.7rem, 2.8vw, 0.85rem);
+.dp-label {
+  font-size: clamp(0.9rem, 3.8vw, 1.1rem);
   font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.dp-icon {
-  font-size: 13px;
-  line-height: 1;
-}
-
-.dp-name {
-  letter-spacing: 0.04em;
-}
-
-.dp-dot {
-  color: #C9A96E;
-  font-weight: 700;
+.dp-sep {
   font-size: clamp(0.75rem, 3vw, 0.9rem);
+  color: #C9A96E;
+  font-weight: 600;
 }
 
-.dp-summary {
-  font-size: clamp(0.62rem, 2.5vw, 0.78rem);
-  color: #8A8070;
-  font-style: italic;
+.dp-desc {
+  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  color: #6B7280;
   letter-spacing: 0.03em;
+  font-style: italic;
 }
 
-/* ===== 中部主视觉区 ===== */
-.card-body {
+/* ===== 中部 ===== */
+.card-center {
   flex: 1;
   display: flex;
-  gap: 12px;
+  padding: 12px 14px 10px;
+  gap: 10px;
   min-height: 0;
-  margin-bottom: 10px;
 }
 
-/* 左侧天赋标签 */
-.talent-list {
-  flex: 0 0 36%;
+/* 左侧 • 天赋标签 40%（原30% + 10%） */
+.center-left {
+  flex: 0 0 40%;
   display: flex;
   flex-direction: column;
+  gap: 6px;
   justify-content: center;
-  gap: clamp(6px, 1.8vw, 10px);
-  min-width: 0;
 }
 
-.talent-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.talent-icon {
-  width: clamp(28px, 7.5vw, 36px);
-  height: clamp(28px, 7.5vw, 36px);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.t-icon {
-  font-size: clamp(13px, 3.2vw, 16px);
-  line-height: 1;
-  filter: grayscale(0.2) brightness(1.1);
-}
-
-.talent-info {
-  min-width: 0;
-  padding-top: 1px;
-}
-
-.talent-name {
-  font-size: clamp(0.72rem, 3vw, 0.88rem);
-  font-weight: 800;
-  color: #2C2416;
-  letter-spacing: 0.02em;
+.talent-tag-item {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border-left: 3px solid;
   line-height: 1.2;
 }
 
-.talent-desc {
-  margin: 2px 0 0;
-  font-size: clamp(0.52rem, 2.1vw, 0.65rem);
-  color: #8A8070;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* 右侧人物形象 */
-.avatar-area {
-  flex: 1;
+.tag-upper {
   display: flex;
   align-items: center;
-  justify-content: center;
-  position: relative;
-  min-width: 0;
+  gap: 5px;
 }
 
-.avatar-ring {
-  width: clamp(150px, 42vw, 260px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid;
-  padding: 5px;
-  position: relative;
-  z-index: 1;
+.tag-emoji {
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  flex-shrink: 0;
 }
 
-.avatar-inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
+.tag-label {
+  font-size: clamp(0.7rem, 3vw, 0.82rem);
+  font-weight: 700;
+  color: #334155;
   overflow: hidden;
-  background: linear-gradient(180deg, #F5F0E6 0%, #EBE4D6 100%);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(0.5rem, 2.2vw, 0.62rem);
+  font-weight: 400;
+  color: #94A3B8;
+  line-height: 1.3;
+  padding-left: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 右侧 • Q版形象 60%，放大20%，居中偏下 */
+.center-right {
+  flex: 0 0 60%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
 }
 
 .avatar-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
+  max-width: 288px;  /* 原240px * 1.2 = 288px，放大20% */
+  height: auto;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
 }
 
 .avatar-placeholder {
+  width: 80%;
+  max-width: 240px;
+  aspect-ratio: 3 / 4;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.ph-char {
-  font-size: clamp(32px, 9vw, 48px);
-  font-weight: 900;
-  color: #C4BDB0;
-}
-
-.ph-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: #B0A898;
-}
-
-/* 右下角水波纹装饰 */
-.wave-deco {
-  position: absolute;
-  right: -6%;
-  bottom: -4%;
-  width: 55%;
-  height: 35%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.wave-deco svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* ===== 底部总结区 ===== */
-.card-footer {
-  flex-shrink: 0;
-  border-top: 1px solid #E8E0D0;
-  padding-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* 金色装饰线 */
-.deco-line {
-  display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+}
+
+.placeholder-char { font-size: 48px; font-weight: 800; }
+.placeholder-el { font-size: 16px; font-weight: 600; opacity: 0.7; }
+
+/* ===== 底部 ===== */
+.card-bottom {
+  padding: 12px 16px;
+  border-top: 1.5px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.deco-left,
-.deco-right {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #C9A96E 30%, #C9A96E 70%, transparent);
-  font-size: 0;
-}
-
-.deco-dragon {
-  font-size: 14px;
-  color: #C9A96E;
-  flex-shrink: 0;
-}
-
-/* 一句话概括 */
-.trait-summary {
+/* 一句话概括：大字号，书法体，阴影 */
+.trait-text {
   margin: 0;
-  font-size: clamp(0.8rem, 3.4vw, 1rem);
+  font-size: clamp(0.85rem, 3.8vw, 1.05rem);
   font-weight: 700;
-  color: #C9A96E;
+  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  color: #334155;
   text-align: center;
   line-height: 1.5;
   letter-spacing: 0.04em;
 }
 
-/* 关键词 + 历史人物 */
-.bottom-grid {
+/* 天赋关键词：中等字号，" · " 分隔一字排开居中 */
+.keyword-line {
   display: flex;
-  gap: 12px;
-}
-
-.keywords-section,
-.history-section {
-  flex: 1;
-  min-width: 0;
-}
-
-.section-title {
-  margin: 0 0 6px;
-  font-size: clamp(0.6rem, 2.4vw, 0.72rem);
-  font-weight: 800;
-  color: #5A5040;
-  letter-spacing: 0.04em;
-}
-
-.keywords-pills {
-  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 0;
 }
 
-.keyword-pill {
-  font-size: clamp(0.55rem, 2.2vw, 0.7rem);
-  font-weight: 700;
-  color: #C9A96E;
-  background: #F0E8D8;
-  padding: 3px 9px;
-  border-radius: 10px;
-  border: 1px solid #E8DCC8;
+.kw-item {
+  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+  font-weight: 600;
+  color: #475569;
   white-space: nowrap;
 }
 
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.kw-sep {
+  color: #C9A96E;
+  font-weight: 700;
+  margin: 0 2px;
 }
 
-.history-item {
+/* 历史人物：两列并排居中，小字号低不透明度 */
+.history-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.history-figure {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-size: clamp(0.55rem, 2.2vw, 0.7rem);
-  color: #6A6050;
+  font-size: clamp(0.55rem, 2.4vw, 0.7rem);
+  color: #94A3B8;
+  opacity: 0.8;
+  white-space: nowrap;
   line-height: 1.4;
 }
 
 .fig-bullet {
-  color: #C9A96E;
+  font-weight: 700;
   font-size: 1.1em;
   line-height: 1;
 }
@@ -592,64 +389,23 @@ const dpBadgeStyle = computed(() => ({
 }
 
 /* ===== 响应式 ===== */
-@media (max-width: 480px) {
-  .card-main {
-    padding: 10px 12px 10px;
-  }
-  .card-body {
-    flex-direction: column-reverse;
-    gap: 8px;
-  }
-  .talent-list {
-    flex: none;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .talent-item {
-    flex: 0 0 48%;
-  }
-  .avatar-ring {
-    width: 140px;
-  }
-  .bottom-grid {
-    flex-direction: column;
-    gap: 8px;
-  }
+@media (max-width: 640px) {
+  .card-top { padding: 10px 12px; }
+  .card-center { padding: 10px 10px 8px; gap: 8px; }
+  .center-left { flex: 0 0 42%; }
+  .center-right { flex: 0 0 58%; }
+  .avatar-img { max-width: 220px; }
+  .card-bottom { padding: 10px 12px; gap: 6px; }
+  .history-row { gap: 10px; }
 }
 
-@media (min-width: 768px) {
-  .card-main {
-    padding: 18px 24px 14px;
-  }
-  .main-title {
-    font-size: 1.85rem;
-  }
-  .talent-icon {
-    width: 40px;
-    height: 40px;
-  }
-  .t-icon {
-    font-size: 18px;
-  }
-  .talent-name {
-    font-size: 0.95rem;
-  }
-  .talent-desc {
-    font-size: 0.72rem;
-  }
-  .avatar-ring {
-    width: 280px;
-  }
-  .trait-summary {
-    font-size: 1.05rem;
-  }
-  .keyword-pill {
-    font-size: 0.78rem;
-    padding: 4px 12px;
-  }
-  .history-item {
-    font-size: 0.78rem;
-  }
+@media (min-width: 1024px) {
+  .card-top { padding: 16px 24px; }
+  .card-center { padding: 16px 20px 12px; gap: 14px; }
+  .center-left { flex: 0 0 38%; }
+  .center-right { flex: 0 0 62%; }
+  .talent-tag-item { padding: 8px 14px; border-radius: 12px; }
+  .avatar-img { max-width: 320px; }
+  .card-bottom { padding: 14px 20px 16px; gap: 10px; }
 }
 </style>
