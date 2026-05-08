@@ -14,14 +14,13 @@
         <span class="dp-sep">·</span>
         <span class="dp-identity" :style="{ color: traitInfo.color }">{{ dayColumnIdentity }}</span>
       </div>
-      <!-- 日柱概述：和日柱描述同字体，放在日柱·身份下方 -->
-      <p class="daypillar-summary-text" v-if="dayPillarSummary">{{ dayPillarSummary }}</p>
       <!-- 日柱描述：恢复原来格式，居中偏左对齐 -->
       <p class="day-column-text" v-if="dayColumnDescription">{{ dayColumnDescription }}</p>
     </div>
 
-    <!-- ===== 中部：左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
+    <!-- ===== 中部：日柱概述 + 左侧天赋标签(40%) + 右侧Q版人物(60%) ===== -->
     <div class="card-center">
+      <p class="daypillar-summary-text" v-if="dayPillarSummary">{{ dayPillarSummary }}</p>
       <div class="center-left">
         <div
           v-for="(tag, i) in displayTags"
@@ -268,17 +267,20 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 }
 
 /* 日柱概述：和日柱描述同字体，放在日柱·身份下方 */
+/* 日柱概述：居于画面中间，字体大小、类型跟日柱保持一致 */
 .daypillar-summary-text {
-  margin: 4px 0 0;
+  margin: 0;
   padding: 0 8px;
-  font-size: clamp(0.75rem, 3vw, 0.9rem);
-  font-weight: 600;
-  font-family: "STHeiti", "SimHei", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
+  font-weight: 800;
+  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
   color: #475569;
   line-height: 1.6;
   text-align: center;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   text-shadow: none;
+  flex: 0 0 100%;
+  box-sizing: border-box;
 }
 
 /* 日柱描述：恢复原来格式（黑体书法风格），居中偏左对齐 */
@@ -298,6 +300,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 .card-center {
   flex: 1;
   display: flex;
+  flex-wrap: wrap;
   padding: 12px 14px 10px;
   gap: 10px;
   min-height: 0;
