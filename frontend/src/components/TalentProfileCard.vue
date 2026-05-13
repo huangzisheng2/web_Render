@@ -338,24 +338,24 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   -webkit-box-direction: normal;
   -webkit-flex-direction: column;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   -webkit-box-pack: center;
   -webkit-justify-content: center;
   justify-content: center;
   min-width: 0;
   box-sizing: border-box;
 }
-@supports not (gap: 6px) {
-  .center-left > * + * { margin-top: 6px; }
+@supports not (gap: 4px) {
+  .center-left > * + * { margin-top: 4px; }
 }
 
 .talent-tag-item {
-  padding: 6px 10px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 8px;
   border-left: 3px solid;
-  line-height: 1.2;
+  line-height: 1.3;
   box-sizing: border-box;
-  min-height: 44px;
+  min-height: 28px;
   display: -webkit-box;
   display: -webkit-flex;
   display: flex;
@@ -620,7 +620,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
     padding: 4px 8px;
     border-radius: 8px;
     border-left-width: 2px;
-    min-height: 36px;
+    min-height: 28px;
   }
   .tag-label { font-size: 0.65rem; max-width: 80px; }
   .tag-emoji { font-size: 0.75rem; }
@@ -663,7 +663,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   .center-right { flex: 0 0 62%; }
   .avatar-wrapper { max-width: 260px; }
   .avatar-img { max-width: 260px; }
-  .talent-tag-item { padding: 7px 12px; }
+  .talent-tag-item { padding: 5px 10px; }
   .card-bottom { padding: 12px 16px; gap: 10px; }
 }
 
@@ -673,7 +673,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   .card-center { padding: 16px 20px 12px; gap: 14px; }
   .center-left { flex: 0 0 38%; }
   .center-right { flex: 0 0 62%; }
-  .talent-tag-item { padding: 8px 14px; border-radius: 12px; }
+  .talent-tag-item { padding: 5px 12px; border-radius: 12px; }
   .avatar-wrapper { max-width: 320px; }
   .avatar-img { max-width: 320px; }
   .card-bottom { padding: 14px 20px 16px; gap: 12px; }

@@ -107,6 +107,35 @@ if (涉及文字排版优化):
 - 入口：`frontend/public/debug.html` 或 URL参数 `?debug=true`
 - 特点：展示原始数据、多级论级分析、技术详情
 
+#### 3.3 跨平台适配强制规则（新增）
+
+**所有涉及 TalentProfileCard 天赋综合画像卡片的修改，必须满足以下跨平台要求**：
+
+```
+强制规则 1: 多断点覆盖
+→ 必须包含 ≤360px / 361-640px / 641-1023px / ≥1024px 四个断点
+→ 每个断点独立验证布局不混乱
+
+强制规则 2: 浏览器兼容
+→ 所有 flex 属性必须有 -webkit- 前缀
+→ flex gap 必须有 @supports not (gap: ...) margin 兜底
+→ clamp() 必须有 @supports not 固定值降级
+
+强制规则 3: 移动端适配
+→ iOS 必须包含 env(safe-area-inset-*)
+→ 触摸目标 ≥ 44px（标签类可放宽至 36px）
+→ 使用 100dvh + 100vh 双保险
+→ QQ/微信内置浏览器需测试 webkit 前缀渲染
+
+强制规则 4: 字体跨平台
+→ 中文字体栈必须覆盖: iOS(PingFang SC) → Win(Microsoft YaHei) → Android(Noto Sans SC) → Linux(WenQuanYi Micro Hei)
+→ 书法字体(KaiTi/STKaiti)仅用于装饰性文字，关键信息需 sans-serif 兜底
+
+强制规则 5: 排版对齐
+→ 同层元素（如标签列表 vs 图像）UI 高度必须视觉对齐
+→ 避免无意义的过大 padding/min-height 导致高度不对齐
+```
+
 ### 阶段4：响应式同步规则
 
 修改任何页面时，必须遵循以下同步规则：
