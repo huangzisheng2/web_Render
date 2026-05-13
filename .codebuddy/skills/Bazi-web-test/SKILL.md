@@ -137,9 +137,14 @@ Rule 3: 新增组件时
 - [ ] 是否区分 `.modal-overlay` 和 `.picker-modal-overlay` 位置
 - [ ] 性别图标是否正确（男♂蓝/女♀粉）
 
-### 阶段5.5：自动生成GitHub Desktop Summary（必须执行）
+### 阶段5.5：自动生成Git提交信息并提交（必须执行）
 
-**每次前端代码修改完成后，AI必须立即生成并输出GitHub Desktop风格的Summary**，格式如下：
+**每次前端代码修改完成后，AI必须立即：**
+1. 生成 Summary + Description
+2. 自动执行 `git add` + `git commit`
+3. 告知用户去 GitHub Desktop 点击 Push
+
+格式如下：
 
 ```
 📝 **自动生成的Git提交信息**
@@ -149,10 +154,8 @@ Summary: <type>: <一句话描述修改内容>
 Description:
 - <修改点1>
 - <修改点2>
-- <修改点3>
 
-💡 **操作指引**：
-请复制以上Summary和Description到GitHub Desktop中完成提交
+✅ 已自动提交，请打开 GitHub Desktop → Push origin
 ```
 
 **生成规则**：
@@ -172,37 +175,34 @@ Description:
    - 修改的功能点
    - 影响的页面/组件
 
-### 阶段6：Git提交（用户手动执行）
+### 阶段6：Git提交（AI自动执行）
 
-**AI生成Summary后，由用户手动完成提交**：
+**代码修改完成后，AI必须自动执行 `git add` + `git commit`**，用户只需在 GitHub Desktop 中点击 Push。
 
-代码生成完成后，**必须自动执行Git提交**：
-
-#### 6.1 自动提交流程
+#### 6.1 自动提交流程（AI执行）
 
 ```bash
-# 1. 检查变更
-git status
+# 1. 检查变更文件
+git status --short
 
-# 2. 添加到暂存区
-git add <修改的文件>
+# 2. 添加所有修改到暂存区
+git add <修改的文件列表>
 
-# 3. 使用 GitHub Desktop 提交（自动填写Summary）
-# 通过 Git 命令模拟 GitHub Desktop 提交行为
-git commit -m "<type>: <description>"
-
-# 4. 推送到远程（可选，根据用户配置）
-git push origin <current-branch>
+# 3. 自动提交（Summary 和 Description 自动填入）
+git commit -m "<type>: <一句话描述>" -m "<详细描述1>" -m "<详细描述2>"
 ```
 
-#### 6.2 自动生成 GitHub Desktop 风格的 Summary
+> **注意**：不自动执行 `git push`，保留用户手动 Push 的控制权。
+> 用户只需打开 GitHub Desktop → 点击 **Push origin** 即可。
 
-AI 必须根据代码变更**自动推断并填写**以下信息：
+#### 6.2 Summary 和 Description 自动生成规则
+
+AI 必须根据代码变更**自动推断并生成**以下信息：
 
 | 字段 | 规则 | 示例 |
 |------|------|------|
 | **Summary (必填)** | `<type>: <一句话描述>` | `ui: 修复电脑端StepForm布局混乱问题` |
-| **Description (可选)** | 列出具体修改点，每行以 `-` 开头 | `- 添加@media查询限定电脑端样式`<br>`- 修复性别图标颜色错误` |
+| **Description (必填)** | 每个修改文件一行，格式 `- <文件>: <改动>` | `- StepForm.vue: 添加@media限定电脑端样式` |
 
 **Type 分类规则**：
 ```
@@ -227,26 +227,27 @@ chore:    构建、配置、依赖更新
 - refactor: 抽离StepForm表单验证逻辑
 ```
 
-#### 6.3 自动提交流程示例
+#### 6.3 自动提交流程完整示例
 
 ```
-✅ 代码修改完成
+✅ 代码修改完成（例如修改了 StepForm.vue 和 App.vue）
    ↓
-📝 自动生成提交信息
+🔍 执行 git status --short
+   M frontend/src/components/StepForm.vue
+   M frontend/src/App.vue
+   ↓
+📝 AI自动生成提交信息
    Summary: "ui: 修复电脑端StepForm布局混乱问题"
-   Description: 
-   - 添加 @media (min-width: 1024px) 查询限定电脑端样式
-   - 修复性别图标颜色和符号错误
-   - 移除快速输入文字标签保持界面紧凑
+   Description:
+   - StepForm.vue: 添加@media (min-width: 1024px) 限定电脑端样式
+   - App.vue: 修复性别图标颜色和符号错误
    ↓
-💾 执行 git add + git commit
+💾 AI执行: git add frontend/src/components/StepForm.vue frontend/src/App.vue
+        git commit -m "ui: 修复电脑端StepForm布局混乱问题" -m "- StepForm.vue: 添加@media限定电脑端样式" -m "- App.vue: 修复性别图标颜色和符号错误"
    ↓
-🚀 推送至远程 (可选)
-   ↓
-✅ 提交完成，返回提交哈希和链接
+✅ 提交完成！
+   📌 用户操作：打开 GitHub Desktop → 点击 Push origin
 ```
-
-#### 6.4 提交信息规范检查清单
 
 提交前必须验证：
 - [ ] Summary 以 type 开头（feat/fix/ui/refactor/perf/style/docs/chore）

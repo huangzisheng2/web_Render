@@ -201,15 +201,22 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 <style scoped>
 .talent-card {
   width: 100%;
+  max-width: 100vw;
   border-radius: 18px;
   background: linear-gradient(145deg, #ffffff 0%, #FAFBFC 100%);
   border: 1px solid rgba(142, 197, 252, 0.12);
   box-shadow: 0 4px 20px rgba(142, 197, 252, 0.06);
   overflow: hidden;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
-  font-family: "PingFang SC", "Microsoft YaHei", "STSong", "Noto Serif SC", serif;
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "WenQuanYi Micro Hei", "STSong", "Noto Serif SC", sans-serif;
   color: #1E293B;
+  box-sizing: border-box;
 }
 
 /* ===== 顶部 ===== */
@@ -308,19 +315,38 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 /* ===== 中部 ===== */
 .card-center {
   flex: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
   padding: 12px 14px 10px;
   gap: 10px;
   min-height: 0;
+  box-sizing: border-box;
+}
+/* flex gap 兜底（不支持 gap 的浏览器用 margin） */
+@supports not (gap: 10px) {
+  .card-center > * + * { margin-left: 10px; }
 }
 
 /* 左侧 · 天赋标签 40% */
 .center-left {
   flex: 0 0 40%;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 6px;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@supports not (gap: 6px) {
+  .center-left > * + * { margin-top: 6px; }
 }
 
 .talent-tag-item {
@@ -328,12 +354,29 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   border-radius: 10px;
   border-left: 3px solid;
   line-height: 1.2;
+  box-sizing: border-box;
+  min-height: 44px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
 }
 
 .tag-upper {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+@supports not (gap: 5px) {
+  .tag-upper > * + * { margin-left: 5px; }
 }
 
 .tag-emoji {
@@ -353,15 +396,29 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 /* 右侧 · Q版形象 60% */
 .center-right {
   flex: 0 0 60%;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: start;
+  -webkit-align-items: flex-start;
   align-items: flex-start;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 /* 头像包裹：文字 + 图片统一宽度，居中对齐，始终绑定 */
 .avatar-wrapper {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   width: 100%;
   max-width: 288px;
@@ -396,11 +453,22 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 .card-bottom {
   padding: 12px 16px;
   border-top: 1.5px solid;
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
   align-items: center;
   gap: 10px;
   background: rgba(255, 255, 255, 0.5);
+  box-sizing: border-box;
+}
+@supports not (gap: 10px) {
+  .card-bottom > * + * { margin-top: 10px; }
 }
 
 /* 一句话概括：正楷加粗毛笔字体 */
@@ -413,18 +481,28 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   text-align: center;
   line-height: 1.6;
   letter-spacing: 0.06em;
+  word-break: break-word;
 }
 
 /* 双列布局 */
 .bottom-columns {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
   width: 100%;
   gap: 16px;
+  box-sizing: border-box;
+}
+@supports not (gap: 16px) {
+  .bottom-columns > * + * { margin-left: 16px; }
 }
 
 .bottom-col {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1;
   flex: 1;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .col-title {
@@ -444,9 +522,16 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 
 /* 左列：天赋关键词 pill 按钮 */
 .keyword-pills {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-wrap: wrap;
   flex-wrap: wrap;
   gap: 6px;
+  box-sizing: border-box;
+}
+@supports not (gap: 6px) {
+  .keyword-pills > * { margin: 3px; }
 }
 
 .kw-pill {
@@ -459,22 +544,37 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   font-weight: 600;
   white-space: nowrap;
   letter-spacing: 0.02em;
+  box-sizing: border-box;
 }
 
 /* 右列：历史人物画像 */
 .history-list {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
   flex-direction: column;
   gap: 4px;
+  box-sizing: border-box;
+}
+@supports not (gap: 4px) {
+  .history-list > * + * { margin-top: 4px; }
 }
 
 .history-figure {
+  display: -webkit-box;
+  display: -webkit-flex;
   display: flex;
+  -webkit-box-align: baseline;
+  -webkit-align-items: baseline;
   align-items: baseline;
   gap: 4px;
   font-size: clamp(0.55rem, 2.4vw, 0.7rem);
   color: #1E293B;
   line-height: 1.4;
+  box-sizing: border-box;
 }
 
 .fig-bullet {
@@ -490,9 +590,64 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 }
 
 /* ===== 响应式 ===== */
-@media (max-width: 640px) {
+
+/* ---------- 超小屏 ≤360px（iPhone SE / 小安卓） ---------- */
+@media (max-width: 360px) {
+  .talent-card { border-radius: 12px; }
+  .card-top { padding: 8px 10px; }
+  .card-center {
+    padding: 8px 6px 6px;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .center-left {
+    flex: 0 0 100%;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+    -webkit-flex-wrap: wrap;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-start;
+  }
+  .center-right {
+    flex: 0 0 100%;
+    justify-content: center;
+  }
+  .talent-tag-item {
+    padding: 4px 8px;
+    border-radius: 8px;
+    border-left-width: 2px;
+    min-height: 36px;
+  }
+  .tag-label { font-size: 0.65rem; max-width: 80px; }
+  .tag-emoji { font-size: 0.75rem; }
+  .avatar-wrapper { max-width: 180px; }
+  .avatar-img { max-width: 180px; }
+  .avatar-placeholder { max-width: 140px; }
+  .daypillar-summary-art { font-size: 0.62rem; margin-bottom: 4px; }
+  .day-column-text { font-size: 0.58rem; }
+  .card-bottom { padding: 8px 10px; gap: 6px; }
+  .trait-text { font-size: 0.78rem; }
+  .bottom-columns {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .col-title { font-size: 0.6rem; }
+  .col-icon { font-size: 0.7rem; }
+  .kw-pill { font-size: 0.52rem; padding: 2px 8px; }
+  .history-figure { font-size: 0.52rem; }
+}
+
+/* ---------- 小屏 361-640px（主流手机） ---------- */
+@media (min-width: 361px) and (max-width: 640px) {
   .card-top { padding: 10px 12px; }
-  .card-center { padding: 10px 10px 8px; gap: 8px; }
+  .card-center { padding: 10px 8px 8px; gap: 8px; }
   .center-left { flex: 0 0 42%; }
   .center-right { flex: 0 0 58%; }
   .avatar-wrapper { max-width: 220px; }
@@ -501,6 +656,18 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   .bottom-columns { gap: 10px; }
 }
 
+/* ---------- 平板 641-1023px ---------- */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .card-center { padding: 14px 16px 12px; gap: 12px; }
+  .center-left { flex: 0 0 38%; }
+  .center-right { flex: 0 0 62%; }
+  .avatar-wrapper { max-width: 260px; }
+  .avatar-img { max-width: 260px; }
+  .talent-tag-item { padding: 7px 12px; }
+  .card-bottom { padding: 12px 16px; gap: 10px; }
+}
+
+/* ---------- 桌面 ≥1024px ---------- */
 @media (min-width: 1024px) {
   .card-top { padding: 16px 24px; }
   .card-center { padding: 16px 20px 12px; gap: 14px; }
@@ -511,5 +678,35 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   .avatar-img { max-width: 320px; }
   .card-bottom { padding: 14px 20px 16px; gap: 12px; }
   .bottom-columns { gap: 20px; }
+}
+
+/* ---------- iOS 安全区适配（刘海屏/灵动岛） ---------- */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .talent-card {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* ---------- QQ/微信内置浏览器兼容 ---------- */
+/* 微信/QQ 浏览器对某些 CSS 属性支持不完整，做降级处理 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  /* 在高分屏（大部分手机）上确保图片清晰 */
+  .avatar-img { image-rendering: -webkit-optimize-contrast; }
+}
+
+/* 针对不支持 clamp() 的旧浏览器降级 */
+@supports not (font-size: clamp(1rem, 1vw, 1rem)) {
+  .top-name { font-size: 1.35rem; }
+  .top-title { font-size: 0.9rem; }
+  .dp-label, .dp-identity, .dp-element-icon { font-size: 1.05rem; }
+  .day-column-text { font-size: 0.68rem; }
+  .daypillar-summary-art { font-size: 0.78rem; }
+  .tag-label { font-size: 0.75rem; }
+  .tag-emoji { font-size: 0.9rem; }
+  .trait-text { font-size: 1rem; }
+  .col-title { font-size: 0.7rem; }
+  .kw-pill { font-size: 0.6rem; }
+  .history-figure { font-size: 0.6rem; }
 }
 </style>
