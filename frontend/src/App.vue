@@ -91,7 +91,7 @@ import QuizPage from './components/QuizPage.vue'
 import StepForm from './components/StepForm.vue'
 import LoadingPage from './components/LoadingPage.vue'
 import ReportPage from './components/ReportPage.vue'
-import { analyzeBazi, analyzeAI, downloadReport } from './api/bazi'
+import { analyzeBazi, analyzeAI, downloadReport, warmupServer } from './api/bazi'
 
 // 检测调试模式
 const { appContext } = getCurrentInstance()
@@ -146,7 +146,7 @@ const currentPage = ref(restoredState?.currentPage || 'landing') // landing, int
 const reportGenerationStatus = ref('idle') // idle, generating, completed, error
 
 // 分析阶段状态（用于LoadingPage进度显示）
-const analysisStage = ref('data') // data, ai-parse, generating, returning, completed
+const analysisStage = ref('warming') // warming, data, ai-parse, generating, returning, completed
 
 // 保存的表单数据（用于失败恢复）
 const savedFormData = ref(null)
@@ -240,7 +240,13 @@ const handleFormSubmit = async (formData) => {
 
 // 启动报告生成（后台）
 const startReportGeneration = async (formData) => {
-  // 阶段1：数据分析（立即开始）
+  // 阶段0：服务器预热（Render 免费实例可能休眠，需要唤醒）
+  analysisStage.value = 'warming'
+
+  // 预热服务器（不阻塞阶段提示，预热与后续阶段并行感知）
+  warmupServer().catch(() => {})
+
+  // 阶段1：数据分析
   analysisStage.value = 'data'
   
   // 模拟阶段进度（因为后端是同步返回，前端模拟进度提升用户体验）

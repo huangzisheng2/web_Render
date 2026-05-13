@@ -122,15 +122,15 @@ const props = defineProps({
   // 新增：当前分析阶段
   analysisStage: {
     type: String,
-    default: 'data', // data, ai-parse, generating, returning
-    validator: (value) => ['data', 'ai-parse', 'generating', 'returning', 'completed'].includes(value)
+    default: 'warming', // warming, data, ai-parse, generating, returning, completed
+    validator: (value) => ['warming', 'data', 'ai-parse', 'generating', 'returning', 'completed'].includes(value)
   }
 })
 
 const emit = defineEmits(['continue', 'retry'])
 
-// 新的四步骤：数据分析、AI解析、生成报告、返回结果
-const steps = ['数据分析', 'AI解析', '生成报告', '返回结果']
+// 五个步骤：服务器预热、数据分析、AI解析、生成报告、返回结果
+const steps = ['唤醒服务器', '数据分析', 'AI解析', '生成报告', '返回结果']
 const currentStep = ref(0)
 
 const tips = [
@@ -151,11 +151,12 @@ let tipInterval = null
 
 // 根据 analysisStage 映射到步骤索引
 const stageToStepIndex = {
-  'data': 0,        // 数据分析
-  'ai-parse': 1,    // AI解析
-  'generating': 2,  // 生成报告
-  'returning': 3,   // 返回结果
-  'completed': 3    // 已完成
+  'warming': 0,     // 唤醒服务器
+  'data': 1,        // 数据分析
+  'ai-parse': 2,    // AI解析
+  'generating': 3,  // 生成报告
+  'returning': 4,   // 返回结果
+  'completed': 4    // 已完成
 }
 
 onMounted(() => {

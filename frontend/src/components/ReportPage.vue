@@ -182,37 +182,115 @@ const simpleReport = computed(() => {
 })
 
 function parseSimpleReport(report) {
+  // 多格式兼容：支持 ### 标题 / **标题** / ## 标题 / 标题：等格式
+  // 1. 先尝试按 ### 分割
   const sections = report.split(/###\s+/).filter(s => s.trim())
   let coreTalent = '', personality = '', talentScenario = '', growthAdvice = '', keywords = '', figures = ''
-  for (const section of sections) {
-    const lower = section.toLowerCase()
-    if (lower.startsWith('核心天赋')) coreTalent = section.trim()
-    else if (lower.startsWith('性格综合分析')) personality = section.trim()
-    else if (lower.startsWith('天赋场景')) talentScenario = section.trim()
-    else if (lower.startsWith('成长意见')) growthAdvice = section.trim()
-    else if (lower.startsWith('天赋关键词')) keywords = section.trim()
-    else if (lower.startsWith('历史人物画像')) figures = section.trim()
+
+  // 匹配函数：section内容是否以某标题开头
+  const matchTitle = (text, titles) => {
+    const t = text.toLowerCase().replace(/^\*+/g, '').trim()
+    return titles.some(title => t.startsWith(title.toLowerCase()))
   }
+
+  // 从section中提取正文（去掉标题行）
+  const extractBody = (text) => {
+    return text.replace(/^[#*\s]*(?:核心天赋|性格综合分析|天赋场景|成长意见|天赋关键词|历史人物画像)[：:\s]*/i, '').trim()
+  }
+
+  if (sections.length > 1) {
+    // 有 ### 标题分割
+    for (const section of sections) {
+      const lower = section.toLowerCase().replace(/^\*+/g, '').trim()
+      if (lower.startsWith('核心天赋')) coreTalent = section.trim()
+      else if (lower.startsWith('性格综合分析')) personality = section.trim()
+      else if (lower.startsWith('天赋场景')) talentScenario = section.trim()
+      else if (lower.startsWith('成长意见') || lower.startsWith('成长建议')) growthAdvice = section.trim()
+      else if (lower.startsWith('天赋关键词')) keywords = section.trim()
+      else if (lower.startsWith('历史人物画像') || lower.startsWith('历史人物')) figures = section.trim()
+    }
+  } else {
+    // 无 ### 标题，尝试按 **标题** 或 标题：格式分割
+    const sectionPattern = /\*{0,2}(核心天赋|性格综合分析|天赋场景|成长意见|成长建议|天赋关键词|历史人物画像|历史人物)\*{0,2}[：:\s]*/gi
+    const parts = report.split(sectionPattern)
+    // parts: ['', '核心天赋', '内容...', '性格综合分析', '内容...', ...]
+    for (let i = 1; i < parts.length; i += 2) {
+      const title = parts[i].toLowerCase().replace(/\*+/g, '').trim()
+      const content = (parts[i + 1] || '').trim()
+      if (title.startsWith('核心天赋')) coreTalent = content
+      else if (title.startsWith('性格综合分析')) personality = content
+      else if (title.startsWith('天赋场景')) talentScenario = content
+      else if (title.startsWith('成长意见') || title.startsWith('成长建议')) growthAdvice = content
+      else if (title.startsWith('天赋关键词')) keywords = content
+      else if (title.startsWith('历史人物画像') || title.startsWith('历史人物')) figures = content
+    }
+    // 如果仍无法识别，再尝试按 **标题** 格式（整段匹配）
+    if (!coreTalent && !personality && !talentScenario && !growthAdvice && !keywords && !figures) {
+      const boldSectionPattern = /\*\*(核心天赋|性格综合分析|天赋场景|成长意见|成长建议|天赋关键词|历史人物画像|历史人物)\*\*[：:\s]*/gi
+      const boldParts = report.split(boldSectionPattern)
+      for (let i = 1; i < boldParts.length; i += 2) {
+        const title = boldParts[i].toLowerCase().replace(/\*+/g, '').trim()
+        const content = (boldParts[i + 1] || '').trim()
+        if (title.startsWith('核心天赋')) coreTalent = content
+        else if (title.startsWith('性格综合分析')) personality = content
+        else if (title.startsWith('天赋场景')) talentScenario = content
+        else if (title.startsWith('成长意见') || title.startsWith('成长建议')) growthAdvice = content
+        else if (title.startsWith('天赋关键词')) keywords = content
+        else if (title.startsWith('历史人物画像') || title.startsWith('历史人物')) figures = content
+      }
+    }
+  }
+
+  // 兜底：仍无结果时，尝试智能提取关键词和人物
+  if (!keywords && report) {
+    const kwMatch = report.match(/(?:天赋关键词|关键词)[：:\s]*([^#*\n]+)/i)
+    if (kwMatch) keywords = kwMatch[1].trim()
+  }
+  if (!figures && report) {
+    const figMatch = report.match(/(?:历史人物画像|历史人物)[：:\s]*([\s\S]+?)(?=(?:#{1,3}\s|$))/i)
+    if (figMatch) figures = figMatch[1].trim()
+  }
+
+  // 最终兜底：全部为空时，整个报告放入核心天赋
   if (!coreTalent && !talentScenario && !growthAdvice && !keywords && !personality && !figures) {
     coreTalent = report.trim()
   }
   return { coreTalent, personality, talentScenario, growthAdvice, keywords, figures }
 }
 
-// 天赋标签
+// 天赋标签：从 **粗体** 提取，也兼容 - 列表项
 const talentTags = computed(() => {
   const aiReport = props.result?.ai_report || ''
   if (!aiReport) return []
-  const matches = aiReport.match(/\*\*(.+?)\*\*/g)
-  return matches ? matches.slice(0, 5).map(m => m.replace(/\*\*/g, '')) : []
+  // 优先匹配 **粗体** 格式
+  let matches = aiReport.match(/\*\*(.+?)\*\*/g)
+  if (matches && matches.length) {
+    return matches.slice(0, 5).map(m => m.replace(/\*\*/g, ''))
+  }
+  // 兜底：匹配 - 列表项或行首关键词
+  const lines = aiReport.split('\n').filter(l => l.trim())
+  const candidates = []
+  for (const line of lines) {
+    const cleaned = line.replace(/^[-*#>\s]+/, '').trim()
+    if (cleaned && cleaned.length <= 15 && !cleaned.includes('：') && !cleaned.includes(':')) {
+      candidates.push(cleaned)
+    }
+  }
+  return candidates.slice(0, 5)
 })
 
-// 天赋关键词解析
+// 天赋关键词解析：优先用解析结果，兜底从原始报告提取
 const profileKeywords = computed(() => {
-  const kw = simpleReport.value?.keywords || ''
-  // 去掉section标题行，仅保留关键词内容
-  const content = kw.replace(/^天赋关键词[：:\s]*/i, '').replace(/\n/g, ' ').trim()
-  // 按分隔符拆分，清理 * 号和空格
+  // 1. 优先用 parseSimpleReport 解析的关键词
+  let kwText = simpleReport.value?.keywords || ''
+  // 2. 兜底：从原始 ai_report 提取关键词段落
+  if (!kwText) {
+    const aiReport = props.result?.ai_report || ''
+    const kwMatch = aiReport.match(/(?:天赋关键词|关键词)[：:\s]*([^\n]+)/i)
+    if (kwMatch) kwText = kwMatch[1].trim()
+  }
+  // 3. 清理并拆分
+  const content = kwText.replace(/^天赋关键词[：:\s]*/i, '').replace(/\n/g, ' ').trim()
   return content.split(/[、,，\s]+/).map(s => s.replace(/\*+/g, '').trim()).filter(Boolean).slice(0, 5)
 })
 

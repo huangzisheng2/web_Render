@@ -20,7 +20,7 @@ const api = axios.create({
 
 // 请求重试计数器
 const retryMap = new WeakMap()
-const MAX_RETRIES = 2
+const MAX_RETRIES = 3
 
 // 请求拦截器
 api.interceptors.request.use(
@@ -56,8 +56,8 @@ api.interceptors.response.use(
     if ((isNetworkError || isServerError) && retryCount < MAX_RETRIES) {
       retryMap.set(config, retryCount + 1)
       console.log(`API 请求重试 (${retryCount + 1}/${MAX_RETRIES}):`, config.url)
-      // 延迟重试，避免立即重发
-      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
+      // 延迟重试，间隔递增（适配热点网络）
+      await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1)))
       return api(config)
     }
 
@@ -68,6 +68,36 @@ api.interceptors.response.use(
     return Promise.reject(new Error('网络错误，请检查网络连接后重试'))
   }
 )
+
+/**
+ * 服务器预热：发送轻量级请求唤醒 Render 休眠实例
+ * 适用于手机热点等不稳定网络环境，避免冷启动超时
+ * @returns {Promise<boolean>} 预热是否成功
+ */
+export const warmupServer = async () => {
+  const warmupApi = axios.create({
+    baseURL: BASE_URL,
+    timeout: 120000, // 预热超时2分钟（冷启动最多30秒）
+    headers: { 'Content-Type': 'application/json' }
+  })
+  let lastError = null
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`服务器预热中... (第${attempt}次)`)
+      await warmupApi.get('/api/cities')
+      console.log('服务器预热成功 ✓')
+      return true
+    } catch (e) {
+      lastError = e
+      console.warn(`预热尝试${attempt}失败:`, e.message)
+      if (attempt < 3) {
+        await new Promise(r => setTimeout(r, 5000 * attempt))
+      }
+    }
+  }
+  console.warn('服务器预热未完全成功，继续尝试主请求:', lastError?.message)
+  return false
+}
 
 /**
  * 八字分析

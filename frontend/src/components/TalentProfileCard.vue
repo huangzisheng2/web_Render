@@ -73,7 +73,7 @@
       <div class="bottom-columns" v-if="displayKeywords.length || displayHistoricalFigures.length">
         <!-- 左列：天赋关键词 -->
         <div class="bottom-col left-col" v-if="displayKeywords.length">
-          <div class="col-title">天赋关键词</div>
+          <div class="col-title"><span class="col-icon">💎</span>天赋关键词</div>
           <div class="keyword-pills">
             <span
               v-for="(kw, i) in displayKeywords"
@@ -85,7 +85,7 @@
 
         <!-- 右列：历史人物画像 -->
         <div class="bottom-col right-col" v-if="displayHistoricalFigures.length">
-          <div class="col-title">历史人物画像</div>
+          <div class="col-title"><span class="col-icon">📜</span>历史人物画像</div>
           <div class="history-list">
             <div
               v-for="(figure, i) in displayHistoricalFigures"
@@ -417,6 +417,13 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   color: #1E293B;
   margin-bottom: 6px;
   letter-spacing: 0.03em;
+}
+
+.col-icon {
+  display: inline-block;
+  margin-right: 4px;
+  font-size: clamp(0.75rem, 3vw, 0.9rem);
+  vertical-align: middle;
 }
 
 /* 左列：天赋关键词 pill 按钮 */
