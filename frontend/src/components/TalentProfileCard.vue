@@ -306,9 +306,9 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   min-height: 0;
 }
 
-/* 左侧 · 天赋标签 40% */
+/* 左侧 · 天赋标签 60% */
 .center-left {
-  flex: 0 0 40%;
+  flex: 0 0 60%;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -342,20 +342,20 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   white-space: nowrap;
 }
 
-/* 右侧 · Q版形象 60% */
+/* 右侧 · Q版形象 30% (中间70%区域) */
 .center-right {
-  flex: 0 0 60%;
+  flex: 0 0 30%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
 }
 
 .avatar-img {
   width: 100%;
-  max-width: 288px;
+  max-width: 160px;
   height: auto;
   object-fit: contain;
-  object-position: center bottom;
+  object-position: center center;
   display: block;
 }
 
