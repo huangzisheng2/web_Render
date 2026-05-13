@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI分析调试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error-box {
+            background: #fee;
+            border-left: 4px solid #f5576c;
+            padding: 16px;
+            margin-top: 16px;
+            color: #c33;
+        }
+        .success-box {
+            background: #efe;
+            border-left: 4px solid #4caf50;
+            padding: 16px;
+            margin-top: 16px;
+            color: #2e7d32;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .mode-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .mode-box h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 16px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+        .info-box h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+        .info-box ul {
+            margin-left: 20px;
+            color: #555;
+        }
+        .info-box li {
+            margin-bottom: 4px;
+        }
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 AI分析调试工具</h1>
+        
+        <div class="info-box">
+            <h4>使用说明</h4>
+            <ul>
+                <li>填写出生信息，点击"测试两种模式"</li>
+                <li>系统会分别调用用户模式和调试模式的API</li>
+                <li>对比返回的AI报告是否一致</li>
+                <li>如果不一致，查看下方的调试数据排查原因</li>
+            </ul>
+        </div>
+
+        <!-- 输入表单 -->
+        <div class="card">
+            <div class="card-title">📋 出生信息</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" id="name" value="测试用户">
+                </div>
+                <div class="form-group">
+                    <label>性别</label>
+                    <select id="gender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>年</label>
+                    <input type="number" id="year" value="2000" min="1900" max="2100">
+                </div>
+                <div class="form-group">
+                    <label>月</label>
+                    <input type="number" id="month" value="1" min="1" max="12">
+                </div>
+                <div class="form-group">
+                    <label>日</label>
+                    <input type="number" id="day" value="1" min="1" max="31">
+                </div>
+                <div class="form-group">
+                    <label>时 (0-23)</label>
+                    <input type="number" id="hour" value="12" min="0" max="23">
+                </div>
+                <div class="form-group">
+                    <label>分</label>
+                    <input type="number" id="minute" value="0" min="0" max="59">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>省份</label>
+                    <input type="text" id="province" value="北京">
+                </div>
+                <div class="form-group">
+                    <label>城市</label>
+                    <input type="text" id="city" value="北京">
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="testBothModes()">🚀 测试两种模式</button>
+                <button class="btn btn-secondary" onclick="checkDebugInfo()" style="margin-left: 10px;">📊 查看调试数据</button>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div id="loading" class="card loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在分析中，请稍候...</p>
+        </div>
+
+        <!-- 结果对比 -->
+        <div id="results" class="card" style="display: none;">
+            <div class="card-title">📊 结果对比</div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('comparison')">对比视图</button>
+                <button class="tab" onclick="switchTab('user-mode')">用户模式详情</button>
+                <button class="tab" onclick="switchTab('debug-mode')">调试模式详情</button>
+                <button class="tab" onclick="switchTab('debug-data')">调试数据</button>
+            </div>
+            
+            <div id="tab-comparison" class="tab-content active">
+                <div class="comparison-grid">
+                    <div class="mode-box">
+                        <h3>👤 用户模式</h3>
+                        <div id="user-mode-result"></div>
+                    </div>
+                    <div class="mode-box">
+                        <h3>🔧 调试模式</h3>
+                        <div id="debug-mode-result"></div>
+                    </div>
+                </div>
+                <div id="comparison-summary" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div id="tab-user-mode" class="tab-content">
+                <div id="user-mode-detail"></div>
+            </div>
+            
+            <div id="tab-debug-mode" class="tab-content">
+                <div id="debug-mode-detail"></div>
+            </div>
+            
+            <div id="tab-debug-data" class="tab-content">
+                <div id="debug-data-detail"></div>
+            </div>
+        </div>
+
+        <!-- 错误显示 -->
+        <div id="error" class="card error-box" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://bazi-talent-api.onrender.com';
+        
+        function getFormData() {
+            return {
+                name: document.getElementById('name').value,
+                gender: document.getElementById('gender').value,
+                year: parseInt(document.getElementById('year').value),
+                month: parseInt(document.getElementById('month').value),
+                day: parseInt(document.getElementById('day').value),
+                hour: parseInt(document.getElementById('hour').value),
+                minute: parseInt(document.getElementById('minute').value),
+                province: document.getElementById('province').value,
+                city: document.getElementById('city').value,
+            };
+        }
+
+        async function testBothModes() {
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            
+            const formData = getFormData();
+            
+            try {
+                // 1. 用户模式（不带 debug header）
+                console.log('[测试] 用户模式...');
+                const userModeRes = await fetch(`${API_BASE}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const userModeData = await userModeRes.json();
+                
+                // 2. 调试模式（带 debug header）
+                console.log('[测试] 调试模式...');
+                const debugModeRes = await fetch(`${API_BASE}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Debug-Mode': 'true'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                const debugModeData = await debugModeRes.json();
+                
+                // 3. 调试模式下执行AI分析
+                let debugAiReport = '';
+                if (debugModeData.success && debugModeData.data) {
+                    console.log('[测试] 调试模式AI分析...');
+                    const aiRes = await fetch(`${API_BASE}/api/analyze-ai`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            report_id: debugModeData.data.report_id,
+                            basic_result: debugModeData.data
+                        })
+                    });
+                    const aiData = await aiRes.json();
+                    debugAiReport = aiData.success ? aiData.ai_report : 'AI分析失败';
+                }
+                
+                // 显示结果
+                displayResults(userModeData, debugModeData, debugAiReport);
+                
+            } catch (err) {
+                error.style.display = 'block';
+                error.textContent = '错误: ' + err.message;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(userModeData, debugModeData, debugAiReport) {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            
+            // 用户模式结果
+            const userAiReport = userModeData.success ? userModeData.data.ai_report : '失败';
+            document.getElementById('user-mode-result').innerHTML = `
+                <p><strong>状态:</strong> ${userModeData.success ? '✅ 成功' : '❌ 失败'}</p>
+                <p><strong>AI报告长度:</strong> ${userAiReport?.length || 0} 字符</p>
+                <div class="result-box">${escapeHtml(userAiReport?.substring(0, 500) || '')}...</div>
+            `;
+            
+            // 调试模式结果
+            document.getElementById('debug-mode-result').innerHTML = `
+                <p><strong>状态:</strong> ${debugModeData.success ? '✅ 成功' : '❌ 失败'}</p>
+                <p><strong>AI报告长度:</strong> ${debugAiReport?.length || 0} 字符</p>
+                <div class="result-box">${escapeHtml(debugAiReport?.substring(0, 500) || '')}...</div>
+            `;
+            
+            // 对比摘要
+            const areEqual = userAiReport === debugAiReport;
+            document.getElementById('comparison-summary').innerHTML = areEqual 
+                ? '<div class="success-box">✅ 两种模式的AI报告完全一致！</div>'
+                : '<div class="error-box">⚠️ 两种模式的AI报告不一致，请查看"调试数据"标签页排查原因</div>';
+            
+            // 详情
+            document.getElementById('user-mode-detail').innerHTML = `
+                <h4>完整响应</h4>
+                <div class="result-box">${JSON.stringify(userModeData, null, 2)}</div>
+                <h4>完整AI报告</h4>
+                <div class="result-box">${escapeHtml(userAiReport || '')}</div>
+            `;
+            
+            document.getElementById('debug-mode-detail').innerHTML = `
+                <h4>基础分析响应</h4>
+                <div class="result-box">${JSON.stringify(debugModeData, null, 2)}</div>
+                <h4>AI分析响应</h4>
+                <div class="result-box">${escapeHtml(debugAiReport || '')}</div>
+            `;
+            
+            // 保存数据供调试接口使用
+            window.lastDebugModeData = debugModeData.data;
+        }
+
+        async function checkDebugInfo() {
+            if (!window.lastDebugModeData) {
+                alert('请先点击"测试两种模式"获取数据');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/test/ai-analysis-debug`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        report_id: window.lastDebugModeData.report_id,
+                        basic_result: window.lastDebugModeData
+                    })
+                });
+                const data = await res.json();
+                
+                document.getElementById('debug-data-detail').innerHTML = `
+                    <h4>输入数据检查</h4>
+                    <div class="result-box">${JSON.stringify(data.debug_info?.input_check, null, 2)}</div>
+                    <h4>AI提示词预览（前500字符）</h4>
+                    <div class="result-box">${escapeHtml(data.debug_info?.ai_prompt_preview || '')}</div>
+                    <h4>AI提示词长度</h4>
+                    <p>${data.debug_info?.ai_prompt_length} 字符</p>
+                    <h4>AI报告</h4>
+                    <div class="result-box">${escapeHtml(data.ai_report || '')}</div>
+                `;
+                
+                // 切换到调试数据标签
+                switchTab('debug-data');
+                document.getElementById('results').style.display = 'block';
+                
+            } catch (err) {
+                alert('获取调试数据失败: ' + err.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
