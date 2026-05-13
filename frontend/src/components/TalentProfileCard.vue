@@ -35,26 +35,28 @@
       </div>
 
       <div class="center-right">
-        <!-- 日柱概述（DAY_PILLAR_SUMMARIES）：艺术字斜体+五行色 -->
-        <p
-          v-if="dayPillarSummary"
-          class="daypillar-summary-art"
-          :style="{ color: traitInfo.color }"
-        >{{ dayPillarSummary }}</p>
-        <img
-          v-if="avatarUrl"
-          :src="avatarUrl"
-          alt="Q版形象"
-          class="avatar-img"
-          @error="avatarError = true"
-        />
-        <div
-          v-else
-          class="avatar-placeholder"
-          :style="{ background: traitInfo.color + '15', color: traitInfo.color }"
-        >
-          <span class="placeholder-char">{{ dayMaster }}</span>
-          <span class="placeholder-el">{{ traitInfo.element }}</span>
+        <!-- 日柱概述 + Q版头像统一宽度包裹 -->
+        <div class="avatar-wrapper">
+          <p
+            v-if="dayPillarSummary"
+            class="daypillar-summary-art"
+            :style="{ color: traitInfo.color }"
+          >{{ dayPillarSummary }}</p>
+          <img
+            v-if="avatarUrl"
+            :src="avatarUrl"
+            alt="Q版形象"
+            class="avatar-img"
+            @error="avatarError = true"
+          />
+          <div
+            v-else
+            class="avatar-placeholder"
+            :style="{ background: traitInfo.color + '15', color: traitInfo.color }"
+          >
+            <span class="placeholder-char">{{ dayMaster }}</span>
+            <span class="placeholder-el">{{ traitInfo.element }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -284,10 +286,12 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   letter-spacing: 0.02em;
 }
 
-/* 日柱概述（DAY_PILLAR_SUMMARIES）：艺术字斜体+五行色，放在Q版画像上方 */
+/* 日柱概述：始终在图片顶部，宽度=图片宽度，居中横向排版 */
 .daypillar-summary-art {
   margin: 0 0 8px;
   padding: 0 4px;
+  width: 100%;
+  box-sizing: border-box;
   font-size: clamp(0.7rem, 3vw, 0.85rem);
   font-weight: 700;
   font-family: "STXingkai", "STKaiti", "KaiTi", "Noto Serif SC", serif;
@@ -297,6 +301,8 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   letter-spacing: 0.04em;
   text-shadow: 0 1px 6px currentColor;
   opacity: 0.9;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* ===== 中部 ===== */
@@ -348,8 +354,18 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
 .center-right {
   flex: 0 0 60%;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
+}
+
+/* 头像包裹：文字 + 图片统一宽度，居中对齐，始终绑定 */
+.avatar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 288px;
+  box-sizing: border-box;
 }
 
 .avatar-img {
@@ -479,6 +495,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   .card-center { padding: 10px 10px 8px; gap: 8px; }
   .center-left { flex: 0 0 42%; }
   .center-right { flex: 0 0 58%; }
+  .avatar-wrapper { max-width: 220px; }
   .avatar-img { max-width: 220px; }
   .card-bottom { padding: 10px 12px; gap: 8px; }
   .bottom-columns { gap: 10px; }
@@ -490,6 +507,7 @@ const tagEmojis = ['💡', '🔍', '⚖️', '👑', '💜']
   .center-left { flex: 0 0 38%; }
   .center-right { flex: 0 0 62%; }
   .talent-tag-item { padding: 8px 14px; border-radius: 12px; }
+  .avatar-wrapper { max-width: 320px; }
   .avatar-img { max-width: 320px; }
   .card-bottom { padding: 14px 20px 16px; gap: 12px; }
   .bottom-columns { gap: 20px; }
